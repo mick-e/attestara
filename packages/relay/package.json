@@ -1,0 +1,41 @@
+{
+  "name": "@agentclear/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentclear/types": "workspace:*",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/csrf-protection": "^7.0.0",
+    "@fastify/helmet": "^12.0.0",
+    "@fastify/rate-limit": "^10.2.0",
+    "@fastify/websocket": "^11.0.0",
+    "@prisma/client": "^6.2.0",
+    "bcrypt": "^5.1.0",
+    "ethers": "^6.13.0",
+    "fastify": "^5.2.0",
+    "ioredis": "^5.4.0",
+    "jsonwebtoken": "^9.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.2.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}
