@@ -22,7 +22,8 @@
     "@agentclear/types": "workspace:*",
     "fastify": "^5.2.0",
     "ioredis": "^5.4.0",
-    "snarkjs": "^0.7.5"
+    "snarkjs": "^0.7.5",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
