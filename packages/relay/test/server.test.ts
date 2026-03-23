@@ -1,0 +1,238 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { buildServer } from '../src/server.js'
+import { clearAuthStores } from '../src/routes/auth.js'
+import { clearAgentStores } from '../src/routes/agents.js'
+import { clearCredentialStores } from '../src/routes/credentials.js'
+import { clearSessionStores } from '../src/routes/sessions.js'
+import { clearOrgStores } from '../src/routes/orgs.js'
+
+async function createApp() {
+  const app = await buildServer({ logger: false })
+  return app
+}
+
+async function registerUser(app: any, email = 'test@example.com', password = 'password123', orgName = 'Test Org') {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/v1/auth/register',
+    payload: { email, password, orgName },
+  })
+  return JSON.parse(res.payload)
+}
+
+describe('Health endpoint', () => {
+  it('GET /health returns ok', async () => {
+    const app = await createApp()
+    const res = await app.inject({ method: 'GET', url: '/health' })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.payload)
+    expect(body.status).toBe('ok')
+    expect(body.timestamp).toBeDefined()
+  })
+})
+
+describe('Auth routes', () => {
+  beforeEach(() => {
+    clearAuthStores()
+    clearOrgStores()
+    clearAgentStores()
+    clearCredentialStores()
+    clearSessionStores()
+  })
+
+  describe('POST /v1/auth/register', () => {
+    it('should register a new user and org', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email: 'alice@example.com', password: 'password123', orgName: 'Alice Corp' },
+      })
+      expect(res.statusCode).toBe(201)
+      const body = JSON.parse(res.payload)
+      expect(body.accessToken).toBeDefined()
+      expect(body.refreshToken).toBeDefined()
+      expect(body.expiresIn).toBe(900)
+      expect(body.user.email).toBe('alice@example.com')
+      expect(body.user.orgId).toBeDefined()
+      expect(body.user.role).toBe('owner')
+    })
+
+    it('should reject duplicate email', async () => {
+      const app = await createApp()
+      await registerUser(app, 'dup@example.com')
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email: 'dup@example.com', password: 'password123', orgName: 'Dup Org' },
+      })
+      expect(res.statusCode).toBe(409)
+    })
+
+    it('should reject invalid email', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email: 'invalid', password: 'password123', orgName: 'Test' },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('should reject short password', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email: 'x@example.com', password: 'short', orgName: 'Test' },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+  })
+
+  describe('POST /v1/auth/login', () => {
+    it('should login with valid credentials', async () => {
+      const app = await createApp()
+      await registerUser(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: { email: 'test@example.com', password: 'password123' },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.payload)
+      expect(body.accessToken).toBeDefined()
+      expect(body.refreshToken).toBeDefined()
+    })
+
+    it('should reject wrong password', async () => {
+      const app = await createApp()
+      await registerUser(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: { email: 'test@example.com', password: 'wrong' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('should reject unknown email', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: { email: 'nobody@example.com', password: 'password123' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /v1/auth/refresh', () => {
+    it('should issue new tokens with valid refresh token', async () => {
+      const app = await createApp()
+      const reg = await registerUser(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { refreshToken: reg.refreshToken },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.payload)
+      expect(body.accessToken).toBeDefined()
+      expect(body.refreshToken).toBeDefined()
+    })
+
+    it('should reject access token as refresh', async () => {
+      const app = await createApp()
+      const reg = await registerUser(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { refreshToken: reg.accessToken },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('should reject invalid refresh token', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { refreshToken: 'invalid-token' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /v1/auth/wallet', () => {
+    it('should authenticate with wallet address', async () => {
+      const app = await createApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/wallet',
+        payload: {
+          message: 'Sign in with Ethereum',
+          signature: '0xsignature',
+          address: '0xAbCdEf1234567890AbCdEf1234567890AbCdEf12',
+        },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.payload)
+      expect(body.accessToken).toBeDefined()
+      expect(body.user.orgId).toBeDefined()
+    })
+
+    it('should return same user for repeated wallet auth', async () => {
+      const app = await createApp()
+      const addr = '0x1111111111111111111111111111111111111111'
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/wallet',
+        payload: { message: 'msg', signature: 'sig', address: addr },
+      })
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/wallet',
+        payload: { message: 'msg', signature: 'sig', address: addr },
+      })
+      const b1 = JSON.parse(r1.payload)
+      const b2 = JSON.parse(r2.payload)
+      expect(b1.user.id).toBe(b2.user.id)
+    })
+  })
+})
+
+describe('Auth middleware', () => {
+  beforeEach(() => {
+    clearAuthStores()
+    clearOrgStores()
+    clearAgentStores()
+  })
+
+  it('should reject requests without auth header', async () => {
+    const app = await createApp()
+    const res = await app.inject({ method: 'GET', url: '/v1/sessions' })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('should reject invalid Bearer token', async () => {
+    const app = await createApp()
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions',
+      headers: { authorization: 'Bearer invalid.token.here' },
+    })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('should accept valid Bearer token', async () => {
+    const app = await createApp()
+    const reg = await registerUser(app)
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/sessions',
+      headers: { authorization: `Bearer ${reg.accessToken}` },
+    })
+    expect(res.statusCode).toBe(200)
+  })
+})

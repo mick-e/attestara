@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("starter")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users                User[]
+  agents               Agent[]
+  credentials          Credential[]
+  apiKeys              ApiKey[]
+  webhooks             Webhook[]
+  initiatedSessions    Session[]    @relation("initiator_org")
+  counterpartySessions Session[]    @relation("counterparty_org")
+
+  @@map("organisations")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  orgId         String   @map("org_id")
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  walletAddress String?  @unique @map("wallet_address")
+  role          String   @default("member")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  org Organisation @relation(fields: [orgId], references: [id])
+
+  @@map("users")
+}
+
+model Agent {
+  id               String   @id @default(uuid())
+  orgId            String   @map("org_id")
+  did              String   @unique
+  name             String
+  status           String   @default("active")
+  metadata         Json     @default("{}")
+  publicKey        String   @map("public_key")
+  registeredTxHash String?  @map("registered_tx_hash")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  org                  Organisation @relation(fields: [orgId], references: [id])
+  credentials          Credential[]
+  turns                Turn[]
+  initiatedSessions    Session[]    @relation("initiator_agent")
+  counterpartySessions Session[]    @relation("counterparty_agent")
+
+  @@map("agents")
+}
+
+model Credential {
+  id                     String   @id @default(uuid())
+  orgId                  String   @map("org_id")
+  agentId                String   @map("agent_id")
+  credentialHash         String   @unique @map("credential_hash")
+  schemaHash             String   @map("schema_hash")
+  ipfsCid                String?  @map("ipfs_cid")
+  credentialDataCached   Json?    @map("credential_data_cached")
+  mandateParamsEncrypted Bytes?   @map("mandate_params_encrypted")
+  mandateKeyVersion      Int      @default(1) @map("mandate_key_version")
+  expiry                 DateTime
+  revoked                Boolean  @default(false)
+  registeredTxHash       String?  @map("registered_tx_hash")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  org   Organisation @relation(fields: [orgId], references: [id])
+  agent Agent        @relation(fields: [agentId], references: [id])
+
+  @@map("credentials")
+}
+
+model Session {
+  id                  String   @id @default(uuid())
+  initiatorAgentId    String   @map("initiator_agent_id")
+  initiatorOrgId      String   @map("initiator_org_id")
+  counterpartyAgentId String   @map("counterparty_agent_id")
+  counterpartyOrgId   String   @map("counterparty_org_id")
+  sessionType         String   @default("intra_org") @map("session_type")
+  inviteTokenHash     String?  @map("invite_token_hash")
+  status              String   @default("active")
+  sessionConfig       Json     @default("{}") @map("session_config")
+  merkleRoot          String?  @map("merkle_root")
+  turnCount           Int      @default(0) @map("turn_count")
+  anchorTxHash        String?  @map("anchor_tx_hash")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  initiatorAgent    Agent        @relation("initiator_agent", fields: [initiatorAgentId], references: [id])
+  initiatorOrg      Organisation @relation("initiator_org", fields: [initiatorOrgId], references: [id])
+  counterpartyAgent Agent        @relation("counterparty_agent", fields: [counterpartyAgentId], references: [id])
+  counterpartyOrg   Organisation @relation("counterparty_org", fields: [counterpartyOrgId], references: [id])
+  turns             Turn[]
+  commitment        Commitment?
+
+  @@index([initiatorAgentId])
+  @@index([counterpartyAgentId])
+  @@index([initiatorOrgId])
+  @@index([counterpartyOrgId])
+  @@index([status])
+  @@map("sessions")
+}
+
+model Turn {
+  id             String   @id @default(uuid())
+  sessionId      String   @map("session_id")
+  agentId        String   @map("agent_id")
+  sequenceNumber Int      @map("sequence_number")
+  terms          Json
+  proofType      String   @map("proof_type")
+  proof          Json
+  publicSignals  Json     @map("public_signals")
+  signature      String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id])
+  agent   Agent   @relation(fields: [agentId], references: [id])
+
+  @@unique([sessionId, sequenceNumber])
+  @@map("turns")
+}
+
+model Commitment {
+  id               String   @id @default(uuid())
+  sessionId        String   @unique @map("session_id")
+  agreementHash    String   @map("agreement_hash")
+  parties          String[]
+  credentialHashes String[] @map("credential_hashes")
+  proofs           Json
+  circuitVersions  String[] @map("circuit_versions")
+  txHash           String?  @map("tx_hash")
+  blockNumber      Int?     @map("block_number")
+  verified         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@index([txHash])
+  @@map("commitments")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  orgId      String    @map("org_id")
+  keyHash    String    @unique @map("key_hash")
+  name       String
+  scopes     String[]
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  org Organisation @relation(fields: [orgId], references: [id])
+
+  @@map("api_keys")
+}
+
+model Webhook {
+  id         String   @id @default(uuid())
+  orgId      String   @map("org_id")
+  url        String
+  secretHash String   @map("secret_hash")
+  events     String[]
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  org        Organisation      @relation(fields: [orgId], references: [id])
+  deliveries WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id              String    @id @default(uuid())
+  webhookId       String    @map("webhook_id")
+  event           String
+  payload         Json
+  status          String    @default("pending")
+  attempts        Int       @default(0)
+  lastAttemptedAt DateTime? @map("last_attempted_at")
+  deliveredAt     DateTime? @map("delivered_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id])
+
+  @@map("webhook_deliveries")
+}
