@@ -1,4 +1,6 @@
 // @agentclear/sdk — TypeScript SDK for AgentClear protocol
+export { AgentClearClient } from './client.js'
+
 export { DIDManager } from './identity/index.js'
 export type { CreateDIDResult } from './identity/index.js'
 
@@ -10,7 +12,16 @@ export { ProverManager } from './prover/index.js'
 export type { Prover } from './prover/index.js'
 export { LocalProver } from './prover/local.js'
 export { RemoteProver } from './prover/remote.js'
-export { TestProver } from './testing/test-prover.js'
 
 export { SessionManager, NegotiationSession, MerkleAccumulator } from './negotiation/index.js'
 export { createTurn, validateTurn, hashTurn } from './negotiation/turn.js'
+
+export { CommitmentManager } from './commitment/index.js'
+export type { CommitmentFilter } from './commitment/index.js'
+export { ChainCommitmentClient } from './commitment/chain.js'
+
+export { RuleBasedStrategy, LLMStrategy, ScriptedStrategy } from './agents/strategy.js'
+export type { NegotiationStrategy } from './agents/strategy.js'
+
+export { TestProver, MockAgent, LocalChain, TestCredentials, SessionRecorder } from './testing/index.js'
+export type { MockAgentOptions, RecordedEvent } from './testing/index.js'
