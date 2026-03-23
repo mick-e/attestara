@@ -1,0 +1,8 @@
+# Compiled artifacts
+artifacts/
+cache/
+typechain-types/
+dist/
+
+# Circom binary (downloaded, not committed)
+bin/
