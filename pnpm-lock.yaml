@@ -191,6 +191,9 @@ importers:
 
   packages/types:
     devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.37
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -8808,7 +8811,7 @@ snapshots:
 
   nopt@3.0.6:
     dependencies:
-      abbrev: 1.0.9
+      abbrev: 1.1.1
 
   nopt@5.0.0:
     dependencies:

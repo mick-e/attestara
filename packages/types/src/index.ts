@@ -1,2 +1,9 @@
-// @agentclear/types — shared type definitions
-export {};
+export * from './did.js'
+export * from './credentials.js'
+export * from './zk.js'
+export * from './negotiation.js'
+export * from './commitment.js'
+export * from './strategy.js'
+export * from './config.js'
+export * from './errors.js'
+export * from './api.js'
