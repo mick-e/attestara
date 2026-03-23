@@ -20,10 +20,18 @@
   "dependencies": {
     "@agentclear/types": "workspace:*",
     "@veramo/core": "^6.0.0",
+    "@veramo/did-manager": "^6.0.0",
+    "@veramo/did-provider-ethr": "^6.0.0",
+    "@veramo/did-resolver": "^6.0.0",
+    "@veramo/key-manager": "^6.0.0",
+    "@veramo/kms-local": "^6.0.0",
+    "did-resolver": "^4.1.0",
+    "ethr-did-resolver": "^11.0.0",
     "ethers": "^6.13.0",
     "snarkjs": "^0.7.5"
   },
   "devDependencies": {
+    "@types/node": "^20",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"
   }
