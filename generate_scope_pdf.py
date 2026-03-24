@@ -31,7 +31,7 @@ TABLE_ALT_ROW = HexColor("#F0F5FA")
 DIVIDER_COLOR = HexColor("#D0DCE8")
 
 LOGO_PATH = r"C:\Users\mpesb\Downloads\WIP\littledata.png"
-OUTPUT_PATH = r"C:\claude\attestara\Attestara_Project_Scope.pdf"
+OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Attestara_Project_Scope.pdf")
 
 PAGE_W, PAGE_H = A4
 MARGIN = 25 * mm
