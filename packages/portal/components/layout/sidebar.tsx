@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const navItems = [
   { href: "/", label: "Overview", icon: "\u2302" },
@@ -15,14 +16,28 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  return (
-    <aside className="flex w-60 flex-col border-r border-navy-800 bg-navy-950">
+  // Close mobile nav on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const navContent = (
+    <>
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-navy-800 px-6">
+      <div className="flex h-16 items-center justify-between border-b border-navy-800 px-6">
         <Link href="/" className="text-lg font-bold text-white">
-          Agent<span className="text-accent">Clear</span>
+          Attest<span className="text-accent">ara</span>
         </Link>
+        {/* Mobile close button */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="text-gray-400 hover:text-white lg:hidden"
+          aria-label="Close menu"
+        >
+          {"\u2715"}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -53,6 +68,41 @@ export function Sidebar() {
       <div className="border-t border-navy-800 px-6 py-4">
         <p className="text-xs text-gray-600">Attestara v0.1.0</p>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger trigger — rendered in the header on small screens */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-40 rounded-md border border-navy-800 bg-navy-950 p-2 text-gray-400 hover:text-white lg:hidden"
+        aria-label="Open menu"
+      >
+        {"\u2630"}
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-navy-800 bg-navy-950 transition-transform lg:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {navContent}
+      </aside>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-60 flex-col border-r border-navy-800 bg-navy-950">
+        {navContent}
+      </aside>
+    </>
   );
 }

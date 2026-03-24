@@ -15,7 +15,7 @@ All decisions include rationale and the conditions under which they should be re
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    AGENTCLEAR REFERENCE STACK                    │
+│                    ATTESTARA REFERENCE STACK                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │  APPLICATION LAYER                                                │

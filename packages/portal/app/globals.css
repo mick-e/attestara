@@ -4,6 +4,12 @@
   /* Navy primary palette */
   --color-navy-50: #f0f1f5;
   --color-navy-100: #e2e4eb;
+  --color-navy-200: #c5c9d7;
+  --color-navy-300: #8b92a8;
+  --color-navy-400: #5a6380;
+  --color-navy-500: #3d4663;
+  --color-navy-600: #2d3552;
+  --color-navy-700: #1f2740;
   --color-navy-800: #1a2744;
   --color-navy-900: #0F172A;
   --color-navy-950: #0a0f1c;
@@ -26,4 +32,28 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
+}
+
+/* Dialog styling resets */
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-700);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-navy-600);
 }

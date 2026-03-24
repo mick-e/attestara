@@ -1,6 +1,6 @@
 "use client";
 
-import { StatCard, TimeSeriesChart } from "@/components/ui";
+import { StatCard } from "@/components/ui";
 
 // Mock session volume data (last 14 days)
 const sessionVolumeData = [

@@ -47,7 +47,7 @@ The competitive landscape can be mapped across two axes: **scope** (consumer vs 
                     HIGH TRUST DEPTH
                     (ZK / Cryptographic Commitment)
                              │
-                             │         ★ AGENTCLEAR
+                             │         ★ ATTESTARA
                              │           (Target Position)
                              │
     CONSUMER ────────────────┼──────────────── ENTERPRISE B2B

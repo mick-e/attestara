@@ -9,7 +9,7 @@ export default function AuthLayout({
         {/* Logo */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-white">
-            Agent<span className="text-accent">Clear</span>
+            Attest<span className="text-accent">ara</span>
           </h1>
           <p className="mt-1 text-sm text-gray-400">
             Cryptographic Trust for AI Agents

@@ -7,7 +7,7 @@ import { join } from 'path'
 // Convert Windows backslash paths to forward slashes for grep/bash
 const ROOT = join(__dirname, '..').replace(/\\/g, '/')
 
-describe('Naming Regression: AgentClear → Attestara', () => {
+describe('Naming Regression: verify Attestara branding consistency', () => {
 
   describe('No remaining "agentclear" references in source files', () => {
     it('should have zero "agentclear" references in TypeScript files', () => {
@@ -120,7 +120,7 @@ describe('Naming Regression: AgentClear → Attestara', () => {
       expect(result.length, 'AttestaraConfig should be defined in types').toBeGreaterThan(0)
     })
 
-    it('No AgentClearClient class remains', () => {
+    it('No legacy client class remains', () => {
       const result = execSync(
         `grep -r "AgentClearClient" --include="*.ts" --include="*.tsx" ${ROOT}/packages/ 2>/dev/null || true`,
         { encoding: 'utf-8' }
@@ -131,7 +131,7 @@ describe('Naming Regression: AgentClear → Attestara', () => {
       expect(matches, 'AgentClearClient should not exist').toHaveLength(0)
     })
 
-    it('No AgentClearError class remains', () => {
+    it('No legacy error class remains', () => {
       const result = execSync(
         `grep -r "AgentClearError" --include="*.ts" ${ROOT}/packages/ 2>/dev/null || true`,
         { encoding: 'utf-8' }

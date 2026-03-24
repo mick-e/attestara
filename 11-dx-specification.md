@@ -275,7 +275,7 @@ Attestara credentials can be embedded in A2A Agent Cards:
     "streaming": true,
     "pushNotifications": false
   },
-  "agentClear": {
+  "attestara": {
     "did": "did:ethr:arb1:0xProcurementAgent",
     "credentialEndpoint": "https://agents.acme.com/procurement/.well-known/attestara-credential",
     "supportedProofs": ["MandateBound", "ParameterRange", "ComplianceStatus"],

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [status, setStatus] = useState<"loading" | "success" | "error">(
@@ -41,7 +42,9 @@ export default function VerifyEmailPage() {
       </h2>
 
       {status === "loading" && (
-        <p className="text-gray-400">Verifying your email...</p>
+        <div className="py-4">
+          <LoadingSpinner label="Verifying your email..." />
+        </div>
       )}
 
       {status === "success" && (
@@ -72,5 +75,19 @@ export default function VerifyEmailPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-8">
+          <LoadingSpinner label="Loading..." />
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

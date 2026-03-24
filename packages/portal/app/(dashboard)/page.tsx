@@ -1,51 +1,100 @@
 "use client";
 
+import Link from "next/link";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-// Mock data — will connect to real API endpoints later
+// Mock data -- will connect to real API endpoints later
 const stats = [
-  { label: "Active Sessions", value: 12, trend: { value: 8, positive: true } },
-  { label: "Total Commitments", value: 847, trend: { value: 12, positive: true } },
-  { label: "Agents Online", value: 5, trend: { value: 2, positive: false } },
-  { label: "Avg Proof Time", value: "1.2s", trend: { value: 15, positive: true } },
+  {
+    label: "Registered Agents",
+    value: 5,
+    trend: { value: 25, positive: true },
+  },
+  {
+    label: "Active Sessions",
+    value: 12,
+    trend: { value: 8, positive: true },
+  },
+  {
+    label: "Total Commitments",
+    value: 847,
+    trend: { value: 12, positive: true },
+  },
+  {
+    label: "Active Credentials",
+    value: 4,
+    trend: { value: 0, positive: true },
+  },
 ];
 
 const recentActivity = [
   {
     id: "1",
     type: "session_started",
-    description: "New negotiation session between Agent-A and Agent-B",
+    description: "New negotiation session between procurement-bot-eu and sales-agent-na",
     status: "active",
     time: "2 min ago",
+    link: "/sessions/sess_01HZN5A1B2C3D4E5F6G7H8I9J0",
   },
   {
     id: "2",
     type: "commitment_verified",
-    description: "Commitment #847 verified on-chain",
+    description: "Commitment cmt_01HZN6A1... verified on-chain (block 18,294,571)",
     status: "completed",
     time: "15 min ago",
+    link: "/commitments/cmt_01HZN6A1B2C3D4E5F6G7H8I9J0",
   },
   {
     id: "3",
     type: "proof_generated",
-    description: "ZK proof generated for credential disclosure",
+    description: "MandateBound ZK proof generated for credential disclosure (420ms)",
     status: "completed",
     time: "32 min ago",
+    link: "/sessions/sess_01HZN5U1V2W3X4Y5Z6A7B8C9D0",
   },
   {
     id: "4",
     type: "session_rejected",
-    description: "Session #45 terms rejected by Agent-C",
+    description: "Session terms rejected by logistics-negotiator after 4 turns",
     status: "rejected",
     time: "1 hr ago",
+    link: "/sessions/sess_01HZN5O1P2Q3R4S5T6U7V8W9X0",
   },
   {
     id: "5",
     type: "agent_registered",
-    description: "New agent registered: procurement-bot-v2",
+    description: "New agent registered: procurement-bot-eu (DID provisioned)",
     status: "active",
     time: "2 hr ago",
+    link: "/agents/ag_01HZN3KQXV7YJWF8RMTG5B2P4D",
+  },
+];
+
+const quickActions = [
+  {
+    label: "Provision Agent",
+    description: "Create a new AI agent with a DID and key pair",
+    href: "/agents",
+    icon: "\u2699",
+  },
+  {
+    label: "Issue Credential",
+    description: "Issue a verifiable authority credential",
+    href: "/credentials",
+    icon: "\u26BF",
+  },
+  {
+    label: "View Sessions",
+    description: "Monitor active negotiation sessions",
+    href: "/sessions",
+    icon: "\u21C4",
+  },
+  {
+    label: "Generate API Key",
+    description: "Create an API key for programmatic access",
+    href: "/settings/api-keys",
+    icon: "\u26A1",
   },
 ];
 
@@ -66,25 +115,60 @@ export default function OverviewPage() {
         ))}
       </div>
 
+      {/* Quick Actions */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-white">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <Link
+              key={action.label}
+              href={action.href}
+              className="group rounded-lg border border-navy-800 bg-navy-900 p-4 transition-colors hover:border-accent/30 hover:bg-accent/5"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg text-accent group-hover:bg-accent/20 transition-colors">
+                  {action.icon}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {action.label}
+                  </p>
+                  <p className="text-xs text-gray-500">{action.description}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Activity Feed */}
       <div className="rounded-lg border border-navy-800 bg-navy-900">
-        <div className="border-b border-navy-800 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-navy-800 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">
             Recent Activity
           </h2>
+          <Link
+            href="/analytics"
+            className="text-xs text-accent hover:text-accent-hover transition-colors"
+          >
+            View Analytics
+          </Link>
         </div>
         <div className="divide-y divide-navy-800">
           {recentActivity.map((item) => (
-            <div
+            <Link
               key={item.id}
-              className="flex items-center justify-between px-6 py-4"
+              href={item.link}
+              className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-navy-800/30"
             >
               <div className="flex-1">
                 <p className="text-sm text-white">{item.description}</p>
                 <p className="mt-0.5 text-xs text-gray-500">{item.time}</p>
               </div>
               <StatusBadge status={item.status} />
-            </div>
+            </Link>
           ))}
         </div>
       </div>
