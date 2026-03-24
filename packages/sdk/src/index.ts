@@ -9,7 +9,7 @@ export type { IPFSClient } from './credentials/ipfs.js'
 export { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './credentials/schemas.js'
 
 export { ProverManager } from './prover/index.js'
-export type { Prover } from './prover/index.js'
+export type { Prover, BundleProofRequest } from './prover/index.js'
 export { LocalProver } from './prover/local.js'
 export { RemoteProver } from './prover/remote.js'
 
