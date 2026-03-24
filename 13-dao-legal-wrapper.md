@@ -1,4 +1,4 @@
-# AgentClear — DAO Legal Wrapper Structure
+# Attestara — DAO Legal Wrapper Structure
 ## v0.1
 
 ---
@@ -46,7 +46,7 @@ A Gibraltar company limited by guarantee (CLG) is appropriate for protocol found
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│         AgentClear Foundation Limited (Gibraltar CLG)            │
+│         Attestara Foundation Limited (Gibraltar CLG)            │
 │                                                                   │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │  BOARD OF DIRECTORS                                      │    │
@@ -141,7 +141,7 @@ Governance tokens are NOT issued to investors as part of the investment. They ar
 
 **Structure:**
 ```
-Investor → Convertible Note → AgentClear Foundation Ltd (Gibraltar CLG)
+Investor → Convertible Note → Attestara Foundation Ltd (Gibraltar CLG)
                                          ↓
                          Ordinary shares (non-voting in DAO, 
                           but with financial rights to revenue)
@@ -181,5 +181,5 @@ DAO Governance → Separate governance token (not a security)
 
 ---
 
-*AgentClear DAO Legal Wrapper Structure v0.1 — For legal counsel review*  
+*Attestara DAO Legal Wrapper Structure v0.1 — For legal counsel review*  
 *This document does not constitute legal advice.*

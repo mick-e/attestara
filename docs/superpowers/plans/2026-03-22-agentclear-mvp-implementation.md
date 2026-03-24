@@ -1,14 +1,14 @@
-# AgentClear MVP Implementation Plan
+# Attestara MVP Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a production-ready MVP of the AgentClear cryptographic trust protocol — ZK circuits, smart contracts, TypeScript SDK, backend services, CLI tools, and a full Next.js portal — ready for investor demos and pilot customer engagement.
+**Goal:** Build a production-ready MVP of the Attestara cryptographic trust protocol — ZK circuits, smart contracts, TypeScript SDK, backend services, CLI tools, and a full Next.js portal — ready for investor demos and pilot customer engagement.
 
-**Architecture:** Middle-Out with 3 parallel tracks converging at bi-weekly checkpoints. Phase 0 defines shared interfaces; Track 1 (ZK + Contracts) validates the cryptographic core; Track 2 (SDK + Backend) builds the developer-facing SDK and API; Track 3 (Portal + DX) builds the web experience. All packages share types from `@agentclear/types`.
+**Architecture:** Middle-Out with 3 parallel tracks converging at bi-weekly checkpoints. Phase 0 defines shared interfaces; Track 1 (ZK + Contracts) validates the cryptographic core; Track 2 (SDK + Backend) builds the developer-facing SDK and API; Track 3 (Portal + DX) builds the web experience. All packages share types from `@attestara/types`.
 
 **Tech Stack:** TypeScript (end-to-end), Circom 2.x + Groth16 (ZK), Solidity 0.8.x + Hardhat + OpenZeppelin v5 (contracts), Fastify (backend), Next.js App Router + Tailwind (portal), Prisma + PostgreSQL + Redis + IPFS/Pinata (data), Turborepo + pnpm (monorepo), Veramo (DID/VC), ethers.js (chain), RainbowKit/wagmi (wallet), Vitest (tests), Playwright (E2E).
 
-**Spec:** `docs/superpowers/specs/2026-03-22-agentclear-mvp-design-v1.3.md`
+**Spec:** `docs/superpowers/specs/2026-03-22-attestara-mvp-design-v1.3.md`
 
 ---
 
@@ -23,8 +23,8 @@ zk.ts                       — ZKProof, CircuitId, ProofType, PublicSignals
 negotiation.ts              — Session, NegotiationTurn, TurnDecision, Terms, TurnContext
 commitment.ts               — Commitment, CommitmentRecord, AgreementHash
 strategy.ts                 — NegotiationStrategy interface, StrategyConfig
-config.ts                   — AgentClearConfig, NetworkConfig, ProverConfig
-errors.ts                   — AgentClearError, ErrorCode enum
+config.ts                   — AttestaraConfig, NetworkConfig, ProverConfig
+errors.ts                   — AttestaraError, ErrorCode enum
 api.ts                      — API request/response types, PaginatedResponse
 ```
 
@@ -67,7 +67,7 @@ hardhat.config.ts
 
 ### `packages/sdk/src/`
 ```
-client.ts                   — AgentClearClient main entry
+client.ts                   — AttestaraClient main entry
 identity/
   index.ts                  — DIDManager class (create, resolve, rotateKey)
   veramo.ts                 — Veramo agent setup + configuration
@@ -159,7 +159,7 @@ config.ts                   — relay service configuration
 ```
 index.ts                    — commander.js entry point
 commands/
-  init.ts                   — agentclear init [--demo]
+  init.ts                   — attestara init [--demo]
   agent.ts                  — agent create|list|info|rotate-key
   credential.ts             — credential issue|list|verify|revoke
   session.ts                — session create|list|watch|replay
@@ -169,7 +169,7 @@ commands/
   config.ts                 — config set|show
   status.ts                 — connection health check
 utils/
-  config-loader.ts          — .agentclear config file loader
+  config-loader.ts          — .attestara config file loader
   output.ts                 — formatted terminal output
   spinner.ts                — progress indicators
 templates/
@@ -271,24 +271,24 @@ render.yaml                 — Render deployment config
 - [ ] **Step 1: Initialize git repo and root package.json**
 
 ```bash
-cd C:\claude\agentclear
+cd C:\claude\attestara
 git init
 ```
 
 ```json
 // package.json
 {
-  "name": "agentclear",
+  "name": "attestara",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "test:contracts": "turbo test --filter=@agentclear/contracts",
-    "test:sdk": "turbo test --filter=@agentclear/sdk",
-    "test:relay": "turbo test --filter=@agentclear/relay",
-    "test:portal": "turbo test --filter=@agentclear/portal",
+    "test:contracts": "turbo test --filter=@attestara/contracts",
+    "test:sdk": "turbo test --filter=@attestara/sdk",
+    "test:relay": "turbo test --filter=@attestara/relay",
+    "test:portal": "turbo test --filter=@attestara/portal",
     "test:integration": "turbo test:integration",
     "test:e2e": "turbo test:e2e",
     "test:ci": "turbo test test:integration",
@@ -392,7 +392,7 @@ Each package needs `package.json` + `tsconfig.json`. Create them all:
 ```json
 // packages/types/package.json
 {
-  "name": "@agentclear/types",
+  "name": "@attestara/types",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -421,12 +421,12 @@ Each package needs `package.json` + `tsconfig.json`. Create them all:
 ```
 
 Repeat pattern for each package with appropriate names:
-- `@agentclear/contracts` — add `hardhat`, `@openzeppelin/contracts`, `circomlib`, `snarkjs` as deps
-- `@agentclear/sdk` — add `@agentclear/types`, `ethers`, `@veramo/core`, `snarkjs` as deps
-- `@agentclear/prover` — add `@agentclear/types`, `fastify`, `snarkjs`, `ioredis` as deps
-- `@agentclear/relay` — add `@agentclear/types`, `fastify`, `@fastify/websocket`, `prisma`, `@prisma/client`, `ioredis`, `ethers` as deps
-- `@agentclear/cli` — add `@agentclear/types`, `@agentclear/sdk`, `commander` as deps
-- `@agentclear/portal` — Next.js app (use `npx create-next-app@latest` then customize)
+- `@attestara/contracts` — add `hardhat`, `@openzeppelin/contracts`, `circomlib`, `snarkjs` as deps
+- `@attestara/sdk` — add `@attestara/types`, `ethers`, `@veramo/core`, `snarkjs` as deps
+- `@attestara/prover` — add `@attestara/types`, `fastify`, `snarkjs`, `ioredis` as deps
+- `@attestara/relay` — add `@attestara/types`, `fastify`, `@fastify/websocket`, `prisma`, `@prisma/client`, `ioredis`, `ethers` as deps
+- `@attestara/cli` — add `@attestara/types`, `@attestara/sdk`, `commander` as deps
+- `@attestara/portal` — Next.js app (use `npx create-next-app@latest` then customize)
 
 - [ ] **Step 3: Install dependencies and verify build**
 
@@ -446,7 +446,7 @@ git commit -m "feat: initialize Turborepo monorepo with 7 package scaffolds"
 
 ---
 
-### Task 2: Define Shared Types (`@agentclear/types`)
+### Task 2: Define Shared Types (`@attestara/types`)
 
 **Files:**
 - Create: `packages/types/src/index.ts`
@@ -772,7 +772,7 @@ export interface ScriptedConfig {
 
 ```typescript
 // packages/types/src/config.ts
-export interface AgentClearConfig {
+export interface AttestaraConfig {
   agent: {
     did: string
     keyFile: string
@@ -841,14 +841,14 @@ export enum ErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
-export class AgentClearError extends Error {
+export class AttestaraError extends Error {
   constructor(
     public readonly code: ErrorCode,
     message: string,
     public readonly details?: Record<string, unknown>,
   ) {
     super(message)
-    this.name = 'AgentClearError'
+    this.name = 'AttestaraError'
   }
 }
 ```
@@ -939,7 +939,7 @@ Expected: Clean compilation, `dist/` populated with `.js` and `.d.ts` files.
 
 ```bash
 git add packages/types/
-git commit -m "feat: define @agentclear/types — all shared interfaces for DID, VC, ZK, negotiation, commitment"
+git commit -m "feat: define @attestara/types — all shared interfaces for DID, VC, ZK, negotiation, commitment"
 ```
 
 ---
@@ -1137,9 +1137,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: agentclear
-      POSTGRES_USER: agentclear
-      POSTGRES_PASSWORD: agentclear_dev
+      POSTGRES_DB: attestara
+      POSTGRES_USER: attestara
+      POSTGRES_PASSWORD: attestara_dev
     ports:
       - '5432:5432'
     volumes:
@@ -1179,9 +1179,9 @@ services:
   postgres-test:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: agentclear_test
-      POSTGRES_USER: agentclear
-      POSTGRES_PASSWORD: agentclear_test
+      POSTGRES_DB: attestara_test
+      POSTGRES_USER: attestara
+      POSTGRES_PASSWORD: attestara_test
     ports:
       - '5433:5432'
 
@@ -1258,9 +1258,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: agentclear_test
-          POSTGRES_USER: agentclear
-          POSTGRES_PASSWORD: agentclear_test
+          POSTGRES_DB: attestara_test
+          POSTGRES_USER: attestara
+          POSTGRES_PASSWORD: attestara_test
         ports:
           - 5432:5432
         options: >-
@@ -1284,7 +1284,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:relay
         env:
-          DATABASE_URL: postgresql://agentclear:agentclear_test@localhost:5432/agentclear_test
+          DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
           REDIS_URL: redis://localhost:6379
 
   test-portal:
@@ -1324,22 +1324,22 @@ jobs:
 # scripts/setup.sh
 set -euo pipefail
 
-echo "=== AgentClear Dev Setup ==="
+echo "=== Attestara Dev Setup ==="
 
 echo "1. Installing dependencies..."
 pnpm install
 
 echo "2. Building types package..."
-pnpm --filter @agentclear/types build
+pnpm --filter @attestara/types build
 
 echo "3. Starting infrastructure..."
 docker-compose -f infrastructure/docker-compose.yml up -d
 
 echo "4. Running Prisma migrations..."
-pnpm --filter @agentclear/relay exec prisma migrate dev
+pnpm --filter @attestara/relay exec prisma migrate dev
 
 echo "5. Compiling contracts..."
-pnpm --filter @agentclear/contracts exec hardhat compile
+pnpm --filter @attestara/contracts exec hardhat compile
 
 echo "=== Setup complete! ==="
 echo "Run 'pnpm dev' to start all services."
@@ -1355,7 +1355,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY packages/types ./packages/types
 COPY packages/relay ./packages/relay
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @agentclear/relay build
+RUN pnpm --filter @attestara/relay build
 
 FROM node:20-alpine
 WORKDIR /app
@@ -1375,7 +1375,7 @@ COPY packages/types ./packages/types
 COPY packages/prover ./packages/prover
 COPY packages/contracts/circuits/build ./circuits/build
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @agentclear/prover build
+RUN pnpm --filter @attestara/prover build
 
 FROM node:20-alpine
 WORKDIR /app
@@ -1392,26 +1392,26 @@ CMD ["node", "dist/server.js"]
 # infrastructure/render.yaml
 services:
   - type: web
-    name: agentclear-portal
+    name: attestara-portal
     runtime: node
-    buildCommand: pnpm install && pnpm --filter @agentclear/portal build
-    startCommand: pnpm --filter @agentclear/portal start
+    buildCommand: pnpm install && pnpm --filter @attestara/portal build
+    startCommand: pnpm --filter @attestara/portal start
     envVars:
       - key: NEXT_PUBLIC_RELAY_URL
         sync: false
 
   - type: web
-    name: agentclear-relay
+    name: attestara-relay
     runtime: docker
     dockerfilePath: infrastructure/Dockerfile.relay
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agentclear-db
+          name: attestara-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: agentclear-redis
+          name: attestara-redis
           type: redis
           property: connectionString
       - key: JWT_SECRET
@@ -1419,29 +1419,29 @@ services:
       - key: PROVER_INTERNAL_SECRET
         generateValue: true
       - key: PROVER_URL
-        value: http://agentclear-prover:3002
+        value: http://attestara-prover:3002
 
   - type: pserv  # private service — no public ingress
-    name: agentclear-prover
+    name: attestara-prover
     runtime: docker
     dockerfilePath: infrastructure/Dockerfile.prover
     envVars:
       - key: PROVER_INTERNAL_SECRET
         fromService:
-          name: agentclear-relay
+          name: attestara-relay
           type: web
           envVarKey: PROVER_INTERNAL_SECRET
       - key: REDIS_URL
         fromService:
-          name: agentclear-redis
+          name: attestara-redis
           type: redis
           property: connectionString
 
 databases:
-  - name: agentclear-db
+  - name: attestara-db
     plan: starter
 
-  - name: agentclear-redis
+  - name: attestara-redis
     plan: starter
 ```
 
@@ -1467,7 +1467,7 @@ git commit -m "feat: add docker-compose, Dockerfiles, render.yaml, GitHub Action
 # .env.example
 
 # Database
-DATABASE_URL=postgresql://agentclear:agentclear_dev@localhost:5432/agentclear
+DATABASE_URL=postgresql://attestara:attestara_dev@localhost:5432/attestara
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -2434,7 +2434,7 @@ Tests cover:
 - ScriptedStrategy: replays pre-configured responses in order
 - All strategies implement NegotiationStrategy interface
 
-Also create `packages/sdk/src/agents/strategy.ts` as a barrel re-export of the `NegotiationStrategy` interface from `@agentclear/types`.
+Also create `packages/sdk/src/agents/strategy.ts` as a barrel re-export of the `NegotiationStrategy` interface from `@attestara/types`.
 
 - [ ] **Steps 1-5: TDD cycle + commit**
 
@@ -2455,7 +2455,7 @@ Also create `packages/sdk/src/agents/strategy.ts` as a barrel re-export of the `
 
 ---
 
-### Task 23: SDK — AgentClearClient (Main Entry Point)
+### Task 23: SDK — AttestaraClient (Main Entry Point)
 
 **Files:**
 - Create: `packages/sdk/src/client.ts`
@@ -2860,7 +2860,7 @@ Tests cover:
 
 **API key generation:** Keys must use `ac_` prefix per spec Section 11. Generate as `ac_` + 32 random hex characters. Store `key_hash` (SHA-256) in DB, return full key only at creation time.
 
-**Webhook delivery:** HMAC-SHA256 signature in `X-AgentClear-Signature` header. Async delivery with 3 retries (exponential backoff: 1s, 5s, 25s).
+**Webhook delivery:** HMAC-SHA256 signature in `X-Attestara-Signature` header. Async delivery with 3 retries (exponential backoff: 1s, 5s, 25s).
 
 **Admin routes:** `POST /v1/admin/indexer/backfill` — trigger manual chain indexer backfill. Protected by admin role check.
 

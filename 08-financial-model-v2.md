@@ -1,4 +1,4 @@
-# AgentClear — Financial Model
+# Attestara — Financial Model
 ## 36-Month Projection v0.2 (Revised)
 
 ---
@@ -17,14 +17,14 @@ The primary recurring revenue stream. Organisations pay for:
 - **Enterprise SDK licence** — Annual subscription for production-grade implementation with HSM key management, compliance reporting, SLA-backed support, and advanced monitoring
 - **Managed Prover Service** — Monthly SaaS fee for hosted ZK proof generation infrastructure; eliminates the need for enterprises to run their own prover hardware
 
-This is the core business. Every enterprise deploying AgentClear needs both components in production.
+This is the core business. Every enterprise deploying Attestara needs both components in production.
 
 ### Stream 2: Professional Services — Integration and Implementation Support
 
 The second revenue stream, particularly important in the first 18 months when the reference implementation is new and enterprise buyers need hand-holding through first deployment.
 
 Services include:
-- **Pilot engagement** — Structured 90-day paid deployment in a sandboxed environment; validates the protocol for the customer and produces a case study for AgentClear
+- **Pilot engagement** — Structured 90-day paid deployment in a sandboxed environment; validates the protocol for the customer and produces a case study for Attestara
 - **Integration support** — Bespoke implementation assistance for organisations integrating with existing procurement systems, financial infrastructure, or agent frameworks
 - **Custom credential schema design** — Designing Authority Credentials tailored to specific enterprise authority delegation structures
 - **Advisory retainer** — Ongoing quarterly engagement for organisations with active agentic AI governance programmes
@@ -260,5 +260,5 @@ These are target metrics, not current actuals. CAC in Y1–Y2 will be higher as 
 
 ---
 
-*AgentClear Financial Model v0.2 — Revised: SaaS + Professional Services revenue streams only*  
+*Attestara Financial Model v0.2 — Revised: SaaS + Professional Services revenue streams only*  
 *Planning document. Not for distribution.*

@@ -1,4 +1,4 @@
-# AgentClear — Go-to-Market Strategy
+# Attestara — Go-to-Market Strategy
 ## v0.1
 
 ---
@@ -9,7 +9,7 @@
 
 **Beachhead vertical:** Financial services (regulatory urgency + highest value transactions + existing Wontok/Littledata relationships).
 
-**Key insight from competitive analysis:** The fastest path to adoption is not selling AgentClear as a product — it is making AgentClear the *obvious layer* on top of Google A2A and Anthropic MCP. Developers building agentic systems will encounter the trust problem; AgentClear should be the first thing they find when they search for solutions.
+**Key insight from competitive analysis:** The fastest path to adoption is not selling Attestara as a product — it is making Attestara the *obvious layer* on top of Google A2A and Anthropic MCP. Developers building agentic systems will encounter the trust problem; Attestara should be the first thing they find when they search for solutions.
 
 ---
 
@@ -19,28 +19,28 @@
 *Goal: Establish thought leadership and developer awareness before the product exists.*
 
 **Actions:**
-- Publish protocol specification publicly (GitHub + AgentClear website)
+- Publish protocol specification publicly (GitHub + Attestara website)
 - Mike publishes the London Clearing House series on LinkedIn (already begun) — blog is done, now build the narrative arc over 4-6 posts building to the protocol announcement
 - Submit the DID/VC/ZK credential architecture to W3C Credentials Community Group for feedback
-- Engage Google A2A team directly: position AgentClear as the trust layer for A2A, not a competitor
+- Engage Google A2A team directly: position Attestara as the trust layer for A2A, not a competitor
 - Speak at one relevant conference: Money20/20 Europe (Amsterdam, June), EurAI (Belgium, July), or EU AI Act implementation events
 
 **Metrics:** Protocol spec forks/stars on GitHub, LinkedIn engagement on the series, direct developer contacts.
 
 ### Phase 1 — Developer Adoption (Months 6–18)
-*Goal: 50 developers building with AgentClear SDK; 5 proof-of-concept enterprise pilots.*
+*Goal: 50 developers building with Attestara SDK; 5 proof-of-concept enterprise pilots.*
 
 **Developer motion:**
 - Release open-source SDK (TypeScript + Python) with LangChain, AutoGen, and Agentforce adapters
 - Developer documentation site with "hello world" negotiation in under 30 minutes
 - Discord community for protocol discussion and support
-- ZK circuit library published as standalone npm package (circomlib equivalent for AgentClear circuits)
+- ZK circuit library published as standalone npm package (circomlib equivalent for Attestara circuits)
 
 **Enterprise pilot motion:**
 - Target: 5 enterprises across 2-3 verticals for paid pilots
 - Ideal pilot profile: mid-to-large enterprise deploying agentic AI in procurement, financial services, or legal contracting; already EU AI Act aware
 - Sales approach: direct outreach via Mike's existing Wontok/Littledata network + financial services contacts from ISACA and EC-Council community
-- Pilot structure: 90-day paid engagement, €15,000–€25,000, deploying AgentClear in a sandboxed procurement negotiation scenario
+- Pilot structure: 90-day paid engagement, €15,000–€25,000, deploying Attestara in a sandboxed procurement negotiation scenario
 - Output: Published case study (with permission) that validates protocol in production context
 
 **Metrics:** SDK downloads, GitHub stars, pilot customers signed, pilot completion rate.
@@ -54,7 +54,7 @@
 - Pricing: Enterprise SDK licence €6,000–€20,000/year + Prover Service €500–€5,000/month depending on volume
 
 **Standards body motion:**
-- Submit AgentClear ZK credential schema to W3C Credentials Community Group
+- Submit Attestara ZK credential schema to W3C Credentials Community Group
 - Contribute to Linux Foundation AAIF (the A2A/MCP governance body)
 - Engage EU AI Act implementation working groups (Commission Expert Group on AI)
 
@@ -105,7 +105,7 @@
 - Deploying agentic AI and recognising the governance gap in agent-to-agent contexts
 - Less technically sophisticated than ICP 1/2; needs more hand-holding
 
-**Channel motion:** Littledata includes AgentClear as an optional add-on in enterprise packages. The compliance narrative is already established; AgentClear extends it to the agentic governance layer.
+**Channel motion:** Littledata includes Attestara as an optional add-on in enterprise packages. The compliance narrative is already established; Attestara extends it to the agentic governance layer.
 
 **Deal size estimate:** €8,000–€25,000/year (often bundled with Littledata)
 
@@ -115,12 +115,12 @@
 
 **For enterprise organisations deploying agentic AI in B2B contexts,**  
 **who need to prove their AI agents had authority to commit and that their commitments are binding,**  
-**AgentClear is the only open protocol that provides cryptographically-verified agent authority,**  
+**Attestara is the only open protocol that provides cryptographically-verified agent authority,**  
 **privacy-preserving negotiation trust, and on-chain binding commitment.**
 
 **Unlike** Google A2A (which solves interoperability but not authority enforcement),  
 **or** Visa/Mastercard agentic payments (which solve consumer checkout but not B2B contracting),  
-**AgentClear gives organisations the governance infrastructure required by EU AI Act Article 9 for their agentic deployments, while enabling agents from competing organisations to negotiate and commit with mathematical certainty.**
+**Attestara gives organisations the governance infrastructure required by EU AI Act Article 9 for their agentic deployments, while enabling agents from competing organisations to negotiate and commit with mathematical certainty.**
 
 ---
 
@@ -134,10 +134,10 @@ Mike's LinkedIn profile is the primary distribution channel in the early phase. 
 | 2 | The echoing behaviour problem | "We stress-tested AI agents negotiating with each other. The results were alarming." |
 | 3 | Why existing solutions miss the point | "Visa, Mastercard, and Google are all solving the wrong problem." |
 | 4 | The ZK proof layer | "How zero-knowledge cryptography solves what AI can't." |
-| 5 | Protocol announcement | "We built the infrastructure. Here's AgentClear." |
+| 5 | Protocol announcement | "We built the infrastructure. Here's Attestara." |
 | 6 | Regulatory angle | "EU AI Act Article 9 and why every agentic deployment needs this now." |
 | 7 | Developer launch | "The SDK is live. Here's how to build with it." |
-| 8 | First pilot results | "What happened when a Fortune 500 used AgentClear for the first time." |
+| 8 | First pilot results | "What happened when a Fortune 500 used Attestara for the first time." |
 
 ---
 
@@ -175,7 +175,7 @@ Mike's LinkedIn profile is the primary distribution channel in the early phase. 
 
 | Partner Type | Target | Value Exchange |
 |-------------|--------|---------------|
-| Protocol layer | Google A2A / Linux Foundation AAIF | AgentClear becomes A2A's trust layer; A2A ecosystem as distribution |
+| Protocol layer | Google A2A / Linux Foundation AAIF | Attestara becomes A2A's trust layer; A2A ecosystem as distribution |
 | Enterprise distribution | Wontok | Existing financial services/enterprise client base |
 | Compliance channel | Littledata | Bundled product; compliance buyer is the governance buyer |
 | System integrator | Deloitte AI practice or Accenture | Enterprise delivery capability; credibility with F500 |
@@ -184,4 +184,4 @@ Mike's LinkedIn profile is the primary distribution channel in the early phase. 
 
 ---
 
-*AgentClear Go-to-Market Strategy v0.1*
+*Attestara Go-to-Market Strategy v0.1*

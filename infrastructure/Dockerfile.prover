@@ -5,7 +5,7 @@ COPY packages/types ./packages/types
 COPY packages/prover ./packages/prover
 COPY packages/contracts/circuits/build ./circuits/build
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @agentclear/prover build
+RUN pnpm --filter @attestara/prover build
 
 FROM node:20-alpine
 WORKDIR /app

@@ -1,4 +1,4 @@
-# AgentClear — Financial Model
+# Attestara — Financial Model
 ## 36-Month Projection v0.1
 
 ---
@@ -27,7 +27,7 @@ Four revenue streams, activated in sequence:
 
 ### Market Assumptions
 - Total addressable enterprise agentic AI governance market: €2.8B by 2028 (derived from Gartner enterprise AI spend forecasts and Treasury Committee findings on 75% adoption rate)
-- AgentClear beachhead: B2B adversarial negotiation, financial services and procurement primary verticals
+- Attestara beachhead: B2B adversarial negotiation, financial services and procurement primary verticals
 - Average sales cycle: 6 months (financial services), 4 months (procurement)
 - Pilot-to-contract conversion rate: 60%
 
@@ -178,4 +178,4 @@ In the upside case, break-even occurs in Year 2 Q4. Series A from a position of 
 
 ---
 
-*AgentClear Financial Model v0.1 — Planning document only. Not for distribution.*
+*Attestara Financial Model v0.1 — Planning document only. Not for distribution.*

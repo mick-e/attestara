@@ -1,13 +1,13 @@
-# AgentClear — Latency and Cost Analysis
+# Attestara — Latency and Cost Analysis
 ## Performance Viability Assessment v0.1
 
 ---
 
 ## 1. Overview
 
-This document models the end-to-end latency and cost profile of an AgentClear negotiation session to determine which use cases are viable at launch and which require performance optimisation before deployment.
+This document models the end-to-end latency and cost profile of an Attestara negotiation session to determine which use cases are viable at launch and which require performance optimisation before deployment.
 
-The core question: **Is AgentClear fast enough and cheap enough for real-world enterprise B2B negotiation?**
+The core question: **Is Attestara fast enough and cheap enough for real-world enterprise B2B negotiation?**
 
 ---
 
@@ -36,7 +36,7 @@ The core question: **Is AgentClear fast enough and cheap enough for real-world e
 | Business logic processing | Agent reasoning | 500ms–10s | LLM inference dominates |
 | **Total per turn** | | **~1–12 seconds** | LLM is the bottleneck |
 
-**Key insight:** LLM inference time (the agent deciding what to offer) dominates per-turn latency, not the ZK proof generation. AgentClear adds ~200-900ms overhead per turn on top of whatever the underlying agent response time is. For negotiation contexts (not real-time trading), this is acceptable.
+**Key insight:** LLM inference time (the agent deciding what to offer) dominates per-turn latency, not the ZK proof generation. Attestara adds ~200-900ms overhead per turn on top of whatever the underlying agent response time is. For negotiation contexts (not real-time trading), this is acceptable.
 
 ### 2.3 Commitment and Settlement
 
@@ -65,7 +65,7 @@ Total:                 ~36s
 
 A full negotiation session resolves in approximately **30-60 seconds** for a 5-turn exchange. This compares favourably to human email-based negotiation (hours to days) and is acceptable for B2B contexts.
 
-**Not acceptable for:** High-frequency trading, real-time price discovery (millisecond contexts). AgentClear is explicitly not designed for these use cases.
+**Not acceptable for:** High-frequency trading, real-time price discovery (millisecond contexts). Attestara is explicitly not designed for these use cases.
 
 ---
 
@@ -113,7 +113,7 @@ Aggregation trades a small generation overhead for significant on-chain verifica
 
 ### 4.1 Chain Selection Comparison
 
-AgentClear is chain-agnostic. The cost analysis below covers the most relevant deployment options:
+Attestara is chain-agnostic. The cost analysis below covers the most relevant deployment options:
 
 | Chain | Groth16 Verify Gas | Gas Price (typical) | Cost per Verify |
 |-------|-------------------|--------------------:|-----------------|
@@ -226,4 +226,4 @@ Benefits: Consistent performance regardless of agent hardware, upgradeable witho
 
 ---
 
-*AgentClear Latency and Cost Analysis v0.1*
+*Attestara Latency and Cost Analysis v0.1*

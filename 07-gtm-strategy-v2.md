@@ -1,4 +1,4 @@
-# AgentClear — Go-to-Market Strategy
+# Attestara — Go-to-Market Strategy
 ## v0.2 (Revised — SaaS + Professional Services)
 
 ---
@@ -13,7 +13,7 @@
 
 **Beachhead vertical:** Financial services (regulatory urgency + highest value transactions + DORA/EU AI Act compliance driver creating genuine purchase urgency).
 
-**Key structural insight:** In Year 1, AgentClear sells *engagements* (pilots and integration support), not subscriptions. This is deliberate — pilots fund case studies, case studies close SaaS contracts, SaaS contracts compound. The professional services motion is the fastest path to the first ten enterprise customers.
+**Key structural insight:** In Year 1, Attestara sells *engagements* (pilots and integration support), not subscriptions. This is deliberate — pilots fund case studies, case studies close SaaS contracts, SaaS contracts compound. The professional services motion is the fastest path to the first ten enterprise customers.
 
 ---
 
@@ -41,7 +41,7 @@ Conferences   network             Compliance module  Integration support
 - Publish protocol specification on GitHub
 - Publish the London Clearing House blog series on LinkedIn (5-6 posts over the period, building to the protocol announcement)
 - Submit protocol spec to W3C Credentials Community Group for early feedback
-- Engage Google A2A team directly — position AgentClear as the trust layer complement to A2A
+- Engage Google A2A team directly — position Attestara as the trust layer complement to A2A
 - Attend and speak at one relevant event: Money20/20 Europe (Amsterdam, June 2026), EU AI Act implementation conference, or ISACA EUROCACS
 - Generate minimum 3 qualified pilot conversations from Mike's existing Wontok/ISACA network before Month 6
 
@@ -53,11 +53,11 @@ Conferences   network             Compliance module  Integration support
 **Pilot sales motion:**
 - Target profile: enterprise with active agentic AI deployment in procurement, financial services, or legal contracting; EU AI Act Article 9 obligation confirmed; in-house legal or compliance team engaged on AI governance
 - Outreach channels: Mike's ISACA network, EC-Council connections, Wontok client relationships, direct LinkedIn outreach to Head of AI Governance / CISO roles in target sectors
-- Pilot structure: 90-day fixed-fee engagement (€20,000–€30,000) deploying AgentClear in a sandboxed procurement or contracting negotiation scenario
+- Pilot structure: 90-day fixed-fee engagement (€20,000–€30,000) deploying Attestara in a sandboxed procurement or contracting negotiation scenario
 - Output: Working integration, validated compliance documentation, written case study (with permission)
 
 **Integration support motion:**
-- Target: Enterprises that have completed pilots and need help integrating AgentClear into production procurement systems or agent frameworks
+- Target: Enterprises that have completed pilots and need help integrating Attestara into production procurement systems or agent frameworks
 - Service: Fixed-day-rate engagements (€1,500/day), typically 10–25 days
 - This is the bridge from "pilot worked" to "subscription signed"
 
@@ -82,7 +82,7 @@ Conferences   network             Compliance module  Integration support
 
 **Standards body momentum (reinforces enterprise sales):**
 - W3C CCG Work Item submission (Month 12) — signals protocol legitimacy to enterprise buyers
-- AAIF engagement (Month 14) — positions AgentClear as the A2A trust layer standard
+- AAIF engagement (Month 14) — positions Attestara as the A2A trust layer standard
 - EU AI Act working group participation (Month 12) — signals regulatory alignment to compliance buyers
 
 **Metrics:** SaaS ARR, net revenue retention, customer count, SI deal pipeline.
@@ -149,12 +149,12 @@ Conferences   network             Compliance module  Integration support
 
 **For enterprise organisations deploying agentic AI in B2B contexts,**  
 **who need to prove their AI agents had authority to commit and that their commitments are binding,**  
-**AgentClear is the only open protocol that provides cryptographically-verified agent authority,**  
+**Attestara is the only open protocol that provides cryptographically-verified agent authority,**  
 **privacy-preserving negotiation trust, and on-chain binding commitment.**
 
 **Unlike** Google A2A (which solves interoperability but not authority enforcement),  
 **or** Visa/Mastercard agentic payments (which solve consumer checkout but not B2B contracting),  
-**AgentClear gives organisations the governance infrastructure required by EU AI Act Article 9 for agentic deployments, while enabling agents from competing organisations to negotiate and commit with mathematical certainty.**
+**Attestara gives organisations the governance infrastructure required by EU AI Act Article 9 for agentic deployments, while enabling agents from competing organisations to negotiate and commit with mathematical certainty.**
 
 ---
 
@@ -203,10 +203,10 @@ The protocol launch narrative across 8 posts:
 | 2 | Echoing behaviour problem | "We stress-tested AI agents negotiating each other. The results were alarming." |
 | 3 | Why existing solutions miss | "Visa, Mastercard, Google are all solving the wrong layer" |
 | 4 | ZK proofs as the answer | "How cryptography solves what AI training cannot" |
-| 5 | Protocol announcement | "We built the trust infrastructure. Here's AgentClear." |
+| 5 | Protocol announcement | "We built the trust infrastructure. Here's Attestara." |
 | 6 | EU AI Act Article 9 angle | "Why every agentic deployment needs this before August 2026" |
 | 7 | Developer SDK launch | "The SDK is live. Here's a working negotiation in 30 lines." |
-| 8 | First pilot results | "What happened when [enterprise] used AgentClear for the first time." |
+| 8 | First pilot results | "What happened when [enterprise] used Attestara for the first time." |
 
 **Target cadence:** One post per week from Month 4 onward. Each post includes a link to the protocol spec or documentation.
 
@@ -216,7 +216,7 @@ The protocol launch narrative across 8 posts:
 
 | Partner Type | Target | Value Exchange | Priority |
 |-------------|--------|---------------|----------|
-| Protocol layer | Google A2A / AAIF | AgentClear becomes A2A's trust layer | Highest |
+| Protocol layer | Google A2A / AAIF | Attestara becomes A2A's trust layer | Highest |
 | Enterprise delivery | Deloitte / Accenture AI practice | SI brings enterprise pipeline at scale | High |
 | ZK infrastructure | Arbitrum / Alchemy | Co-marketing; preferred deployment chain | Medium |
 | Enterprise distribution | Wontok existing network | Warm enterprise introductions | High |
@@ -227,4 +227,4 @@ The protocol launch narrative across 8 posts:
 
 ---
 
-*AgentClear Go-to-Market Strategy v0.2 — SaaS + Professional Services revenue model*
+*Attestara Go-to-Market Strategy v0.2 — SaaS + Professional Services revenue model*

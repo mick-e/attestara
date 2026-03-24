@@ -1,11 +1,11 @@
-# AgentClear — Expanded Threat Model
+# Attestara — Expanded Threat Model
 ## Security Analysis v0.1
 
 ---
 
 ## 1. Scope and Methodology
 
-This document extends the threat model in the AgentClear Protocol Specification (§9) to cover the full attack surface. It follows the STRIDE methodology (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) applied to each protocol component, supplemented by ZK-specific and blockchain-specific threat categories.
+This document extends the threat model in the Attestara Protocol Specification (§9) to cover the full attack surface. It follows the STRIDE methodology (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) applied to each protocol component, supplemented by ZK-specific and blockchain-specific threat categories.
 
 Each threat is assessed on:
 - **Likelihood:** Low / Medium / High
@@ -138,7 +138,7 @@ Each threat is assessed on:
 2. Attacker intercepts this proof and attempts to modify it to be valid for proposed=600,000
 3. If successful, the counterparty accepts the proof as valid for an over-mandate commitment
 
-**Why this doesn't work in AgentClear:**
+**Why this doesn't work in Attestara:**
 - Groth16 malleability allows producing a different proof for the *same* statement
 - The public input `proposed` is plaintext in the proof — changing it would require producing a valid proof for a different public input, which requires knowledge of the witness (max_value, randomness)
 - The commitment C binds to the specific max_value; a proof for commitment C cannot be valid for commitment C' where C' commits to a different max_value
@@ -178,9 +178,9 @@ Each threat is assessed on:
 **Category:** Tampering  
 **Likelihood:** Medium  
 **Impact:** High  
-**Description:** If AgentClear's commitment conditions reference external data (e.g. "this contract is valid if FX rate EUR/USD > 1.05 at settlement"), a malicious actor could manipulate the oracle providing that data.
+**Description:** If Attestara's commitment conditions reference external data (e.g. "this contract is valid if FX rate EUR/USD > 1.05 at settlement"), a malicious actor could manipulate the oracle providing that data.
 
-**Note:** The current AgentClear spec (v0.1) does not include oracle-dependent commitment conditions. This threat applies to future extensions only.
+**Note:** The current Attestara spec (v0.1) does not include oracle-dependent commitment conditions. This threat applies to future extensions only.
 
 **Mitigation (for future versions):**
 - Use decentralised oracle networks (Chainlink, Pyth) with multi-source aggregation
@@ -292,7 +292,7 @@ Each threat is assessed on:
 **Impact:** Medium  
 **Description:** An adversary conducts many negotiation sessions with a target agent, systematically probing its responses to infer the agent's underlying negotiation strategy, reservation price, and authority parameters.
 
-**Note:** This threat is at the intersection of the protocol layer and the model behaviour layer. AgentClear addresses the protocol layer; model security is the deploying organisation's responsibility.
+**Note:** This threat is at the intersection of the protocol layer and the model behaviour layer. Attestara addresses the protocol layer; model security is the deploying organisation's responsibility.
 
 **Attack scenario:**
 1. Attacker conducts 100 negotiation sessions with Target Agent
@@ -305,7 +305,7 @@ Each threat is assessed on:
 - Anomalous session pattern detection (many sessions from same counterparty without commitments) triggers escalation
 - ZK proofs on negotiation parameters prevent direct observation of the underlying values
 
-**Mitigation (model level, outside AgentClear scope):**
+**Mitigation (model level, outside Attestara scope):**
 - Agents should implement random noise in response timing and value increments
 - Regular re-training or parameter rotation
 
@@ -373,4 +373,4 @@ Before mainnet deployment, the following must be completed:
 
 ---
 
-*AgentClear Expanded Threat Model v0.1*
+*Attestara Expanded Threat Model v0.1*

@@ -1,4 +1,4 @@
-# AgentClear MVP — Design Specification
+# Attestara MVP — Design Specification
 
 **Version:** 1.2
 **Date:** 2026-03-22
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-AgentClear is a cryptographic trust protocol for AI agent negotiation and commitment in B2B enterprise contexts. The MVP delivers a complete, demo-ready platform: ZK circuits proving agent authority, smart contracts recording commitments on-chain, a TypeScript SDK, hosted prover and session relay services, CLI tools, and a full portal experience.
+Attestara is a cryptographic trust protocol for AI agent negotiation and commitment in B2B enterprise contexts. The MVP delivers a complete, demo-ready platform: ZK circuits proving agent authority, smart contracts recording commitments on-chain, a TypeScript SDK, hosted prover and session relay services, CLI tools, and a full portal experience.
 
 ### Goals
 
@@ -112,7 +112,7 @@ sessions: add columns
 ## 3. Monorepo Structure
 
 ```
-agentclear/
+attestara/
 ├── package.json
 ├── turbo.json
 ├── pnpm-workspace.yaml
@@ -122,13 +122,13 @@ agentclear/
 │   └── superpowers/specs/
 │
 ├── packages/
-│   ├── types/                   # @agentclear/types — shared interfaces
-│   ├── contracts/               # @agentclear/contracts — Solidity + Circom
+│   ├── types/                   # @attestara/types — shared interfaces
+│   ├── contracts/               # @attestara/contracts — Solidity + Circom
 │   │   ├── contracts/           # Solidity contracts
 │   │   ├── circuits/            # Circom circuits
 │   │   ├── test/
 │   │   └── scripts/
-│   ├── sdk/                     # @agentclear/sdk — main developer SDK
+│   ├── sdk/                     # @attestara/sdk — main developer SDK
 │   │   └── src/
 │   │       ├── client.ts
 │   │       ├── identity/
@@ -137,10 +137,10 @@ agentclear/
 │   │       ├── negotiation/
 │   │       ├── commitment/
 │   │       └── agents/
-│   ├── prover/                  # @agentclear/prover — ZK proof service
-│   ├── relay/                   # @agentclear/relay — API + WebSocket
-│   ├── cli/                     # @agentclear/cli — command-line tools
-│   └── portal/                  # @agentclear/portal — Next.js app
+│   ├── prover/                  # @attestara/prover — ZK proof service
+│   ├── relay/                   # @attestara/relay — API + WebSocket
+│   ├── cli/                     # @attestara/cli — command-line tools
+│   └── portal/                  # @attestara/portal — Next.js app
 │       ├── app/
 │       │   ├── (marketing)/
 │       │   ├── (auth)/
@@ -320,12 +320,12 @@ on-chain enforcement effect in MVP.
 
 ## 6. SDK Design
 
-### AgentClearClient
+### AttestaraClient
 
 Main entry point wrapping all protocol complexity:
 
 ```typescript
-const client = new AgentClearClient({
+const client = new AttestaraClient({
   agent: { did: 'did:ethr:arb1:0x...', keyFile: './keys/agent.key' },
   credential: './credentials/authority.vc.json',
   network: { chain: 'arbitrum-sepolia', rpcUrl: process.env.ALCHEMY_RPC_URL },
@@ -366,7 +366,7 @@ interface NegotiationStrategy {
 | `LLMStrategy` | Claude/GPT-powered decisions within mandate bounds. LLM decides WHAT; SDK handles proof generation |
 | `ScriptedStrategy` | Pre-scripted responses for testing and demos (replaces `MockStrategy` — clearer name for investor-facing materials) |
 
-### Testing Utilities (`@agentclear/sdk/testing`)
+### Testing Utilities (`@attestara/sdk/testing`)
 
 - `MockAgent` — pre-configured agent with in-memory keys
 - `LocalChain` — Hardhat node with contracts deployed
@@ -406,7 +406,7 @@ Central API and session orchestrator.
 | API Keys | `POST/GET /v1/orgs/:orgId/api-keys`, `DELETE /v1/orgs/:orgId/api-keys/:id` |
 | Webhooks | `POST/GET /v1/orgs/:orgId/webhooks`, `DELETE /v1/orgs/:orgId/webhooks/:id`, `GET /v1/orgs/:orgId/webhooks/:id/deliveries` |
 
-**Webhook delivery:** On `session.completed` and `commitment.created` events, relay POSTs a signed JSON payload to registered webhook URLs (HMAC-SHA256 signature in `X-AgentClear-Signature` header). Delivery is async with 3 retries (exponential backoff). Phase 2 expands to full event catalogue. Enterprise SDK integrations should prefer webhooks over persistent WebSocket for server-side consumers.
+**Webhook delivery:** On `session.completed` and `commitment.created` events, relay POSTs a signed JSON payload to registered webhook URLs (HMAC-SHA256 signature in `X-Attestara-Signature` header). Delivery is async with 3 retries (exponential backoff). Phase 2 expands to full event catalogue. Enterprise SDK integrations should prefer webhooks over persistent WebSocket for server-side consumers.
 
 **WebSocket channels:**
 
@@ -581,28 +581,28 @@ Each step has explanatory annotations for non-technical audiences.
 Command structure using `commander.js`:
 
 ```
-agentclear init [--demo]                    # Initialize project / scaffold demo
-agentclear agent create|list|info|rotate-key
-agentclear credential issue|list|verify|revoke
-agentclear session create|list|watch|replay
-agentclear commitment list|verify|show
-agentclear prove <circuit> --input <file>
-agentclear verify <proof-file>
-agentclear config set|show
-agentclear status
+attestara init [--demo]                    # Initialize project / scaffold demo
+attestara agent create|list|info|rotate-key
+attestara credential issue|list|verify|revoke
+attestara session create|list|watch|replay
+attestara commitment list|verify|show
+attestara prove <circuit> --input <file>
+attestara verify <proof-file>
+attestara config set|show
+attestara status
 ```
 
 ### Developer Onboarding (<30 minutes, target ~9 minutes)
 
 ```
-npm install -g @agentclear/cli
-agentclear init --demo
+npm install -g @attestara/cli
+attestara init --demo
 docker-compose up -d
-agentclear agent create buyer && agentclear agent create seller
-agentclear credential issue --agent buyer --max-value 500000 --currency EUR
-agentclear credential issue --agent seller --max-value 600000 --currency EUR
-agentclear session create --config demo/negotiation.json
-agentclear commitment list && agentclear commitment verify <id>
+attestara agent create buyer && attestara agent create seller
+attestara credential issue --agent buyer --max-value 500000 --currency EUR
+attestara credential issue --agent seller --max-value 600000 --currency EUR
+attestara session create --config demo/negotiation.json
+attestara commitment list && attestara commitment verify <id>
 ```
 
 The `--demo` scaffold generates a ready-to-run project with pre-configured agents, example strategies (rule-based + LLM), and a one-file complete example using `ScriptedStrategy` for deterministic demo runs.
@@ -698,7 +698,7 @@ Relay → Prover communication uses a shared internal bearer token (`PROVER_INTE
 
 ### Additional Measures
 
-- Zod schemas on every endpoint (types from `@agentclear/types`)
+- Zod schemas on every endpoint (types from `@attestara/types`)
 - DID format validation, credential hash verification, proof format validation
 - CORS locked to portal origin, Helmet.js headers, TLS 1.3
 - CSRF protection on cookie-authenticated routes
@@ -797,7 +797,7 @@ pnpm test:ci             # Full CI suite
 ### Phase 0: Foundation (Week 1)
 
 - Initialize Turborepo monorepo with all package scaffolds
-- Define `@agentclear/types` — all shared interfaces
+- Define `@attestara/types` — all shared interfaces
 - Define smart contract ABIs (Solidity interfaces)
 - Set up CI pipeline, docker-compose, config schema
 - Onboard ZK contractor
@@ -958,7 +958,7 @@ Trusted setup artifacts (proving keys, verification keys, WASM files) are large 
 
 The SDK's agent identity and capability model is designed to align with Google A2A's Agent Card specification. Phase 2 will add:
 - `AgentCard` export from SDK (A2A-compatible capability advertisement)
-- A2A trust extension using AgentClear's ZK proof layer
+- A2A trust extension using Attestara's ZK proof layer
 - Standards contribution to AAIF for A2A trust extension draft (Month 14 per standards roadmap)
 
 The MVP SDK's DID-based identity and W3C VC credentials are architecturally compatible with A2A — the adapter is a mapping layer, not a rewrite.

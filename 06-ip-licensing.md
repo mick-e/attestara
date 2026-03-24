@@ -1,11 +1,11 @@
-# AgentClear — IP and Licensing Strategy
+# Attestara — IP and Licensing Strategy
 ## v0.1
 
 ---
 
 ## 1. The Core Tension
 
-AgentClear faces a classic protocol business model tension: **the value of a protocol standard scales with adoption, but adoption is easiest when the protocol is free and open. Monetisation, however, requires proprietary value.**
+Attestara faces a classic protocol business model tension: **the value of a protocol standard scales with adoption, but adoption is easiest when the protocol is free and open. Monetisation, however, requires proprietary value.**
 
 The resolution is a layered IP strategy that keeps the protocol specification and core circuit library open (maximising adoption) while retaining proprietary value in the reference implementation, enterprise features, and managed infrastructure.
 
@@ -19,10 +19,10 @@ This is the same model that has worked for Linux (open kernel, commercial distri
 
 | Asset | Description | Current Status |
 |-------|-------------|---------------|
-| Protocol Specification v0.1 | The AgentClear protocol design document | Unpublished draft |
+| Protocol Specification v0.1 | The Attestara protocol design document | Unpublished draft |
 | ZK Circuit designs | Mandate Bound, Parameter Range, etc. | Design document only |
 | Competitive Analysis | Market research and positioning | Internal document |
-| "AgentClear" name/brand | Protocol and product name | Unregistered |
+| "Attestara" name/brand | Protocol and product name | Unregistered |
 
 ### 2.2 What Will Be Created
 
@@ -45,9 +45,9 @@ This is the same model that has worked for Linux (open kernel, commercial distri
 ### 3.1 Protocol Specification: Creative Commons Attribution 4.0
 
 **Licence:** CC BY 4.0  
-**Rationale:** Anyone can implement the protocol, build on it, or extend it, provided they credit AgentClear Foundation. This maximises protocol adoption — the goal at this stage — while ensuring the Foundation receives credit that supports ecosystem development and fundraising narrative.
+**Rationale:** Anyone can implement the protocol, build on it, or extend it, provided they credit Attestara Foundation. This maximises protocol adoption — the goal at this stage — while ensuring the Foundation receives credit that supports ecosystem development and fundraising narrative.
 
-**What this means in practice:** Any developer, company, or standards body can implement AgentClear-compatible software. Competing implementations are not just permitted — they are desirable, as they increase the protocol's network effects.
+**What this means in practice:** Any developer, company, or standards body can implement Attestara-compatible software. Competing implementations are not just permitted — they are desirable, as they increase the protocol's network effects.
 
 ### 3.2 ZK Circuit Library: MIT Licence
 
@@ -61,7 +61,7 @@ This is the same model that has worked for Linux (open kernel, commercial distri
 **Licence:** LGPL v3  
 **Rationale:** LGPL allows the SDK to be used as a library in proprietary software (unlike GPL, which would require the entire codebase to be open-sourced). This enables enterprise adoption while ensuring that improvements to the SDK itself remain open. The "Lesser" version is critical — GPL would be too restrictive for enterprise integration.
 
-**What this means:** A company can build a proprietary procurement platform using the AgentClear SDK without open-sourcing their platform. But if they modify the SDK itself, those modifications must be released.
+**What this means:** A company can build a proprietary procurement platform using the Attestara SDK without open-sourcing their platform. But if they modify the SDK itself, those modifications must be released.
 
 ### 3.4 Enterprise SDK: Commercial Licence
 
@@ -70,7 +70,7 @@ This is the same model that has worked for Linux (open kernel, commercial distri
 
 **Pricing model:** Annual subscription per organisation (see Financial Model document for pricing detail).
 
-**Key clause:** The commercial licence must specify that the buyer's data (negotiation sessions, commitment records) is their own — AgentClear Foundation does not have rights to use or analyse buyer data.
+**Key clause:** The commercial licence must specify that the buyer's data (negotiation sessions, commitment records) is their own — Attestara Foundation does not have rights to use or analyse buyer data.
 
 ### 3.5 SaaS Services: Terms of Service
 
@@ -80,21 +80,21 @@ Managed Prover Service and Governance Dashboard are operated as SaaS products un
 
 ## 4. Trademark Strategy
 
-**"AgentClear"** should be registered as a trademark in:
+**"Attestara"** should be registered as a trademark in:
 - Gibraltar (primary)
 - European Union (EU Trademark via EUIPO)
 - United Kingdom (UK Intellectual Property Office)
 - United States (USPTO)
 
-**Why trademarks matter for an open protocol:** Even if anyone can implement the protocol, only AgentClear Foundation can call its product "AgentClear" or claim to be "AgentClear-certified." This creates brand value and trust signals that competing open-source implementations cannot replicate.
+**Why trademarks matter for an open protocol:** Even if anyone can implement the protocol, only Attestara Foundation can call its product "Attestara" or claim to be "Attestara-certified." This creates brand value and trust signals that competing open-source implementations cannot replicate.
 
-**Certification mark:** Consider establishing an "AgentClear Compatible" certification mark for third-party implementations that pass the conformance test suite. This creates an ecosystem quality signal while extending the protocol's reach.
+**Certification mark:** Consider establishing an "Attestara Compatible" certification mark for third-party implementations that pass the conformance test suite. This creates an ecosystem quality signal while extending the protocol's reach.
 
 ---
 
 ## 5. Defensive Patent Strategy
 
-**Position:** AgentClear Foundation should file defensive patents on the novel cryptographic combinations in the protocol — not to enforce exclusivity, but to prevent others from patenting the same techniques and then asserting them against AgentClear or its users.
+**Position:** Attestara Foundation should file defensive patents on the novel cryptographic combinations in the protocol — not to enforce exclusivity, but to prevent others from patenting the same techniques and then asserting them against Attestara or its users.
 
 **Key patentable innovations (provisional assessment — requires patent attorney review):**
 1. The combination of ZK Mandate Bound proofs with Verifiable Credential authority delegation for AI agent negotiation
@@ -124,7 +124,7 @@ Managed Prover Service and Governance Dashboard are operated as SaaS products un
 
 **Governance:** Donate the specification to a neutral standards body (W3C Credentials Community Group or Linux Foundation AAIF) under a governance model that requires supermajority consensus for protocol changes. This makes hostile forking a governance event rather than just a technical one.
 
-**Trademark:** The "AgentClear" trademark cannot be used by a fork. Forks must use different names, reducing their ability to leverage AgentClear's brand equity.
+**Trademark:** The "Attestara" trademark cannot be used by a fork. Forks must use different names, reducing their ability to leverage Attestara's brand equity.
 
 **Community:** Build a strong developer community around the open-source reference implementation. Network effects in developer communities are harder to fork than code.
 
@@ -135,7 +135,7 @@ Managed Prover Service and Governance Dashboard are operated as SaaS products un
 For each new feature or component, apply this framework:
 
 ```
-Does the feature differentiate AgentClear from competitors?
+Does the feature differentiate Attestara from competitors?
     │
     ├── YES → Is it a protocol-level feature (affects interoperability)?
     │              │
@@ -159,7 +159,7 @@ Does the feature differentiate AgentClear from competitors?
 | Revenue Stream | IP Basis | Target Customer |
 |---------------|---------|-----------------|
 | Enterprise SDK licence | Proprietary commercial licence | Enterprise deployers |
-| Managed Prover Service | SaaS ToS | Any AgentClear user |
+| Managed Prover Service | SaaS ToS | Any Attestara user |
 | Governance Dashboard | SaaS ToS | DAO participants |
 | Littledata Integration | Proprietary licence bundled with Littledata | Littledata enterprise customers |
 | Conformance testing/certification | Trademark + service | Third-party implementers |
@@ -167,4 +167,4 @@ Does the feature differentiate AgentClear from competitors?
 
 ---
 
-*AgentClear IP and Licensing Strategy v0.1*
+*Attestara IP and Licensing Strategy v0.1*

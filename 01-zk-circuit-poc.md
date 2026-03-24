@@ -1,11 +1,11 @@
-# AgentClear — ZK Circuit Proof of Concept
+# Attestara — ZK Circuit Proof of Concept
 ## Technical Design Document v0.1
 
 ---
 
 ## 1. Purpose and Scope
 
-This document defines the proof-of-concept (PoC) implementation plan for AgentClear's Zero-Knowledge proof circuits. The PoC has one goal: **validate the core cryptographic assumptions before any infrastructure commitments are made**.
+This document defines the proof-of-concept (PoC) implementation plan for Attestara's Zero-Knowledge proof circuits. The PoC has one goal: **validate the core cryptographic assumptions before any infrastructure commitments are made**.
 
 Specifically, it must answer three questions:
 
@@ -328,7 +328,7 @@ snarkjs powersoftau contribute pot14_0000.ptau pot14_0001.ptau \
 snarkjs groth16 setup mandate_bound.r1cs pot14_final.ptau \
   mandate_bound_0000.zkey
 snarkjs zkey contribute mandate_bound_0000.zkey mandate_bound_0001.zkey \
-  --name="AgentClear Team" -e="more entropy"
+  --name="Attestara Team" -e="more entropy"
 snarkjs zkey export verificationkey mandate_bound_final.zkey \
   verification_key.json
 ```
@@ -487,4 +487,4 @@ The PoC is considered successful when:
 
 ---
 
-*AgentClear ZK Circuit PoC Design Document v0.1*
+*Attestara ZK Circuit PoC Design Document v0.1*

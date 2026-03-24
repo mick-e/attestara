@@ -4,7 +4,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY packages/types ./packages/types
 COPY packages/relay ./packages/relay
 RUN corepack enable && pnpm install --frozen-lockfile
-RUN pnpm --filter @agentclear/relay build
+RUN pnpm --filter @attestara/relay build
 
 FROM node:20-alpine
 WORKDIR /app

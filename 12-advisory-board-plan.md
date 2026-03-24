@@ -1,11 +1,11 @@
-# AgentClear — Advisory Board and Technical Credibility Plan
+# Attestara — Advisory Board and Technical Credibility Plan
 ## v0.1
 
 ---
 
-## 1. Why Advisors Matter for AgentClear
+## 1. Why Advisors Matter for Attestara
 
-AgentClear requires credibility across four distinct communities simultaneously:
+Attestara requires credibility across four distinct communities simultaneously:
 - **ZK cryptography community** — to validate that the protocol is technically sound
 - **Financial market infrastructure** — to validate that the clearing house analogy is architecturally correct and the solution fits regulated markets
 - **EU AI Act / regulatory policy** — to validate that the governance architecture satisfies regulatory requirements
@@ -50,7 +50,7 @@ The advisory board closes each of these gaps. Advisors are not for vanity — th
 
 ### 2.2 Financial Market Infrastructure Advisor
 
-**Role:** Validates that AgentClear's architecture correctly addresses the settlement and commitment problem in financial markets. Provides institutional credibility with FSI buyers. Can open doors to potential pilot customers.
+**Role:** Validates that Attestara's architecture correctly addresses the settlement and commitment problem in financial markets. Provides institutional credibility with FSI buyers. Can open doors to potential pilot customers.
 
 **What they bring:**
 - Credibility with CISOs and CTOs in financial services
@@ -71,13 +71,13 @@ The advisory board closes each of these gaps. Advisors are not for vanity — th
 
 ### 2.3 EU AI Act / Regulatory Policy Advisor
 
-**Role:** Validates that AgentClear's architecture satisfies EU AI Act Article 9 requirements and advises on regulatory positioning. Provides credibility with compliance buyers and standards bodies.
+**Role:** Validates that Attestara's architecture satisfies EU AI Act Article 9 requirements and advises on regulatory positioning. Provides credibility with compliance buyers and standards bodies.
 
 **What they bring:**
 - Direct knowledge of EU AI Act implementation requirements (ideally from working with Commission or Member State implementation groups)
 - Credibility in the EU regulatory community
 - Access to EU AI Act implementation working groups (useful for standards contribution strategy)
-- Ability to articulate why AgentClear satisfies Article 9 in terms compliance teams understand
+- Ability to articulate why Attestara satisfies Article 9 in terms compliance teams understand
 - Relationships with potential channel partners in the RegTech space
 
 **Ideal profile:**
@@ -92,7 +92,7 @@ The advisory board closes each of these gaps. Advisors are not for vanity — th
 
 ### 2.4 Enterprise Procurement / Fortune 500 Advisor
 
-**Role:** Validates that AgentClear solves a real problem enterprises will pay to fix. Provides credibility with enterprise buyers. Can facilitate introduction to potential pilot customers.
+**Role:** Validates that Attestara solves a real problem enterprises will pay to fix. Provides credibility with enterprise buyers. Can facilitate introduction to potential pilot customers.
 
 **What they bring:**
 - Firsthand understanding of the problem from the buyer's perspective
@@ -112,7 +112,7 @@ The advisory board closes each of these gaps. Advisors are not for vanity — th
 
 ## 3. Technical Advisory — ZK Circuit Audit Partner
 
-This is distinct from the advisory board. Before mainnet deployment, AgentClear's ZK circuits must be audited by a specialised ZK security firm. This is not an equity relationship — it is a paid engagement.
+This is distinct from the advisory board. Before mainnet deployment, Attestara's ZK circuits must be audited by a specialised ZK security firm. This is not an equity relationship — it is a paid engagement.
 
 **Target firms:**
 1. **Trail of Bits** — Pre-eminent smart contract and ZK audit firm; has audited Tornado Cash, Aztec, ZKSync circuits. High cost (~$100K–$150K) but highest credibility signal.
@@ -174,4 +174,4 @@ The advisory board is one credibility signal. These are others that can be built
 
 ---
 
-*AgentClear Advisory Board and Credibility Plan v0.1*
+*Attestara Advisory Board and Credibility Plan v0.1*

@@ -1,4 +1,4 @@
-# AgentClear — Legal Enforceability Framework
+# Attestara — Legal Enforceability Framework
 ## Analysis of Smart Contract Commitments and Agent Authority
 ### Draft Memorandum v0.1
 
@@ -6,21 +6,21 @@
 
 **IMPORTANT DISCLAIMER**
 
-*This document is a preliminary framework analysis prepared to identify key legal questions and structure future legal advice. It does not constitute legal advice and should not be relied upon as such. Before deployment, AgentClear should obtain formal legal opinions from qualified solicitors/lawyers with expertise in: (a) English contract law and electronic signatures; (b) EU contract law and eIDAS; (c) Gibraltar company and DLT law; (d) smart contract enforceability in relevant jurisdictions. The analysis below identifies the questions that advice must address — it is a briefing document for legal counsel, not a substitute for it.*
+*This document is a preliminary framework analysis prepared to identify key legal questions and structure future legal advice. It does not constitute legal advice and should not be relied upon as such. Before deployment, Attestara should obtain formal legal opinions from qualified solicitors/lawyers with expertise in: (a) English contract law and electronic signatures; (b) EU contract law and eIDAS; (c) Gibraltar company and DLT law; (d) smart contract enforceability in relevant jurisdictions. The analysis below identifies the questions that advice must address — it is a briefing document for legal counsel, not a substitute for it.*
 
 ---
 
 ## 1. Core Legal Questions
 
-AgentClear's commercial viability depends on clear answers to four legal questions:
+Attestara's commercial viability depends on clear answers to four legal questions:
 
-**Q1:** Does an AgentClear Commitment Record constitute a legally binding contract between the principals under English law and EU law?
+**Q1:** Does an Attestara Commitment Record constitute a legally binding contract between the principals under English law and EU law?
 
 **Q2:** Who bears liability when an agent commits beyond its mandate despite the protocol's cryptographic safeguards?
 
 **Q3:** What is the optimal legal entity structure for the DAO governance layer?
 
-**Q4:** How does Gibraltar's DLT framework interact with AgentClear's blockchain components, and does it offer jurisdictional advantages?
+**Q4:** How does Gibraltar's DLT framework interact with Attestara's blockchain components, and does it offer jurisdictional advantages?
 
 ---
 
@@ -31,7 +31,7 @@ AgentClear's commercial viability depends on clear answers to four legal questio
 Under English contract law, a binding contract requires: offer, acceptance, consideration, intention to create legal relations, and certainty of terms.
 
 **Offer and Acceptance**
-An AgentClear negotiation session produces a clear offer-acceptance chain. Each Negotiation Turn is a signed, timestamped offer or counter-offer. The Final Agreement is a mutual acceptance. Both are cryptographically signed by the agents, creating an unambiguous record of offer and acceptance.
+An Attestara negotiation session produces a clear offer-acceptance chain. Each Negotiation Turn is a signed, timestamped offer or counter-offer. The Final Agreement is a mutual acceptance. Both are cryptographically signed by the agents, creating an unambiguous record of offer and acceptance.
 
 *Question for counsel:* Does an AI agent's digital signature constitute valid acceptance on behalf of its principal under English law? The Electronic Communications Act 2000 and Electronic Signatures Regulations 2002 recognise electronic signatures, but the question of whether an autonomous agent can constitute an authorised signatory requires specific analysis.
 
@@ -39,10 +39,10 @@ An AgentClear negotiation session produces a clear offer-acceptance chain. Each 
 In B2B procurement and financial services contexts, the mutual promises embedded in a Final Agreement (payment in exchange for goods/services) constitute valid consideration.
 
 **Intention to Create Legal Relations**
-In commercial B2B contexts, the presumption is that parties intend to create legal relations. AgentClear's formal session structure, credential requirements, and on-chain commitment record reinforce rather than undermine this presumption.
+In commercial B2B contexts, the presumption is that parties intend to create legal relations. Attestara's formal session structure, credential requirements, and on-chain commitment record reinforce rather than undermine this presumption.
 
 **Certainty of Terms**
-The Final Agreement structure in the AgentClear spec requires all agreed terms in structured form. Courts have struck down agreements where material terms were insufficiently certain. The spec's requirement for structured, machine-readable term encoding should satisfy the certainty requirement — but the exact form of the Final Agreement document needs careful legal drafting.
+The Final Agreement structure in the Attestara spec requires all agreed terms in structured form. Courts have struck down agreements where material terms were insufficiently certain. The spec's requirement for structured, machine-readable term encoding should satisfy the certainty requirement — but the exact form of the Final Agreement document needs careful legal drafting.
 
 ### 2.2 Electronic Signatures and eIDAS
 
@@ -54,21 +54,21 @@ The EU eIDAS Regulation (Regulation 910/2014) and its UK equivalent (UK eIDAS re
 | Advanced Electronic Signature (AdES) | Uniquely linked to signatory, capable of identifying signatory, created by data under signatory's sole control, any change detectable | Significantly stronger evidential weight |
 | Qualified Electronic Signature (QES) | AdES + qualified certificate from accredited trust service provider | Equivalent to handwritten signature |
 
-AgentClear's Ed25519 signatures tied to registered DIDs should qualify as **Advanced Electronic Signatures** — uniquely linked to the agent's DID key, identifying the agent, created by private key under the agent's control, any change detectable via signature verification.
+Attestara's Ed25519 signatures tied to registered DIDs should qualify as **Advanced Electronic Signatures** — uniquely linked to the agent's DID key, identifying the agent, created by private key under the agent's control, any change detectable via signature verification.
 
 *Question for counsel:* Can an AI agent's Ed25519 signature qualify as an AdES? Does the agent need to be the "signatory" or can the principal organisation be the signatory with the agent as an authorised representative? Under what circumstances would QES be required?
 
-**eIDAS 2.0:** The European Digital Identity Wallet framework (eIDAS 2.0, in implementation 2024-2026) introduces EU Digital Identity Wallets that may be relevant to AgentClear's credential architecture. Legal counsel should assess whether Agent Authority Credentials could be structured as EUDIW-compatible verifiable attestations.
+**eIDAS 2.0:** The European Digital Identity Wallet framework (eIDAS 2.0, in implementation 2024-2026) introduces EU Digital Identity Wallets that may be relevant to Attestara's credential architecture. Legal counsel should assess whether Agent Authority Credentials could be structured as EUDIW-compatible verifiable attestations.
 
 ### 2.3 Agency Law: Can an AI Agent Bind Its Principal?
 
-This is the most legally novel question in the AgentClear architecture. Under English law, an agent can bind its principal if:
+This is the most legally novel question in the Attestara architecture. Under English law, an agent can bind its principal if:
 - The agent has actual authority (express or implied), or
 - The agent has apparent/ostensible authority (principal's conduct leads third party to reasonably believe agent has authority)
 
-**Actual authority:** The AgentClear Authority Credential is a formal delegation of authority from the principal to the agent. *Question for counsel:* Does a digitally-signed Authority Credential constitute a valid instrument of actual authority? Does it need to be a power of attorney? Does it need to be in writing in a specific form?
+**Actual authority:** The Attestara Authority Credential is a formal delegation of authority from the principal to the agent. *Question for counsel:* Does a digitally-signed Authority Credential constitute a valid instrument of actual authority? Does it need to be a power of attorney? Does it need to be in writing in a specific form?
 
-**Apparent authority:** A counterparty who verifies an AgentClear Authority Credential and its ZK proofs has taken reasonable steps to verify the agent's authority. *Question for counsel:* If an agent commits within its verified credential scope, can the principal disclaim the commitment on the grounds that the agent was "just an AI"? This question will likely require judicial determination — there is no direct precedent.
+**Apparent authority:** A counterparty who verifies an Attestara Authority Credential and its ZK proofs has taken reasonable steps to verify the agent's authority. *Question for counsel:* If an agent commits within its verified credential scope, can the principal disclaim the commitment on the grounds that the agent was "just an AI"? This question will likely require judicial determination — there is no direct precedent.
 
 **Exceeding authority:** If an agent commits beyond its credential scope (i.e., the ZK proof is wrong or the credential was fraudulently obtained), liability analysis becomes complex. *Question for counsel:* What is the principal's liability for commitments made by their agent that exceed the agent's verified credential scope? Does the answer differ depending on whether the principal's credential issuance process was negligent?
 
@@ -87,7 +87,7 @@ Where an agent commits within its verified credential scope and the ZK proofs ar
 
 If an agent commits beyond its mandate despite the protocol's safeguards — possible only if the ZK proof system is broken or the credential was fraudulently issued:
 
-**Scenario A — Cryptographic failure:** The ZK proof system produces a false positive (computationally infeasible under standard assumptions, but relevant as a risk). *Liability question:* Does the counterparty who relied on a verified proof bear any loss? Does the AgentClear protocol operator bear any liability for the verification failure?
+**Scenario A — Cryptographic failure:** The ZK proof system produces a false positive (computationally infeasible under standard assumptions, but relevant as a risk). *Liability question:* Does the counterparty who relied on a verified proof bear any loss? Does the Attestara protocol operator bear any liability for the verification failure?
 
 **Scenario B — Credential fraud:** The principal's credential issuance process was compromised (see T-03 in the Threat Model). *Liability question:* The principal is almost certainly liable for commitments made by their fraudulently-credentialed agent. The question is whether the counterparty has any additional recourse against the credential verification infrastructure.
 
@@ -97,8 +97,8 @@ If an agent commits beyond its mandate despite the protocol's safeguards — pos
 
 ### 3.3 Limitation of Liability
 
-AgentClear's Terms of Service (to be drafted) should address:
-- AgentClear Foundation's liability for protocol failures (should be limited/excluded for non-gross-negligence failures)
+Attestara's Terms of Service (to be drafted) should address:
+- Attestara Foundation's liability for protocol failures (should be limited/excluded for non-gross-negligence failures)
 - The role of the Commitment Record as evidence (evidential, not necessarily determinative)
 - Governing law and dispute resolution jurisdiction
 
@@ -133,12 +133,12 @@ For the DAO governance mode, a legal wrapper is strongly recommended. A pure on-
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  AgentClear Foundation Ltd (Gibraltar)                  │
+│  Attestara Foundation Ltd (Gibraltar)                  │
 │  Company limited by guarantee                           │
 │  Registered under Gibraltar DLT framework               │
 │                                                         │
 │  Functions:                                             │
-│  - Holds AgentClear IP and trademarks                   │
+│  - Holds Attestara IP and trademarks                   │
 │  - Operates reference implementation                    │
 │  - Manages DAO governance token issuance                │
 │  - Enters commercial contracts                          │
@@ -155,27 +155,27 @@ For the DAO governance mode, a legal wrapper is strongly recommended. A pure on-
 └────────────────────────────────────────────────────────┘
 ```
 
-*Question for counsel:* What are the specific registration requirements under Gibraltar's DLT framework for an entity operating AgentClear? Does the Commitment Contract's on-chain settlement function constitute a "DLT business" under the Gibraltar framework requiring a DLT Provider licence?
+*Question for counsel:* What are the specific registration requirements under Gibraltar's DLT framework for an entity operating Attestara? Does the Commitment Contract's on-chain settlement function constitute a "DLT business" under the Gibraltar framework requiring a DLT Provider licence?
 
 ---
 
 ## 5. Gibraltar DLT Framework Analysis
 
-Gibraltar's Distributed Ledger Technology Regulatory Framework (Financial Services (Distributed Ledger Technology Providers) Regulations 2017) was the world's first purpose-built DLT regulation. Key provisions relevant to AgentClear:
+Gibraltar's Distributed Ledger Technology Regulatory Framework (Financial Services (Distributed Ledger Technology Providers) Regulations 2017) was the world's first purpose-built DLT regulation. Key provisions relevant to Attestara:
 
-**DLT Provider Definition:** Any firm using DLT to store or transmit value belonging to others. *Analysis:* AgentClear's Commitment Contract records agreement hashes but does not custody assets. Whether this constitutes "storing value" requires legal analysis.
+**DLT Provider Definition:** Any firm using DLT to store or transmit value belonging to others. *Analysis:* Attestara's Commitment Contract records agreement hashes but does not custody assets. Whether this constitutes "storing value" requires legal analysis.
 
 **Principles-Based Regulation:** The framework is principles-based (nine principles including honest/fair dealing, financial prudence, adequate resources, risk management, customer protection) rather than rules-based. This creates flexibility but also regulatory uncertainty.
 
 **GFSC Oversight:** The Gibraltar Financial Services Commission is the regulator. The GFSC has been pragmatically pro-innovation in the DLT space.
 
-**Potential advantages for AgentClear:**
+**Potential advantages for Attestara:**
 - Regulatory certainty for the on-chain components
 - GFSC's DLT expertise means the regulator understands the technology
 - Gibraltar's EU-aligned regulatory framework (pre-Brexit relationship) provides credibility with European enterprises
 - Mike's existing presence creates practical operational efficiency
 
-*Question for counsel:* Does operating the AgentClear Commitment Contract and DAO governance from Gibraltar require a DLT Provider licence? If so, what are the conditions and timeline?
+*Question for counsel:* Does operating the Attestara Commitment Contract and DAO governance from Gibraltar require a DLT Provider licence? If so, what are the conditions and timeline?
 
 ---
 
@@ -183,7 +183,7 @@ Gibraltar's Distributed Ledger Technology Regulatory Framework (Financial Servic
 
 Priority 1 (required before fundraising):
 - [ ] Opinion on AI agent authority under English law — can a ZK-credentialed agent bind its principal?
-- [ ] Opinion on AgentClear Commitment Record as binding contract under English and Gibraltar law
+- [ ] Opinion on Attestara Commitment Record as binding contract under English and Gibraltar law
 - [ ] Gibraltar DLT framework analysis — licence requirement assessment
 
 Priority 2 (required before mainnet deployment):
@@ -199,5 +199,5 @@ Priority 3 (Phase 2, before DAO mainnet):
 
 ---
 
-*AgentClear Legal Enforceability Framework v0.1 — DRAFT FOR LEGAL COUNSEL REVIEW*  
+*Attestara Legal Enforceability Framework v0.1 — DRAFT FOR LEGAL COUNSEL REVIEW*  
 *This document does not constitute legal advice.*

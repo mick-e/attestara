@@ -1,0 +1,99 @@
+  ┌────────────────────────────┬───────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────┐
+  │            Body            │           Working Group           │                                      Relevance                                       │
+  ├────────────────────────────┼───────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+  │ W3C                        │ Credentials Community Group (CCG) │ AgentAuthorityCredential schema, ZK proof binding in VCs, did:attestara method spec │
+  ├────────────────────────────┼───────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+  │ W3C                        │ Verifiable Credentials WG         │ VC Data Model 2.0 extensions for agent authority delegation                          │
+  ├────────────────────────────┼───────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+  │ W3C                        │ DID WG                            │ New DID method registration for agent-specific identifiers                           │
+  ├────────────────────────────┼───────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+  │ Linux Foundation AI & Data │ AAIF (AI Agent Forum)             │ Trust Layer Working Group proposal, A2A trust extension                              │
+  ├────────────────────────────┼───────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+  │ IETF                       │ OAuth / GNAP WG                   │ Agent-to-agent authorisation patterns complement existing token-based flows          │
+  └────────────────────────────┴───────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────┘
+
+  Secondary — Regulatory & Industry Alignment
+
+  ┌────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────┐
+  │              Body              │                                         Relevance                                          │
+  ├────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ISO/IEC JTC 1/SC 42 (AI)       │ ISO/IEC 42001 (AI Management Systems) — Attestara maps to controls for AI risk management │
+  ├────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ISO/IEC JTC 1/SC 27 (Security) │ ISO 27001/27701 alignment for credential security and privacy                              │
+  ├────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ETSI (EU Telecoms Standards)   │ eIDAS technical standards — AI agent electronic signatures under EU regulation             │
+  ├────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ CEN-CENELEC JTC 21             │ EU AI Act harmonised standards development — directly writing the compliance specs         │
+  ├────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ OASIS                          │ Open standards for smart contracts and digital credentials in enterprise                   │
+  └────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Tertiary — Domain-Specific
+
+  ┌─────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                  Body                   │                                          Relevance                                           │
+  ├─────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ FIX Trading Community                   │ Financial services messaging — algorithmic trading governance use case                       │
+  ├─────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ SWIFT                                   │ Financial messaging standards — agent-driven payment/settlement                              │
+  ├─────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ GS1                                     │ Supply chain standards — multi-party agent coordination use case                             │
+  ├─────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ IEEE SA                                 │ P2863 (Organizational Governance of AI), P7006 (Personal Data AI Agents)                     │
+  ├─────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Decentralized Identity Foundation (DIF) │ DIDComm, credential exchange protocols — not a formal standards body but heavily influential │
+  └─────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
+what is standard org best value and fit for this protocol?05:26Weighed standards bodies against protocol's identity, compliance, and commercial prioritiesWeighed standards bodies against protocol's identity, compliance, and commercial prioritiesGood question to force prioritisation on. Let me think through this as a strategic decision rather than a coverage exercise, because trying to pursue all of them simultaneously with a small team would be a mistake.Identified optimal standards organization alignment for agent protocolIdentified optimal standards organization alignment for agent protocolThat last search surfaced something highly significant that changes the answer entirely. Let me pull the DIF finding in detail before giving the recommendation.
+The DIF Trusted AI Agents Working Group — active right now, November/December 2025, working on "Agentic Authority Use Cases" with explicit focus on delegation chains, authorisation boundaries, and human oversight mechanisms — is building exactly what Attestara implements, and they are actively looking for reference implementations. Membership for a company of Littledata's size is free.
+That reframes the entire strategic question.
+
+Strategic Recommendation: DIF First, W3C CCG Second, JTC 21 for Regulatory Positioning Only
+Here is the full reasoning, organised by what you get from each body relative to the cost of engaging it.
+
+Tier 1: Join DIF Immediately — The Trusted AI Agents Working Group
+This is the highest-value, lowest-cost action available to you right now and it is not in the current document at all.
+The DIF Trusted AI Agents Working Group (established 2024, active through 2025–2026) is incubating the "Agentic Authority Use Cases" work item. From their own published updates, the group is focused on precisely: delegation chains, authorisation boundaries, trust registries, agent discovery, and how existing DID and VC standards need to be adapted for AI agents with human oversight requirements. They have strong participation, a governance process for evaluating use cases, and are aiming for concrete specifications and reference implementations.
+Attestara is not adjacent to this work. It is a production-ready implementation of exactly what they are specifying. The ZK mandate enforcement layer — proving an agent operates within authority without revealing that authority — is the missing technical piece the working group does not yet have. You would be walking in with a solution to their open problem.
+The strategic value is asymmetric. In most standards bodies, a small company contributes to a process controlled by larger players. Here, you would arrive with the only working implementation of ZK-based agent authority enforcement at the moment the group is trying to define what that should look like. That is the standard-setting position described in the whitepaper's competitive analysis — and DIF is where it is actually available to be taken.
+Cost: Free membership for companies under 1,000 employees. Participation requires attending working group calls and contributing to the work item — which you are already doing in whitepaper form.
+What to do: Join DIF, engage the Trusted AI Agents Working Group chair, and submit Attestara's ZK authority enforcement approach as a concrete input to the Agentic Authority Use Cases work item. Frame the whitepaper as a use case contribution immediately, and the protocol spec as a potential reference implementation once the MVP is ready.
+Timeline benefit: DIF ratified specifications feed directly into W3C CCG as input material. Establishing the technical pattern at DIF is the fastest path to getting it recognised at W3C without the full W3C process overhead at this stage.
+
+Tier 2: W3C CCG — The Right Long-Term Home for the Credential Schema, But Not Yet
+W3C CCG is the correct eventual home for the AgentAuthorityCredential schema and the ZK proof binding pattern for Verifiable Credentials. The technical alignment is precise: VC 2.0, Bitstring Status List, Controlled Identifiers — all W3C Recommendations, all already implemented in v3 of the document.
+However, pursuing a W3C CCG Work Item before engaging DIF creates a sequencing problem. The CCG process requires a co-editor from a second organisation, community support, and a demonstrated use case. If you arrive at the CCG having already contributed to the DIF Trusted AI Agents working group and having pilot customers as co-editors or co-sponsors, the CCG proposal goes in with community backing rather than cold. The DIF engagement is how you build that backing.
+The correct W3C CCG sequencing is: DIF working group contribution (now) → CCG Work Item proposal at Month 8 with DIF community members as co-editors → CCG Community Report by Month 16 → potential WG Recommendation track thereafter.
+The full W3C Recommendation track — Working Group, Candidate Recommendation, two independent implementations, Advisory Committee review — takes five to eight years for novel technology. That is the institutional credibility endpoint, not the near-term strategy. The CCG Community Report is the realistic 18-month target.
+
+Tier 3: JTC 21 — Use It for Regulatory Positioning, Not Protocol Standardisation
+JTC 21 is critically important to the commercial strategy but it does not standardise protocols. It standardises compliance frameworks. No amount of JTC 21 engagement will make Attestara a JTC 21 standard — the correct positioning is already in the document: Attestara is a technical measure that supports compliance with JTC 21 harmonised standards.
+The value of JTC 21 engagement is entirely on the demand side: enterprise procurement teams need a way to justify buying Attestara by pointing to a compliance obligation. The Article 9 and Article 12 alignment tables in the whitepaper do exactly this. The JTC 21 public consultation comment submissions (prEN 18286, the Article 9 risk management standard) are valuable because they get the Attestara approach into the commentary record that standards authors read — influencing the standard rather than becoming one. That is a content strategy, not a membership strategy, and it requires attending public consultations rather than joining working groups.
+Recommended engagement: Submit public consultation comments on prEN 18286 and the AI risk management standard. Publish a case study from a pilot customer that maps to JTC 21 standard requirements. These actions cost almost nothing and produce regulatory credibility that directly accelerates sales.
+
+Tier 4: IETF — Defer Until Independent Implementations Exist
+IETF engagement is the highest prestige and the highest cost. An RFC requires: an Internet-Draft in the IETF format, sustained participation in the OAuth WG or a new WG, two independent interoperable implementations, and typically two to four years of process. The RFC 9396 (RAR) and RFC 8693 (Token Exchange) positioning work described earlier — showing how Attestara relates to and extends these — should be done as whitepaper appendix content, not as an active IETF submission at this stage.
+The appropriate trigger for IETF engagement is when a pilot customer in financial services or critical infrastructure asks for it — because their enterprise architects specifically require IETF-published standards. Until that pull exists from the demand side, IETF is a resource sink.
+
+The Bodies to Deprioritise Entirely for Now
+OASIS: Relevant for smart contract standards but the committee most aligned (OASIS Legal XML, OASIS Open Document Format) works slowly and does not have an active AI agent track. Low expected return.
+IEEE SA (P2863/P7006): P2863 is still a draft Recommended Practice focused on organisational governance principles — it is not a protocol standard and the working group does not need Attestara's input. P7006 is consumer-focused. The correct engagement with IEEE is as a reference in the whitepaper, not as a submitting member.
+GS1, FIX, SWIFT: These are domain adoption plays for Phase 3 when the protocol has pilot deployments in supply chain or financial services. They operate by endorsing and profiling existing standards for their domain, not by incubating new ones. Come back when you have a live financial services pilot that can be presented as a GS1 or FIX use case.
+
+  Recommended immediate actions:
+  1. Register attestara.com, attestara.io, and attestara.dev today (before anyone else reads this document)
+  2. File trademark applications in Gibraltar (home jurisdiction), EUIPO (EU), and UK IPO — Nice Classes 9 (downloadable software, cryptographic protocols) and 42 (SaaS, software services)
+  3. Reserve the GitHub org: github.com/attestara
+  4. Reserve npm scope: @attestara
+
+   Domain     │                        Purpose                        │
+  ├───────────────┼───────────────────────────────────────────────────────┤
+  │ attestara.ai  │ Primary — all protocol URLs, site, services           │
+  ├───────────────┼───────────────────────────────────────────────────────┤
+  │ attestara.com │ Defensive — redirect to .ai                           │
+  ├───────────────┼───────────────────────────────────────────────────────┤
+  │ attestara.io  │ Defensive — prevents squatting (common for protocols) │
+  ├───────────────┼───────────────────────────────────────────────────────┤
+  │ attestara.dev │ Defensive — prevents squatting (common for dev tools) │
+  ├───────────────┼───────────────────────────────────────────────────────┤
+  │ attestara.net │ Defensive — prevents squatting                        │
+  └───────────────┴────────────────────────────────────────────────────

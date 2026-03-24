@@ -1,11 +1,11 @@
-# AgentClear — Reference Implementation Architecture
+# Attestara — Reference Implementation Architecture
 ## Technology Stack Decision Document v0.1
 
 ---
 
 ## 1. Purpose
 
-This document makes concrete technology stack decisions for the AgentClear Phase 1 reference implementation. The protocol specification is deliberately chain-agnostic and framework-agnostic; this document is not. It makes opinionated choices to enable a buildable, auditable, deployable implementation.
+This document makes concrete technology stack decisions for the Attestara Phase 1 reference implementation. The protocol specification is deliberately chain-agnostic and framework-agnostic; this document is not. It makes opinionated choices to enable a buildable, auditable, deployable implementation.
 
 All decisions include rationale and the conditions under which they should be revisited.
 
@@ -20,7 +20,7 @@ All decisions include rationale and the conditions under which they should be re
 │                                                                   │
 │  APPLICATION LAYER                                                │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  AgentClear SDK (TypeScript / Python)                    │    │
+│  │  Attestara SDK (TypeScript / Python)                    │    │
 │  │  Integration adapters: LangChain, AutoGen, Agentforce   │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                   │
@@ -167,7 +167,7 @@ const authorityCredential = await agent.createVerifiableCredential({
 
 **Project structure:**
 ```
-agentclear-circuits/
+attestara-circuits/
 ├── circuits/
 │   ├── mandate_bound.circom
 │   ├── parameter_range.circom
@@ -203,7 +203,7 @@ snarkjs powersoftau prepare phase2 pot14_0001.ptau pot14_final.ptau
 snarkjs groth16 setup artifacts/mandate_bound.r1cs pot14_final.ptau \
   artifacts/mandate_bound_0000.zkey
 snarkjs zkey contribute artifacts/mandate_bound_0000.zkey \
-  artifacts/mandate_bound_final.zkey --name="AgentClear"
+  artifacts/mandate_bound_final.zkey --name="Attestara"
 
 # 4. Export Solidity verifier
 snarkjs zkey export solidityverifier artifacts/mandate_bound_final.zkey \
@@ -230,10 +230,10 @@ contracts/
 │   ├── ParameterRangeVerifier.sol
 │   └── CredentialFreshnessVerifier.sol
 ├── governance/
-│   ├── AgentClearDAO.sol          # DAO governance (Phase 2)
+│   ├── AttestaraDAO.sol          # DAO governance (Phase 2)
 │   └── GovernanceToken.sol        # ACL governance token (Phase 2)
 ├── proxy/
-│   └── AgentClearProxy.sol        # Transparent proxy for upgrades
+│   └── AttestaraProxy.sol        # Transparent proxy for upgrades
 └── interfaces/
     ├── IAgentRegistry.sol
     ├── ICommitmentContract.sol
@@ -359,7 +359,7 @@ contract CommitmentContract is ReentrancyGuard, AccessControl {
 
 **Decision:** Standard HTTPS REST + WebSocket for real-time turn exchange. No custom P2P protocol for Phase 1.
 
-**Rationale:** Custom P2P networking adds significant complexity and is not required for the core protocol validation. Phase 1 can use a centralised relay service (operated by AgentClear Foundation) with the on-chain anchoring providing the tamper-proof record. Decentralised relay (IPFS pubsub, Waku) can be introduced in Phase 2.
+**Rationale:** Custom P2P networking adds significant complexity and is not required for the core protocol validation. Phase 1 can use a centralised relay service (operated by Attestara Foundation) with the on-chain anchoring providing the tamper-proof record. Decentralised relay (IPFS pubsub, Waku) can be introduced in Phase 2.
 
 **Session relay API:**
 ```typescript
@@ -382,27 +382,27 @@ Events: { type: 'turn', data: NegotiationTurn }
 
 ---
 
-## 8. AgentClear SDK Design
+## 8. Attestara SDK Design
 
 **Languages:** TypeScript (primary) + Python (secondary, for ML/AI agent frameworks)
 
 **TypeScript SDK structure:**
 ```typescript
 // Core SDK exports
-export { AgentClearClient } from './client'
+export { AttestaraClient } from './client'
 export { CredentialManager } from './credentials'
 export { ProofGenerator } from './proofs'
 export { NegotiationSession } from './session'
 export type { AuthorityCredential, NegotiationTurn, CommitmentRecord } from './types'
 
 // Usage example
-import { AgentClearClient } from '@agentclear/sdk'
+import { AttestaraClient } from '@attestara/sdk'
 
-const client = new AgentClearClient({
+const client = new AttestaraClient({
   did: 'did:ethr:arb1:0xAgentAddress',
   privateKey: process.env.AGENT_PRIVATE_KEY,
   rpcUrl: 'https://arb1.alchemy.com/v2/...',
-  proverUrl: 'https://prover.agentclear.io' // or 'local'
+  proverUrl: 'https://prover.attestara.io' // or 'local'
 })
 
 // Load credentials
@@ -430,15 +430,15 @@ session.on('turn', async (turn) => {
 
 **LangChain integration:**
 ```python
-from agentclear import AgentClearTool
+from attestara import AttestaraTool
 
-# Add AgentClear as a LangChain tool
-agentclear_tool = AgentClearTool(
+# Add Attestara as a LangChain tool
+attestara_tool = AttestaraTool(
     did="did:ethr:arb1:0xAgentAddress",
     credential_path="./authority_credential.json"
 )
 
-tools = [agentclear_tool, ...other_tools]
+tools = [attestara_tool, ...other_tools]
 agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION)
 ```
 
@@ -461,7 +461,7 @@ agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION
 
 **Deployment:**
 - Contracts deployed via Hardhat Deploy with deterministic addresses
-- SDK distributed via npm (@agentclear/sdk) and PyPI (agentclear)
+- SDK distributed via npm (@attestara/sdk) and PyPI (attestara)
 - Prover service: Docker container, deployable on any cloud or on-premises
 
 ---
@@ -482,4 +482,4 @@ agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION
 
 ---
 
-*AgentClear Reference Implementation Architecture v0.1*
+*Attestara Reference Implementation Architecture v0.1*

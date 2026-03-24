@@ -1,5 +1,5 @@
 """
-AgentClear — Professional Project Scope Document Generator
+Attestara — Professional Project Scope Document Generator
 Generates a branded PDF using ReportLab with the littledata logo.
 """
 
@@ -31,7 +31,7 @@ TABLE_ALT_ROW = HexColor("#F0F5FA")
 DIVIDER_COLOR = HexColor("#D0DCE8")
 
 LOGO_PATH = r"C:\Users\mpesb\Downloads\WIP\littledata.png"
-OUTPUT_PATH = r"C:\claude\agentclear\AgentClear_Project_Scope.pdf"
+OUTPUT_PATH = r"C:\claude\attestara\Attestara_Project_Scope.pdf"
 
 PAGE_W, PAGE_H = A4
 MARGIN = 25 * mm
@@ -225,7 +225,7 @@ class ScopeDocTemplate(BaseDocTemplate):
         canvas.setFont("Helvetica", 8)
         canvas.setFillColor(BRAND_GRAY)
         canvas.drawString(MARGIN, PAGE_H - 13 * mm,
-                          "AgentClear — Project Scope Document")
+                          "Attestara — Project Scope Document")
         canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 13 * mm,
                                "CONFIDENTIAL")
 
@@ -259,7 +259,7 @@ def build_document():
         elements.append(logo)
 
     elements.append(Spacer(1, 18 * mm))
-    elements.append(Paragraph("AgentClear", sty["cover_title"]))
+    elements.append(Paragraph("Attestara", sty["cover_title"]))
     elements.append(Paragraph(
         "Cryptographic Trust Protocol for Autonomous AI Agents",
         sty["cover_subtitle"],
@@ -331,7 +331,7 @@ def build_document():
     elements += section("1. Executive Summary", sty)
 
     elements.append(p(
-        "AgentClear is an open cryptographic trust protocol that enables autonomous AI agents "
+        "Attestara is an open cryptographic trust protocol that enables autonomous AI agents "
         "to negotiate, commit, and be held accountable across organisational boundaries — "
         "without requiring inter-party trust. It functions as <b>the clearing house for the "
         "AI agent economy</b>, analogous to how the London Clearing House (est. 1832) enabled "
@@ -344,14 +344,14 @@ def build_document():
         "financial transactions, a critical governance gap has emerged: no infrastructure "
         "exists to cryptographically prove that an agent had authority to act, that it "
         "operated within its mandate, or that its commitments are auditable and legally "
-        "enforceable. AgentClear fills this gap.",
+        "enforceable. Attestara fills this gap.",
         sty,
     ))
 
     elements.append(callout(
         '"When two AI agents from competing companies negotiate a $2M supply contract, '
         'neither party can currently verify the other\'s agent had authority to commit. '
-        'AgentClear makes that verification instant, private, and cryptographically certain."',
+        'Attestara makes that verification instant, private, and cryptographically certain."',
         sty,
     ))
 
@@ -437,7 +437,7 @@ def build_document():
     elements += section("3. Solution Overview", sty)
 
     elements.append(p(
-        "AgentClear provides a three-layer trust infrastructure for AI agent interactions:",
+        "Attestara provides a three-layer trust infrastructure for AI agent interactions:",
         sty,
     ))
 
@@ -494,7 +494,7 @@ def build_document():
 
     elements += sub("4.1 Zero-Knowledge Proofs (Groth16 / Circom)", sty)
     elements.append(p(
-        "AgentClear uses <b>Groth16 proofs</b> compiled from Circom 2.x circuits. Groth16 was "
+        "Attestara uses <b>Groth16 proofs</b> compiled from Circom 2.x circuits. Groth16 was "
         "selected over PLONK for its smaller proof size (~192 bytes) and cheaper on-chain "
         "verification (~210K gas vs. ~300K+ for PLONK). A trusted setup ceremony with 2–5 "
         "participants secures the PoC phase, with a larger ceremony planned pre-mainnet.",
@@ -549,19 +549,19 @@ def build_document():
 
     elements += sub("5.1 Monorepo Structure", sty)
     elements.append(p(
-        "AgentClear is built as a <b>Turborepo + pnpm</b> monorepo with seven packages, "
+        "Attestara is built as a <b>Turborepo + pnpm</b> monorepo with seven packages, "
         "each with a clearly defined responsibility:",
         sty,
     ))
     pkg_data = [
         ["Package", "Technology", "Purpose"],
-        ["@agentclear/types", "TypeScript", "Shared interfaces (DID, credentials, sessions, proofs)"],
-        ["@agentclear/contracts", "Solidity + Circom", "Smart contracts and ZK circuits (Hardhat)"],
-        ["@agentclear/sdk", "TypeScript (Veramo, ethers.js, snarkjs)", "Main developer SDK"],
-        ["@agentclear/prover", "Fastify + Worker Threads", "Managed ZK proof generation service"],
-        ["@agentclear/relay", "Fastify + Prisma + WebSocket", "Session relay and cross-org transport"],
-        ["@agentclear/cli", "Commander.js", "Command-line tools for agent and session management"],
-        ["@agentclear/portal", "Next.js (App Router) + Tailwind", "Dashboard, explorer, and marketing site"],
+        ["@attestara/types", "TypeScript", "Shared interfaces (DID, credentials, sessions, proofs)"],
+        ["@attestara/contracts", "Solidity + Circom", "Smart contracts and ZK circuits (Hardhat)"],
+        ["@attestara/sdk", "TypeScript (Veramo, ethers.js, snarkjs)", "Main developer SDK"],
+        ["@attestara/prover", "Fastify + Worker Threads", "Managed ZK proof generation service"],
+        ["@attestara/relay", "Fastify + Prisma + WebSocket", "Session relay and cross-org transport"],
+        ["@attestara/cli", "Commander.js", "Command-line tools for agent and session management"],
+        ["@attestara/portal", "Next.js (App Router) + Tailwind", "Dashboard, explorer, and marketing site"],
     ]
     elements.append(make_table(
         pkg_data[0], pkg_data[1:],
@@ -590,7 +590,7 @@ def build_document():
 
     elements += sub("5.3 Deployment Modes", sty)
     elements.append(p(
-        "AgentClear supports two deployment models to accommodate different enterprise needs:",
+        "Attestara supports two deployment models to accommodate different enterprise needs:",
         sty,
     ))
     elements += bullets([
@@ -679,7 +679,7 @@ def build_document():
     elements.append(p(
         "Financial services is the primary beachhead due to three converging factors: "
         "regulatory urgency (DORA + EU AI Act), high-value multi-agent transactions, "
-        "and existing clearing house mental models that make AgentClear's value proposition "
+        "and existing clearing house mental models that make Attestara's value proposition "
         "immediately intuitive.",
         sty,
     ))
@@ -781,7 +781,7 @@ def build_document():
     elements += section("9. Competitive Landscape", sty)
 
     elements.append(p(
-        "AgentClear occupies an <b>uncontested market position</b>. Existing players address "
+        "Attestara occupies an <b>uncontested market position</b>. Existing players address "
         "adjacent problems but none deliver the combination of authority verification, "
         "privacy-preserving mandate enforcement, and binding commitment settlement:",
         sty,
@@ -808,7 +808,7 @@ def build_document():
     elements.append(Paragraph("Table 11: Competitive positioning", sty["caption"]))
 
     elements.append(callout(
-        "AgentClear is the only solution that combines all three: ZK-backed authority "
+        "Attestara is the only solution that combines all three: ZK-backed authority "
         "verification without mandate disclosure, privacy-preserving adversarial negotiation, "
         "and cryptographically binding on-chain commitment settlement.",
         sty,
@@ -839,12 +839,12 @@ def build_document():
 
     elements += sub("10.2 Trademark & Patents", sty)
     elements += bullets([
-        '<b>Trademark:</b> "AgentClear" registered in Gibraltar, EU, UK, and US.',
+        '<b>Trademark:</b> "Attestara" registered in Gibraltar, EU, UK, and US.',
         "<b>Patents:</b> Defensive filings planned on ZK mandate proofs and dual-signature "
         "session anchoring (within 12 months of public disclosure).",
         "<b>Fork Defence:</b> Protocol specification to be donated to a standards body "
         "(W3C CCG or AAIF) with supermajority governance. Trademark prevents competing "
-        "forks from using the AgentClear name.",
+        "forks from using the Attestara name.",
     ], sty)
 
     elements += sub("10.3 Entity & Jurisdiction", sty)
@@ -857,7 +857,7 @@ def build_document():
 
     elements += sub("10.4 Regulatory Compliance", sty)
     elements += bullets([
-        "<b>EU AI Act:</b> AgentClear provides the technical infrastructure for Article 9 "
+        "<b>EU AI Act:</b> Attestara provides the technical infrastructure for Article 9 "
         "compliance — risk management, logging, human oversight, and transparency for agentic systems.",
         "<b>DORA:</b> Commitment records and audit trails satisfy ICT risk governance requirements.",
         "<b>eIDAS:</b> Legal enforceability of agent digital signatures requires external counsel opinion.",
@@ -964,7 +964,7 @@ def build_document():
         ["Term", "Definition"],
         ["Authority Credential", "A W3C Verifiable Credential encoding an agent's negotiation mandate (value limits, parameter ranges, validity period)"],
         ["Commitment Record", "An immutable on-chain record of a finalised agent-to-agent agreement, including dual signatures and ZK proof references"],
-        ["DID (Decentralised Identifier)", "A W3C standard for self-sovereign digital identity; AgentClear uses did:ethr (ERC-1056)"],
+        ["DID (Decentralised Identifier)", "A W3C standard for self-sovereign digital identity; Attestara uses did:ethr (ERC-1056)"],
         ["DORA", "Digital Operational Resilience Act — EU regulation mandating ICT risk governance for financial services (in force January 2025)"],
         ["EU AI Act", "European Union regulation on artificial intelligence; Article 9 covers high-risk AI system requirements (enforcement August 2026)"],
         ["Groth16", "A zero-knowledge proof system producing compact proofs (~192 bytes) with efficient on-chain verification"],
@@ -1010,7 +1010,7 @@ def main():
         rightMargin=MARGIN,
         topMargin=MARGIN + 10 * mm,
         bottomMargin=MARGIN + 8 * mm,
-        title="AgentClear — Project Scope Document",
+        title="Attestara — Project Scope Document",
         author="littledata",
         subject="Cryptographic Trust Protocol for Autonomous AI Agents",
     )

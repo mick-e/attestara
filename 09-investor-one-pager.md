@@ -1,4 +1,4 @@
-# AgentClear
+# Attestara
 ## Investor One-Pager — Seed Round
 
 ---
@@ -21,13 +21,13 @@ In 1832, thirty-one competing London banks faced a structurally identical proble
 
 Their solution — the London Bankers' Clearing House — didn't make the bankers trustworthy. It made their commitments enforceable regardless of trust.
 
-**AgentClear is the London Clearing House for the AI agent economy.**
+**Attestara is the London Clearing House for the AI agent economy.**
 
 ---
 
 ## The Solution
 
-AgentClear is an open cryptographic trust protocol enabling AI agents to negotiate, commit, and be held accountable across organisational boundaries — without either party trusting the other's assertions.
+Attestara is an open cryptographic trust protocol enabling AI agents to negotiate, commit, and be held accountable across organisational boundaries — without either party trusting the other's assertions.
 
 **How it works:**
 
@@ -62,7 +62,7 @@ Every existing solution addresses the wrong problem:
 | Salesforce Agent Cards | Capability discovery | Cryptographic verifiability, commitment settlement |
 | Vouched KYA | Agent identity verification | Mandate scope, adversarial negotiation |
 
-AgentClear occupies the uncontested intersection: **enterprise B2B adversarial negotiation × deep ZK cryptographic trust**.
+Attestara occupies the uncontested intersection: **enterprise B2B adversarial negotiation × deep ZK cryptographic trust**.
 
 ---
 
@@ -128,7 +128,7 @@ CEO of Bhapi (AI child safety, raised), Director of Littledata (EU AI Act compli
 ## Contact
 
 [contact details]  
-[AgentClear website]  
+[Attestara website]  
 [LinkedIn]
 
 ---

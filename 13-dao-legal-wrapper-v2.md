@@ -1,4 +1,4 @@
-# AgentClear — DAO Legal Wrapper Structure
+# Attestara — DAO Legal Wrapper Structure
 ## v0.2 (Revised — Jurisdiction Neutral)
 
 ---
@@ -26,7 +26,7 @@ Regardless of which jurisdiction is chosen, the governance architecture is the s
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│          AgentClear Foundation [Chosen Jurisdiction]              │
+│          Attestara Foundation [Chosen Jurisdiction]              │
 │                                                                    │
 │  ┌──────────────────────────────────────────────────────────┐    │
 │  │  BOARD OF DIRECTORS                                       │    │
@@ -234,5 +234,5 @@ Rather than selecting a jurisdiction now, the recommended process is:
 
 ---
 
-*AgentClear DAO Legal Wrapper Structure v0.2 — Jurisdiction-neutral revision*  
+*Attestara DAO Legal Wrapper Structure v0.2 — Jurisdiction-neutral revision*  
 *This document does not constitute legal advice.*
