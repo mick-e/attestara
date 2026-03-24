@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import type { Commitment, CommitmentProof } from '@agentclear/types'
+import type { Commitment, CommitmentProof } from '@attestara/types'
 
 export interface CommitmentFilter {
   sessionId?: string

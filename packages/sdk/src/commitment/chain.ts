@@ -1,4 +1,4 @@
-import type { CommitmentRecord } from '@agentclear/types'
+import type { CommitmentRecord } from '@attestara/types'
 
 /**
  * On-chain commitment operations.

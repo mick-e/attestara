@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { SessionManager, NegotiationSession, MerkleAccumulator } from '../src/negotiation/index.js'
-import { CircuitId } from '@agentclear/types'
-import type { Terms, ZKProof, PublicSignals, SessionConfig, SessionEvent } from '@agentclear/types'
+import { CircuitId } from '@attestara/types'
+import type { Terms, ZKProof, PublicSignals, SessionConfig, SessionEvent } from '@attestara/types'
 
 const fakeProof: ZKProof = {
   pi_a: ['0x1', '0x2'],

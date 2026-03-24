@@ -1,4 +1,4 @@
-export interface AgentClearConfig {
+export interface AttestaraConfig {
   agent: {
     did: string
     keyFile: string

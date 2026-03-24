@@ -1,5 +1,5 @@
 import { createHash, createHmac } from 'crypto'
-import type { NegotiationTurn, Terms, CircuitId, ZKProof, PublicSignals } from '@agentclear/types'
+import type { NegotiationTurn, Terms, CircuitId, ZKProof, PublicSignals } from '@attestara/types'
 
 export interface TurnInput {
   sessionId: string

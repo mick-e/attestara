@@ -264,7 +264,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       user = {
         id: randomUUID(),
         orgId: org.id,
-        email: `${address.toLowerCase()}@wallet.agentclear.ai`,
+        email: `${address.toLowerCase()}@wallet.attestara.ai`,
         passwordHash: '',
         walletAddress: address,
         role: 'owner',

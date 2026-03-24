@@ -4,8 +4,8 @@ import { LocalChain } from '../src/testing/local-chain.js'
 import { TestCredentials } from '../src/testing/test-credentials.js'
 import { SessionRecorder } from '../src/testing/session-recorder.js'
 import { NegotiationSession } from '../src/negotiation/session.js'
-import { CircuitId } from '@agentclear/types'
-import type { ZKProof, PublicSignals, SessionConfig } from '@agentclear/types'
+import { CircuitId } from '@attestara/types'
+import type { ZKProof, PublicSignals, SessionConfig } from '@attestara/types'
 
 const fakeProof: ZKProof = {
   pi_a: ['0x1', '0x2'],

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { CommitmentManager } from '../src/commitment/index.js'
 import { ChainCommitmentClient } from '../src/commitment/chain.js'
-import { CircuitId } from '@agentclear/types'
-import type { CommitmentProof, ZKProof, PublicSignals } from '@agentclear/types'
+import { CircuitId } from '@attestara/types'
+import type { CommitmentProof, ZKProof, PublicSignals } from '@attestara/types'
 
 const fakeProof: ZKProof = {
   pi_a: ['0x1', '0x2'],

@@ -7,7 +7,7 @@ import { KeyManager, MemoryKeyStore, MemoryPrivateKeyStore } from '@veramo/key-m
 import { KeyManagementSystem } from '@veramo/kms-local'
 import { Resolver } from 'did-resolver'
 import { getResolver as ethrDidResolver } from 'ethr-did-resolver'
-import type { NetworkConfig } from '@agentclear/types'
+import type { NetworkConfig } from '@attestara/types'
 
 export function createVeramoAgent(config: NetworkConfig) {
   const rpcUrl = Array.isArray(config.rpcUrl) ? config.rpcUrl[0] : config.rpcUrl

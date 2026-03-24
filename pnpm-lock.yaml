@@ -17,10 +17,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@agentclear/sdk':
+      '@attestara/sdk':
         specifier: workspace:*
         version: link:../sdk
-      '@agentclear/types':
+      '@attestara/types':
         specifier: workspace:*
         version: link:../types
       commander:
@@ -131,7 +131,7 @@ importers:
 
   packages/prover:
     dependencies:
-      '@agentclear/types':
+      '@attestara/types':
         specifier: workspace:*
         version: link:../types
       fastify:
@@ -156,7 +156,7 @@ importers:
 
   packages/relay:
     dependencies:
-      '@agentclear/types':
+      '@attestara/types':
         specifier: workspace:*
         version: link:../types
       '@fastify/cors':
@@ -211,7 +211,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@agentclear/types':
+      '@attestara/types':
         specifier: workspace:*
         version: link:../types
       '@veramo/core':

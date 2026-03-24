@@ -22,7 +22,7 @@ const mockCredential = {
   txHash:
     "0x9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8",
   issuedAt: "2026-03-15T09:35:00Z",
-  issuer: "AgentClear Org #1",
+  issuer: "Attestara Org #1",
 };
 
 export default function CredentialDetailPage() {

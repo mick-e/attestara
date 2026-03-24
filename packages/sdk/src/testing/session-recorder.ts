@@ -1,4 +1,4 @@
-import type { SessionEvent, NegotiationTurn } from '@agentclear/types'
+import type { SessionEvent, NegotiationTurn } from '@attestara/types'
 import type { NegotiationSession } from '../negotiation/session.js'
 
 export interface RecordedEvent {

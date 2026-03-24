@@ -3,7 +3,7 @@ import { ProverManager } from '../src/prover/index.js'
 import { LocalProver } from '../src/prover/local.js'
 import { RemoteProver } from '../src/prover/remote.js'
 import { TestProver } from '../src/testing/test-prover.js'
-import { CircuitId } from '@agentclear/types'
+import { CircuitId } from '@attestara/types'
 
 describe('TestProver', () => {
   const prover = new TestProver()

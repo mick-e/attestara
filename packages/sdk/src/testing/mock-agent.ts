@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from 'crypto'
-import type { AuthorityCredential, MandateParams } from '@agentclear/types'
+import type { AuthorityCredential, MandateParams } from '@attestara/types'
 import { CredentialManager, MemoryIPFSClient } from '../credentials/index.js'
 
 export interface MockAgentOptions {

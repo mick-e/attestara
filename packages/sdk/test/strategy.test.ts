@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { RuleBasedStrategy } from '../src/agents/rule-based.js'
 import { LLMStrategy } from '../src/agents/llm.js'
 import { ScriptedStrategy } from '../src/agents/scripted.js'
-import { CircuitId } from '@agentclear/types'
+import { CircuitId } from '@attestara/types'
 import type {
   NegotiationStrategy,
   NegotiationTurn,
@@ -11,7 +11,7 @@ import type {
   MandateParams,
   ZKProof,
   PublicSignals,
-} from '@agentclear/types'
+} from '@attestara/types'
 
 const mandate: MandateParams = {
   maxValue: 10000n,

@@ -1,4 +1,4 @@
-import type { CircuitId, ProofResult, VerificationResult, ZKProof, PublicSignals } from '@agentclear/types'
+import type { CircuitId, ProofResult, VerificationResult, ZKProof, PublicSignals } from '@attestara/types'
 import type { Prover } from '../prover/index.js'
 
 export class TestProver implements Prover {

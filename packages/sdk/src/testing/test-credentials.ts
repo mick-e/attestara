@@ -1,4 +1,4 @@
-import type { AuthorityCredential, MandateParams } from '@agentclear/types'
+import type { AuthorityCredential, MandateParams } from '@attestara/types'
 import { CredentialManager, MemoryIPFSClient } from '../credentials/index.js'
 
 const manager = new CredentialManager(new MemoryIPFSClient())

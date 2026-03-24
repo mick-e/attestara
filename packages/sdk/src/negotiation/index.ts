@@ -1,4 +1,4 @@
-import type { SessionConfig, SessionType } from '@agentclear/types'
+import type { SessionConfig, SessionType } from '@attestara/types'
 import { NegotiationSession } from './session.js'
 
 export { NegotiationSession } from './session.js'

@@ -7,7 +7,7 @@ describe("AgentRegistry", function () {
   let owner: any;
   let other: any;
 
-  const testDid = "did:agentclear:test-agent-001";
+  const testDid = "did:attestara:test-agent-001";
   const testMetadata = '{"name":"TestAgent","version":"1.0"}';
   const testPublicKey = ethers.toUtf8Bytes("test-public-key-bytes");
 
@@ -48,11 +48,11 @@ describe("AgentRegistry", function () {
     });
 
     it("should allow different DIDs from the same admin", async () => {
-      await registry.registerAgent("did:agentclear:agent-1", testMetadata, testPublicKey);
-      await registry.registerAgent("did:agentclear:agent-2", testMetadata, testPublicKey);
+      await registry.registerAgent("did:attestara:agent-1", testMetadata, testPublicKey);
+      await registry.registerAgent("did:attestara:agent-2", testMetadata, testPublicKey);
 
-      expect(await registry.isRegistered("did:agentclear:agent-1")).to.be.true;
-      expect(await registry.isRegistered("did:agentclear:agent-2")).to.be.true;
+      expect(await registry.isRegistered("did:attestara:agent-1")).to.be.true;
+      expect(await registry.isRegistered("did:attestara:agent-2")).to.be.true;
     });
   });
 
@@ -70,7 +70,7 @@ describe("AgentRegistry", function () {
 
     it("should revert for unregistered DID", async () => {
       await expect(
-        registry.resolveAgent("did:agentclear:nonexistent")
+        registry.resolveAgent("did:attestara:nonexistent")
       ).to.be.revertedWith("Agent not found");
     });
 
@@ -227,7 +227,7 @@ describe("AgentRegistry", function () {
     });
 
     it("should return false for unregistered DID", async () => {
-      expect(await registry.isRegistered("did:agentclear:unknown")).to.be.false;
+      expect(await registry.isRegistered("did:attestara:unknown")).to.be.false;
     });
   });
 });

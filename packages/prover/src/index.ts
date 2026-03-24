@@ -1,2 +1,2 @@
-// @agentclear/prover — ZK proof generation service
+// @attestara/prover — ZK proof generation service
 export {};

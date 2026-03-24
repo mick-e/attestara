@@ -1,12 +1,12 @@
 {
-  "name": "@agentclear/cli",
+  "name": "@attestara/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "agentclear": "./dist/index.js"
+    "attestara": "./dist/index.js"
   },
   "exports": {
     ".": {
@@ -21,8 +21,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@agentclear/sdk": "workspace:*",
-    "@agentclear/types": "workspace:*",
+    "@attestara/sdk": "workspace:*",
+    "@attestara/types": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {

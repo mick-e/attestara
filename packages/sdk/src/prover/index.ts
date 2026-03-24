@@ -1,4 +1,4 @@
-import type { CircuitId, ProofResult, ProverConfig, VerificationResult } from '@agentclear/types'
+import type { CircuitId, ProofResult, ProverConfig, VerificationResult } from '@attestara/types'
 import { LocalProver } from './local.js'
 import { RemoteProver } from './remote.js'
 

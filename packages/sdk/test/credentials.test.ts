@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { CredentialManager, MemoryIPFSClient } from '../src/credentials/index.js'
-import type { MandateParams } from '@agentclear/types'
+import type { MandateParams } from '@attestara/types'
 
 describe('CredentialManager', () => {
   const agentDid = 'did:ethr:0xabcdef1234567890abcdef1234567890abcdef12'

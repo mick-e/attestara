@@ -1,2 +1,2 @@
-// @agentclear/cli — command-line interface
+// @attestara/cli — command-line interface
 export {};

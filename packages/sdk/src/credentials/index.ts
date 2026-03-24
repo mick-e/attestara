@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomUUID } from 'crypto'
-import type { AuthorityCredential, MandateParams, CredentialProof } from '@agentclear/types'
+import type { AuthorityCredential, MandateParams, CredentialProof } from '@attestara/types'
 import type { IPFSClient } from './ipfs.js'
 import { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './schemas.js'
 

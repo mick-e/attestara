@@ -1,5 +1,5 @@
-// @agentclear/sdk — TypeScript SDK for AgentClear protocol
-export { AgentClearClient } from './client.js'
+// @attestara/sdk — TypeScript SDK for Attestara protocol
+export { AttestaraClient } from './client.js'
 
 export { DIDManager } from './identity/index.js'
 export type { CreateDIDResult } from './identity/index.js'

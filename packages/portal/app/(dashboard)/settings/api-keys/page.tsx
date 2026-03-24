@@ -165,7 +165,7 @@ export default function ApiKeysPage() {
 
       <div className="rounded-lg border border-navy-800 bg-navy-950 p-4">
         <p className="text-xs text-gray-500">
-          API keys provide programmatic access to the AgentClear API. Store them
+          API keys provide programmatic access to the Attestara API. Store them
           securely — they cannot be viewed again after creation.
         </p>
       </div>

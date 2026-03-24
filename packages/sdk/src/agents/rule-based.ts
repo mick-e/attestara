@@ -5,7 +5,7 @@ import type {
   NegotiationTurn,
   TurnContext,
   TurnDecision,
-} from '@agentclear/types'
+} from '@attestara/types'
 
 export class RuleBasedStrategy implements NegotiationStrategy {
   name = 'RuleBasedStrategy'

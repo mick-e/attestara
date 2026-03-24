@@ -1,5 +1,5 @@
 import { createVeramoAgent } from './veramo.js'
-import type { NetworkConfig } from '@agentclear/types'
+import type { NetworkConfig } from '@attestara/types'
 
 export interface CreateDIDResult {
   did: string

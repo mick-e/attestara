@@ -1,25 +1,25 @@
 services:
   - type: web
-    name: agentclear-portal
+    name: attestara-portal
     runtime: node
-    buildCommand: pnpm install && pnpm --filter @agentclear/portal build
-    startCommand: pnpm --filter @agentclear/portal start
+    buildCommand: pnpm install && pnpm --filter @attestara/portal build
+    startCommand: pnpm --filter @attestara/portal start
     envVars:
       - key: NEXT_PUBLIC_RELAY_URL
         sync: false
 
   - type: web
-    name: agentclear-relay
+    name: attestara-relay
     runtime: docker
     dockerfilePath: infrastructure/Dockerfile.relay
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: agentclear-db
+          name: attestara-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: agentclear-redis
+          name: attestara-redis
           type: redis
           property: connectionString
       - key: JWT_SECRET
@@ -27,27 +27,27 @@ services:
       - key: PROVER_INTERNAL_SECRET
         generateValue: true
       - key: PROVER_URL
-        value: http://agentclear-prover:3002
+        value: http://attestara-prover:3002
 
   - type: pserv
-    name: agentclear-prover
+    name: attestara-prover
     runtime: docker
     dockerfilePath: infrastructure/Dockerfile.prover
     envVars:
       - key: PROVER_INTERNAL_SECRET
         fromService:
-          name: agentclear-relay
+          name: attestara-relay
           type: web
           envVarKey: PROVER_INTERNAL_SECRET
       - key: REDIS_URL
         fromService:
-          name: agentclear-redis
+          name: attestara-redis
           type: redis
           property: connectionString
 
 databases:
-  - name: agentclear-db
+  - name: attestara-db
     plan: starter
 
-  - name: agentclear-redis
+  - name: attestara-redis
     plan: starter

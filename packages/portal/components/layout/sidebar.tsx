@@ -51,7 +51,7 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="border-t border-navy-800 px-6 py-4">
-        <p className="text-xs text-gray-600">AgentClear v0.1.0</p>
+        <p className="text-xs text-gray-600">Attestara v0.1.0</p>
       </div>
     </aside>
   );

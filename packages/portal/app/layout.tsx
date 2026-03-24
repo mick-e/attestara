@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AgentClear — Cryptographic Trust for AI Agents",
+  title: "Attestara — Cryptographic Trust for AI Agents",
   description:
     "Verifiable credentials, zero-knowledge proofs, and on-chain commitments for autonomous AI agent negotiations.",
 };

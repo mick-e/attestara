@@ -26,13 +26,13 @@ export enum ErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
 
-export class AgentClearError extends Error {
+export class AttestaraError extends Error {
   constructor(
     public readonly code: ErrorCode,
     message: string,
     public readonly details?: Record<string, unknown>,
   ) {
     super(message)
-    this.name = 'AgentClearError'
+    this.name = 'AttestaraError'
   }
 }

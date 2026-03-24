@@ -1,2 +1,2 @@
-// @agentclear/contracts — smart contracts and ZK circuits
+// @attestara/contracts — smart contracts and ZK circuits
 export {};

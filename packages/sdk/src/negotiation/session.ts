@@ -9,7 +9,7 @@ import type {
   CircuitId,
   ZKProof,
   PublicSignals,
-} from '@agentclear/types'
+} from '@attestara/types'
 import { MerkleAccumulator } from './merkle.js'
 import { createTurn, validateTurn, hashTurn } from './turn.js'
 
