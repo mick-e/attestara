@@ -1,0 +1,295 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+
+    "id": "@id",
+    "type": "@type",
+
+    "attestara": "https://attestara.ai/vocab/v1#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+    "AgentAuthorityCredential": {
+      "@id": "attestara:AgentAuthorityCredential",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "credentialSubject": {
+          "@id": "https://www.w3.org/2018/credentials#credentialSubject",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+
+            "id": "@id",
+            "type": "@type",
+
+            "mandate": {
+              "@id": "attestara:mandate",
+              "@type": "@id"
+            }
+          }
+        }
+      }
+    },
+
+    "AgentNegotiationMandate": {
+      "@id": "attestara:AgentNegotiationMandate",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "maxCommitmentValue": {
+          "@id": "attestara:maxCommitmentValue",
+          "@type": "xsd:integer"
+        },
+        "unitPriceCurrency": {
+          "@id": "attestara:unitPriceCurrency",
+          "@type": "xsd:string"
+        },
+        "parameterRanges": {
+          "@id": "attestara:parameterRanges",
+          "@type": "@id"
+        },
+        "allowedCounterpartyTypes": {
+          "@id": "attestara:allowedCounterpartyTypes",
+          "@type": "xsd:string",
+          "@container": "@set"
+        },
+        "sessionLimit": {
+          "@id": "attestara:sessionLimit",
+          "@type": "xsd:integer"
+        }
+      }
+    },
+
+    "ParameterRange": {
+      "@id": "attestara:ParameterRange",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "parameterName": {
+          "@id": "attestara:parameterName",
+          "@type": "xsd:string"
+        },
+        "floor": {
+          "@id": "attestara:floor",
+          "@type": "xsd:integer"
+        },
+        "ceiling": {
+          "@id": "attestara:ceiling",
+          "@type": "xsd:integer"
+        }
+      }
+    },
+
+    "AttestaraTurnProofBundle": {
+      "@id": "attestara:AttestaraTurnProofBundle",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "credentialSubject": {
+          "@id": "https://www.w3.org/2018/credentials#credentialSubject",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+
+            "id": "@id",
+            "type": "@type",
+
+            "sessionId": {
+              "@id": "attestara:sessionId",
+              "@type": "xsd:string"
+            },
+            "turnIndex": {
+              "@id": "attestara:turnIndex",
+              "@type": "xsd:integer"
+            },
+            "turnHash": {
+              "@id": "attestara:turnHash",
+              "@type": "xsd:string"
+            },
+            "proofBundle": {
+              "@id": "attestara:proofBundle",
+              "@type": "@id"
+            },
+            "publicInputs": {
+              "@id": "attestara:publicInputs",
+              "@type": "@id"
+            }
+          }
+        }
+      }
+    },
+
+    "ProofBundle": {
+      "@id": "attestara:ProofBundle",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "mandateBound": {
+          "@id": "attestara:mandateBound",
+          "@type": "xsd:string"
+        },
+        "parameterRanges": {
+          "@id": "attestara:parameterRangeProofs",
+          "@type": "xsd:string",
+          "@container": "@list"
+        },
+        "credentialFreshness": {
+          "@id": "attestara:credentialFreshness",
+          "@type": "xsd:string"
+        },
+        "identityBinding": {
+          "@id": "attestara:identityBinding",
+          "@type": "xsd:string"
+        }
+      }
+    },
+
+    "PublicInputs": {
+      "@id": "attestara:PublicInputs",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+
+        "id": "@id",
+        "type": "@type",
+
+        "proposedValue": {
+          "@id": "attestara:proposedValue",
+          "@type": "xsd:integer"
+        },
+        "statusListRoot": {
+          "@id": "attestara:statusListRoot",
+          "@type": "xsd:string"
+        },
+        "currentTimestamp": {
+          "@id": "attestara:currentTimestamp",
+          "@type": "xsd:integer"
+        },
+        "sessionId": {
+          "@id": "attestara:sessionId",
+          "@type": "xsd:string"
+        },
+        "credentialCommitment": {
+          "@id": "attestara:credentialCommitment",
+          "@type": "xsd:string"
+        }
+      }
+    },
+
+    "mandate": {
+      "@id": "attestara:mandate",
+      "@type": "@id"
+    },
+    "maxCommitmentValue": {
+      "@id": "attestara:maxCommitmentValue",
+      "@type": "xsd:integer"
+    },
+    "unitPriceCurrency": {
+      "@id": "attestara:unitPriceCurrency",
+      "@type": "xsd:string"
+    },
+    "parameterRanges": {
+      "@id": "attestara:parameterRanges",
+      "@type": "@id"
+    },
+    "allowedCounterpartyTypes": {
+      "@id": "attestara:allowedCounterpartyTypes",
+      "@type": "xsd:string",
+      "@container": "@set"
+    },
+    "sessionLimit": {
+      "@id": "attestara:sessionLimit",
+      "@type": "xsd:integer"
+    },
+    "parameterName": {
+      "@id": "attestara:parameterName",
+      "@type": "xsd:string"
+    },
+    "floor": {
+      "@id": "attestara:floor",
+      "@type": "xsd:integer"
+    },
+    "ceiling": {
+      "@id": "attestara:ceiling",
+      "@type": "xsd:integer"
+    },
+    "sessionId": {
+      "@id": "attestara:sessionId",
+      "@type": "xsd:string"
+    },
+    "turnIndex": {
+      "@id": "attestara:turnIndex",
+      "@type": "xsd:integer"
+    },
+    "turnHash": {
+      "@id": "attestara:turnHash",
+      "@type": "xsd:string"
+    },
+    "proofBundle": {
+      "@id": "attestara:proofBundle",
+      "@type": "@id"
+    },
+    "publicInputs": {
+      "@id": "attestara:publicInputs",
+      "@type": "@id"
+    },
+    "mandateBound": {
+      "@id": "attestara:mandateBound",
+      "@type": "xsd:string"
+    },
+    "credentialFreshness": {
+      "@id": "attestara:credentialFreshness",
+      "@type": "xsd:string"
+    },
+    "identityBinding": {
+      "@id": "attestara:identityBinding",
+      "@type": "xsd:string"
+    },
+    "proposedValue": {
+      "@id": "attestara:proposedValue",
+      "@type": "xsd:integer"
+    },
+    "statusListRoot": {
+      "@id": "attestara:statusListRoot",
+      "@type": "xsd:string"
+    },
+    "currentTimestamp": {
+      "@id": "attestara:currentTimestamp",
+      "@type": "xsd:integer"
+    },
+    "credentialCommitment": {
+      "@id": "attestara:credentialCommitment",
+      "@type": "xsd:string"
+    },
+    "sessionAnchorTx": {
+      "@id": "attestara:sessionAnchorTx",
+      "@type": "xsd:string"
+    },
+    "inviteToken": {
+      "@id": "attestara:inviteToken",
+      "@type": "xsd:string"
+    }
+  }
+}
