@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const navItems = [
-  { href: "/", label: "Overview", icon: "\u2302" },
+  { href: "/overview", label: "Overview", icon: "\u2302" },
   { href: "/agents", label: "Agents", icon: "\u2699" },
   { href: "/credentials", label: "Credentials", icon: "\u26BF" },
   { href: "/sessions", label: "Sessions", icon: "\u21C4" },
@@ -44,8 +44,8 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/overview"
+              ? pathname === "/overview"
               : pathname.startsWith(item.href);
           return (
             <Link

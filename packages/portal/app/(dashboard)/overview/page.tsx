@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { StatCard } from "@/components/ui/stat-card";
+import { StatCard, LoadingSpinner, ErrorState } from "@/components/ui";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useDashboardStats } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
-// Mock data -- will connect to real API endpoints later
-const stats = [
+// Mock fallback data
+const mockStats = [
   {
     label: "Registered Agents",
     value: 5,
@@ -99,6 +103,36 @@ const quickActions = [
 ];
 
 export default function OverviewPage() {
+  // Ensure token is set on the client
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: dashStats, loading, error } = useDashboardStats();
+
+  // Build stats from API data or fall back to mock
+  const stats = dashStats
+    ? [
+        {
+          label: "Registered Agents",
+          value: dashStats.agentCount,
+        },
+        {
+          label: "Active Sessions",
+          value: dashStats.activeSessionCount,
+        },
+        {
+          label: "Total Sessions",
+          value: dashStats.sessionCount,
+        },
+        {
+          label: "Active Credentials",
+          value: dashStats.credentialCount,
+        },
+      ]
+    : mockStats;
+
   return (
     <div className="space-y-8">
       <div>
@@ -109,11 +143,23 @@ export default function OverviewPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="py-8">
+          <LoadingSpinner label="Loading dashboard..." />
+        </div>
+      ) : error ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {mockStats.map((stat) => (
+            <StatCard key={stat.label} {...stat} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <StatCard key={stat.label} {...stat} />
+          ))}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div>
