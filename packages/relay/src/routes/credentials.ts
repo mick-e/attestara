@@ -1,30 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { randomUUID } from 'crypto'
-import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
-
-interface StoredCredential {
-  id: string
-  orgId: string
-  agentId: string
-  credentialHash: string
-  schemaHash: string
-  ipfsCid: string | null
-  credentialDataCached: Record<string, unknown> | null
-  expiry: string
-  revoked: boolean
-  registeredTxHash: string | null
-  createdAt: string
-}
-
-const credentials = new Map<string, StoredCredential>()
+import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
+import { credentialService } from '../services/credential.service.js'
 
 export function clearCredentialStores() {
-  credentials.clear()
+  credentialService.clearStores()
 }
 
 export function getCredentialStores() {
-  return { credentials }
+  return { credentials: (credentialService as any).credentials as Map<string, unknown> }
 }
 
 const createCredentialSchema = z.object({
@@ -53,33 +37,24 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    // Check for duplicate hash
-    for (const cred of credentials.values()) {
-      if (cred.credentialHash === parsed.data.credentialHash) {
-        return reply.status(409).send({
-          code: 'CONFLICT',
-          message: 'Credential hash already exists',
-          requestId: request.id,
-        })
-      }
-    }
-
-    const credential: StoredCredential = {
-      id: randomUUID(),
-      orgId,
+    const result = credentialService.create(orgId, {
       agentId: parsed.data.agentId,
       credentialHash: parsed.data.credentialHash,
       schemaHash: parsed.data.schemaHash,
-      ipfsCid: parsed.data.ipfsCid ?? null,
-      credentialDataCached: parsed.data.credentialData ?? null,
+      ipfsCid: parsed.data.ipfsCid,
+      credentialData: parsed.data.credentialData,
       expiry: parsed.data.expiry,
-      revoked: false,
-      registeredTxHash: null,
-      createdAt: new Date().toISOString(),
-    }
-    credentials.set(credential.id, credential)
+    })
 
-    return reply.status(201).send(credential)
+    if ('error' in result) {
+      return reply.status(409).send({
+        code: 'CONFLICT',
+        message: result.error,
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(201).send(result)
   })
 
   // GET /v1/orgs/:orgId/credentials
@@ -87,7 +62,7 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgCreds = Array.from(credentials.values()).filter(c => c.orgId === orgId)
+    const orgCreds = credentialService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: orgCreds,
@@ -100,9 +75,9 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
-    const credential = credentials.get(id)
+    const credential = credentialService.getById(id, orgId)
 
-    if (!credential || credential.orgId !== orgId) {
+    if (!credential) {
       return reply.status(404).send({
         code: 'CREDENTIAL_NOT_FOUND',
         message: 'Credential not found',
@@ -118,17 +93,15 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
-    const credential = credentials.get(id)
+    const credential = credentialService.revoke(id, orgId)
 
-    if (!credential || credential.orgId !== orgId) {
+    if (!credential) {
       return reply.status(404).send({
         code: 'CREDENTIAL_NOT_FOUND',
         message: 'Credential not found',
         requestId: request.id,
       })
     }
-
-    credential.revoked = true
 
     return reply.status(200).send({ message: 'Credential revoked', id })
   })
