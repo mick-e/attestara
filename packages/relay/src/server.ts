@@ -12,6 +12,7 @@ import { apiKeyRoutes } from './routes/api-keys.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { adminRoutes } from './routes/admin.js'
+import { websocketPlugin } from './websocket/index.js'
 
 export interface ServerOptions {
   corsOrigin?: string
@@ -84,6 +85,9 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(webhookRoutes, { prefix: '/v1' })
   await app.register(analyticsRoutes, { prefix: '/v1' })
   await app.register(adminRoutes, { prefix: '/v1' })
+
+  // WebSocket server (must come after rate-limit plugin)
+  await app.register(websocketPlugin)
 
   return app
 }
