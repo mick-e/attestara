@@ -89,5 +89,12 @@ export async function buildServer(options: ServerOptions = {}) {
   // WebSocket server (must come after rate-limit plugin)
   await app.register(websocketPlugin)
 
+  // Start indexer if RPC URL configured (non-blocking)
+  if (process.env.ARBITRUM_SEPOLIA_RPC_URL) {
+    import('./indexer/index.js').then(m => m.startIndexer({
+      rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+    })).catch(err => app.log?.warn({ err }, 'Indexer failed to start'))
+  }
+
   return app
 }
