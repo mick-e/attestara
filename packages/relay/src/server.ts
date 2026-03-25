@@ -9,6 +9,7 @@ import { credentialRoutes } from './routes/credentials.js'
 import { sessionRoutes } from './routes/sessions.js'
 import { commitmentRoutes } from './routes/commitments.js'
 import { apiKeyRoutes } from './routes/api-keys.js'
+import { webhookRoutes } from './routes/webhooks.js'
 
 export interface ServerOptions {
   corsOrigin?: string
@@ -78,6 +79,7 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(sessionRoutes, { prefix: '/v1' })
   await app.register(commitmentRoutes, { prefix: '/v1' })
   await app.register(apiKeyRoutes, { prefix: '/v1' })
+  await app.register(webhookRoutes, { prefix: '/v1' })
 
   return app
 }
