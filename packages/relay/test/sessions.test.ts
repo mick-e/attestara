@@ -431,4 +431,179 @@ describe('Session routes', () => {
       expect(res.statusCode).toBe(400)
     })
   })
+
+  describe('POST /v1/sessions/:sessionId/turns', () => {
+    it('should create a turn and return 201', async () => {
+      const app = await createApp()
+      const reg = await registerUser(app)
+      const agent1 = await createAgent(app, reg.accessToken, reg.user.orgId)
+      const agent2 = await createAgent(app, reg.accessToken, reg.user.orgId)
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/sessions',
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          initiatorAgentId: agent1.id,
+          counterpartyAgentId: agent2.id,
+          initiatorOrgId: reg.user.orgId,
+          counterpartyOrgId: reg.user.orgId,
+          sessionType: 'intra_org',
+        },
+      })
+      const session = JSON.parse(createRes.payload)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${session.id}/turns`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          agentId: agent1.id,
+          terms: { price: 100 },
+          proofType: 'mandate_bound',
+          proof: { pi_a: [] },
+          publicSignals: { max: 500 },
+          signature: '0xsig1',
+        },
+      })
+      expect(res.statusCode).toBe(201)
+      const body = JSON.parse(res.payload)
+      expect(body.id).toBeDefined()
+      expect(body.sessionId).toBe(session.id)
+      expect(body.agentId).toBe(agent1.id)
+      expect(body.sequenceNumber).toBe(1)
+      expect(body.terms).toEqual({ price: 100 })
+      expect(body.proofType).toBe('mandate_bound')
+      expect(body.signature).toBe('0xsig1')
+    })
+
+    it('should return 400 when session is not active', async () => {
+      const app = await createApp()
+      const org1 = await registerUser(app, 'turn-pending1@example.com')
+      const org2 = await registerUser(app, 'turn-pending2@example.com')
+      const agent1 = await createAgent(app, org1.accessToken, org1.user.orgId)
+      const agent2 = await createAgent(app, org2.accessToken, org2.user.orgId)
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/sessions',
+        headers: { authorization: `Bearer ${org1.accessToken}` },
+        payload: {
+          initiatorAgentId: agent1.id,
+          counterpartyAgentId: agent2.id,
+          initiatorOrgId: org1.user.orgId,
+          counterpartyOrgId: org2.user.orgId,
+          sessionType: 'cross_org',
+        },
+      })
+      const session = JSON.parse(createRes.payload)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${session.id}/turns`,
+        headers: { authorization: `Bearer ${org1.accessToken}` },
+        payload: {
+          agentId: agent1.id,
+          terms: { price: 100 },
+          proofType: 'mandate_bound',
+          proof: {},
+          publicSignals: {},
+          signature: '0xsig',
+        },
+      })
+      expect(res.statusCode).toBe(400)
+      const body = JSON.parse(res.payload)
+      expect(body.code).toBe('SESSION_NOT_ACTIVE')
+    })
+
+    it('should return 400 when agent is not a party', async () => {
+      const app = await createApp()
+      const reg = await registerUser(app, 'turn-nonparty@example.com')
+      const agent1 = await createAgent(app, reg.accessToken, reg.user.orgId)
+      const agent2 = await createAgent(app, reg.accessToken, reg.user.orgId)
+      const agent3 = await createAgent(app, reg.accessToken, reg.user.orgId)
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/sessions',
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          initiatorAgentId: agent1.id,
+          counterpartyAgentId: agent2.id,
+          initiatorOrgId: reg.user.orgId,
+          counterpartyOrgId: reg.user.orgId,
+          sessionType: 'intra_org',
+        },
+      })
+      const session = JSON.parse(createRes.payload)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${session.id}/turns`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          agentId: agent3.id,
+          terms: { price: 100 },
+          proofType: 'mandate_bound',
+          proof: {},
+          publicSignals: {},
+          signature: '0xsig',
+        },
+      })
+      expect(res.statusCode).toBe(400)
+      const body = JSON.parse(res.payload)
+      expect(body.code).toBe('AGENT_NOT_PARTY')
+    })
+
+    it('should auto-increment sequence numbers', async () => {
+      const app = await createApp()
+      const reg = await registerUser(app, 'turn-seq@example.com')
+      const agent1 = await createAgent(app, reg.accessToken, reg.user.orgId)
+      const agent2 = await createAgent(app, reg.accessToken, reg.user.orgId)
+
+      const createRes = await app.inject({
+        method: 'POST',
+        url: '/v1/sessions',
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          initiatorAgentId: agent1.id,
+          counterpartyAgentId: agent2.id,
+          initiatorOrgId: reg.user.orgId,
+          counterpartyOrgId: reg.user.orgId,
+          sessionType: 'intra_org',
+        },
+      })
+      const session = JSON.parse(createRes.payload)
+
+      const res1 = await app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${session.id}/turns`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          agentId: agent1.id,
+          terms: { price: 100 },
+          proofType: 'mandate_bound',
+          proof: {},
+          publicSignals: {},
+          signature: '0xsig1',
+        },
+      })
+      expect(JSON.parse(res1.payload).sequenceNumber).toBe(1)
+
+      const res2 = await app.inject({
+        method: 'POST',
+        url: `/v1/sessions/${session.id}/turns`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: {
+          agentId: agent2.id,
+          terms: { price: 90 },
+          proofType: 'mandate_bound',
+          proof: {},
+          publicSignals: {},
+          signature: '0xsig2',
+        },
+      })
+      expect(JSON.parse(res2.payload).sequenceNumber).toBe(2)
+    })
+  })
 })

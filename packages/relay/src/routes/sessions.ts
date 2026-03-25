@@ -1,50 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { createHash, randomBytes, randomUUID } from 'crypto'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
-
-interface StoredSession {
-  id: string
-  initiatorAgentId: string
-  initiatorOrgId: string
-  counterpartyAgentId: string
-  counterpartyOrgId: string
-  sessionType: string
-  inviteTokenHash: string | null
-  status: string
-  sessionConfig: Record<string, unknown>
-  merkleRoot: string | null
-  turnCount: number
-  anchorTxHash: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-interface StoredTurn {
-  id: string
-  sessionId: string
-  agentId: string
-  sequenceNumber: number
-  terms: Record<string, unknown>
-  proofType: string
-  proof: Record<string, unknown>
-  publicSignals: Record<string, unknown>
-  signature: string
-  createdAt: string
-}
-
-const sessions = new Map<string, StoredSession>()
-const turns = new Map<string, StoredTurn[]>() // sessionId -> turns
-const inviteTokens = new Map<string, string>() // tokenHash -> sessionId
+import { sessionService } from '../services/session.service.js'
 
 export function clearSessionStores() {
-  sessions.clear()
-  turns.clear()
-  inviteTokens.clear()
+  sessionService.clearStores()
 }
 
 export function getSessionStores() {
-  return { sessions, turns, inviteTokens }
+  return {
+    sessions: (sessionService as any).sessions as Map<string, unknown>,
+    turns: (sessionService as any).turns as Map<string, unknown[]>,
+    inviteTokens: (sessionService as any).inviteTokens as Map<string, string>,
+  }
 }
 
 const createSessionSchema = z.object({
@@ -58,6 +26,15 @@ const createSessionSchema = z.object({
 
 const acceptSchema = z.object({
   inviteToken: z.string().min(1),
+})
+
+const createTurnSchema = z.object({
+  agentId: z.string().min(1),
+  terms: z.record(z.unknown()),
+  proofType: z.string().min(1),
+  proof: z.record(z.unknown()),
+  publicSignals: z.record(z.unknown()),
+  signature: z.string().min(1),
 })
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
@@ -76,39 +53,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const auth = (request as any).auth as AuthContext
-    const isCrossOrg = parsed.data.sessionType === 'cross_org'
-    let inviteTokenHash: string | null = null
-    let inviteToken: string | undefined
-
-    if (isCrossOrg) {
-      const rawToken = randomBytes(32).toString('hex')
-      inviteTokenHash = createHash('sha256').update(rawToken).digest('hex')
-      inviteToken = rawToken
-    }
-
-    const session: StoredSession = {
-      id: randomUUID(),
-      initiatorAgentId: parsed.data.initiatorAgentId,
-      initiatorOrgId: parsed.data.initiatorOrgId,
-      counterpartyAgentId: parsed.data.counterpartyAgentId,
-      counterpartyOrgId: parsed.data.counterpartyOrgId,
-      sessionType: parsed.data.sessionType,
-      inviteTokenHash,
-      status: isCrossOrg ? 'pending_acceptance' : 'active',
-      sessionConfig: parsed.data.sessionConfig ?? {},
-      merkleRoot: null,
-      turnCount: 0,
-      anchorTxHash: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    sessions.set(session.id, session)
-    turns.set(session.id, [])
-    if (inviteTokenHash) {
-      inviteTokens.set(inviteTokenHash, session.id)
-    }
+    const { session, inviteToken } = sessionService.createSession(parsed.data)
 
     const response: Record<string, unknown> = { ...session }
     if (inviteToken) {
@@ -123,9 +68,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = (request as any).auth as AuthContext
-    const orgSessions = Array.from(sessions.values()).filter(
-      s => s.initiatorOrgId === auth.orgId || s.counterpartyOrgId === auth.orgId,
-    )
+    const orgSessions = sessionService.listByOrg(auth.orgId)
 
     return reply.status(200).send({
       data: orgSessions,
@@ -139,18 +82,18 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
     const auth = (request as any).auth as AuthContext
-    const session = sessions.get(sessionId)
+    const session = sessionService.getSessionWithOrgCheck(sessionId, auth.orgId)
 
     if (!session) {
-      return reply.status(404).send({
-        code: 'SESSION_NOT_FOUND',
-        message: 'Session not found',
-        requestId: request.id,
-      })
-    }
-
-    // Only allow access if the user's org is a party
-    if (session.initiatorOrgId !== auth.orgId && session.counterpartyOrgId !== auth.orgId) {
+      // Check if session exists at all (for 404 vs 403)
+      const exists = sessionService.getSession(sessionId)
+      if (!exists) {
+        return reply.status(404).send({
+          code: 'SESSION_NOT_FOUND',
+          message: 'Session not found',
+          requestId: request.id,
+        })
+      }
       return reply.status(403).send({
         code: 'FORBIDDEN',
         message: 'Access denied to this session',
@@ -167,7 +110,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
     const auth = (request as any).auth as AuthContext
-    const session = sessions.get(sessionId)
+    const session = sessionService.getSession(sessionId)
 
     if (!session) {
       return reply.status(404).send({
@@ -185,21 +128,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const sessionTurns = turns.get(sessionId) ?? []
-
-    // Redact counterparty terms if cross-org
-    const isInitiator = session.initiatorOrgId === auth.orgId
-    const redactedTurns = sessionTurns.map(t => {
-      if (session.sessionType === 'cross_org') {
-        const isOwnTurn = isInitiator
-          ? t.agentId === session.initiatorAgentId
-          : t.agentId === session.counterpartyAgentId
-        if (!isOwnTurn) {
-          return { ...t, terms: { redacted: true } }
-        }
-      }
-      return t
-    })
+    const redactedTurns = sessionService.getTurns(sessionId, auth.orgId)
 
     return reply.status(200).send({
       data: redactedTurns,
@@ -207,39 +136,52 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     })
   })
 
+  // POST /v1/sessions/:sessionId/turns
+  app.post('/sessions/:sessionId/turns', {
+    preHandler: [requireAuth(JWT_SECRET)],
+  }, async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string }
+    const parsed = createTurnSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
+
+    const result = sessionService.appendTurn(sessionId, parsed.data)
+
+    if ('error' in result) {
+      const statusCode = result.code === 'SESSION_NOT_FOUND' ? 404 : 400
+      return reply.status(statusCode).send({
+        code: result.code,
+        message: result.error,
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(201).send(result)
+  })
+
   // POST /v1/sessions/:sessionId/invite
   app.post('/sessions/:sessionId/invite', {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
-    const session = sessions.get(sessionId)
 
-    if (!session) {
-      return reply.status(404).send({
-        code: 'SESSION_NOT_FOUND',
-        message: 'Session not found',
+    const result = sessionService.generateInviteToken(sessionId)
+
+    if ('error' in result) {
+      const statusCode = result.code === 'SESSION_NOT_FOUND' ? 404 : 400
+      return reply.status(statusCode).send({
+        code: result.code,
+        message: result.error,
         requestId: request.id,
       })
     }
 
-    if (session.sessionType !== 'cross_org') {
-      return reply.status(400).send({
-        code: 'VALIDATION_ERROR',
-        message: 'Invites are only for cross-org sessions',
-        requestId: request.id,
-      })
-    }
-
-    // Generate a new invite token
-    const rawToken = randomBytes(32).toString('hex')
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex')
-    session.inviteTokenHash = tokenHash
-    inviteTokens.set(tokenHash, sessionId)
-
-    return reply.status(200).send({
-      inviteToken: rawToken,
-      sessionId,
-    })
+    return reply.status(200).send(result)
   })
 
   // POST /v1/sessions/:sessionId/accept
@@ -256,36 +198,19 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const session = sessions.get(sessionId)
-    if (!session) {
-      return reply.status(404).send({
-        code: 'SESSION_NOT_FOUND',
-        message: 'Session not found',
+    const result = sessionService.acceptSession(sessionId, parsed.data.inviteToken)
+
+    if ('error' in result) {
+      let statusCode = 400
+      if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
+      if (result.code === 'INVALID_TOKEN') statusCode = 401
+      return reply.status(statusCode).send({
+        code: result.code,
+        message: result.error,
         requestId: request.id,
       })
     }
 
-    if (session.status !== 'pending_acceptance') {
-      return reply.status(400).send({
-        code: 'SESSION_NOT_ACTIVE',
-        message: 'Session is not pending acceptance',
-        requestId: request.id,
-      })
-    }
-
-    // Validate invite token
-    const tokenHash = createHash('sha256').update(parsed.data.inviteToken).digest('hex')
-    if (tokenHash !== session.inviteTokenHash) {
-      return reply.status(401).send({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid invite token',
-        requestId: request.id,
-      })
-    }
-
-    session.status = 'active'
-    session.updatedAt = new Date().toISOString()
-
-    return reply.status(200).send(session)
+    return reply.status(200).send(result)
   })
 }
