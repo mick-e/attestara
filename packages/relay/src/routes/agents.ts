@@ -1,30 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { randomUUID } from 'crypto'
-import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
+import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
+import { agentService } from '../services/agent.service.js'
 
-interface StoredAgent {
-  id: string
-  orgId: string
-  did: string
-  name: string
-  status: string
-  metadata: Record<string, unknown>
-  publicKey: string
-  registeredTxHash: string | null
-  createdAt: string
-}
+export { agentService as agentServiceInstance }
 
-const agents = new Map<string, StoredAgent>()
-const didIndex = new Map<string, string>() // did -> agentId
-
+/** @deprecated use agentService.clearStores() directly */
 export function clearAgentStores() {
-  agents.clear()
-  didIndex.clear()
-}
-
-export function getAgentStores() {
-  return { agents, didIndex }
+  agentService.clearStores()
 }
 
 const createAgentSchema = z.object({
@@ -57,29 +40,17 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    if (didIndex.has(parsed.data.did)) {
+    const result = agentService.create(orgId, parsed.data)
+
+    if ('code' in result) {
       return reply.status(409).send({
-        code: 'DID_ALREADY_REGISTERED',
-        message: 'DID is already registered',
+        code: result.code,
+        message: result.error,
         requestId: request.id,
       })
     }
 
-    const agent: StoredAgent = {
-      id: randomUUID(),
-      orgId,
-      did: parsed.data.did,
-      name: parsed.data.name,
-      status: 'active',
-      metadata: parsed.data.metadata ?? {},
-      publicKey: parsed.data.publicKey,
-      registeredTxHash: null,
-      createdAt: new Date().toISOString(),
-    }
-    agents.set(agent.id, agent)
-    didIndex.set(agent.did, agent.id)
-
-    return reply.status(201).send(agent)
+    return reply.status(201).send(result)
   })
 
   // GET /v1/orgs/:orgId/agents
@@ -87,7 +58,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgAgents = Array.from(agents.values()).filter(a => a.orgId === orgId)
+    const orgAgents = agentService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: orgAgents,
@@ -100,9 +71,9 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
-    const agent = agents.get(agentId)
+    const agent = agentService.getById(agentId, orgId)
 
-    if (!agent || agent.orgId !== orgId) {
+    if (!agent) {
       return reply.status(404).send({
         code: 'AGENT_NOT_FOUND',
         message: 'Agent not found',
@@ -127,18 +98,14 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const agent = agents.get(agentId)
-    if (!agent || agent.orgId !== orgId) {
+    const agent = agentService.update(agentId, orgId, parsed.data)
+    if (!agent) {
       return reply.status(404).send({
         code: 'AGENT_NOT_FOUND',
         message: 'Agent not found',
         requestId: request.id,
       })
     }
-
-    if (parsed.data.name) agent.name = parsed.data.name
-    if (parsed.data.metadata) agent.metadata = parsed.data.metadata
-    if (parsed.data.status) agent.status = parsed.data.status
 
     return reply.status(200).send(agent)
   })
@@ -148,17 +115,15 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
-    const agent = agents.get(agentId)
+    const agent = agentService.deactivate(agentId, orgId)
 
-    if (!agent || agent.orgId !== orgId) {
+    if (!agent) {
       return reply.status(404).send({
         code: 'AGENT_NOT_FOUND',
         message: 'Agent not found',
         requestId: request.id,
       })
     }
-
-    agent.status = 'deactivated'
 
     return reply.status(200).send({ message: 'Agent deactivated', id: agentId })
   })
