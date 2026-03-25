@@ -7,6 +7,7 @@ import { orgRoutes } from './routes/orgs.js'
 import { agentRoutes } from './routes/agents.js'
 import { credentialRoutes } from './routes/credentials.js'
 import { sessionRoutes } from './routes/sessions.js'
+import { commitmentRoutes } from './routes/commitments.js'
 
 export interface ServerOptions {
   corsOrigin?: string
@@ -48,7 +49,7 @@ export async function buildServer(options: ServerOptions = {}) {
   })
 
   // Global error handler
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
     const statusCode = error.statusCode ?? 500
     const response = {
       code: error.code ?? 'INTERNAL_ERROR',
@@ -74,6 +75,7 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(agentRoutes, { prefix: '/v1' })
   await app.register(credentialRoutes, { prefix: '/v1' })
   await app.register(sessionRoutes, { prefix: '/v1' })
+  await app.register(commitmentRoutes, { prefix: '/v1' })
 
   return app
 }
