@@ -1,11 +1,27 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { createHash, randomUUID } from 'crypto'
+import { getAddress } from 'ethers'
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyToken,
 } from '../middleware/auth.js'
+import {
+  generateNonce,
+  storeNonce,
+  createSiweMessage,
+  verifySiweSignature,
+  validateSiweMessage,
+  clearNonceStore,
+} from '../utils/siwe.js'
+import { AuthService } from '../services/auth.service.js'
+import { orgService } from '../services/org.service.js'
+import type { StoredUser, StoredOrg } from '../services/org.service.js'
+
+// Re-export types for backward compatibility
+export type { StoredUser, StoredOrg }
+
+const authService = new AuthService()
 
 // Zod schemas for request validation
 const registerSchema = z.object({
@@ -24,71 +40,43 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 })
 
+const walletNonceSchema = z.object({
+  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid Ethereum address'),
+})
+
+const walletVerifySchema = z.object({
+  message: z.string().min(1),
+  signature: z.string().min(1),
+})
+
+// Keep legacy schema for backward compat on /wallet endpoint
 const walletAuthSchema = z.object({
   message: z.string().min(1),
   signature: z.string().min(1),
   address: z.string().min(1),
 })
 
-/**
- * Simple password hashing using SHA-256 with a salt.
- * In production, use bcrypt — this avoids native dependencies for testing.
- */
-function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
-  const s = salt ?? randomUUID()
-  const hash = createHash('sha256').update(`${s}:${password}`).digest('hex')
-  return { hash: `${s}:${hash}`, salt: s }
-}
-
-function verifyPassword(password: string, storedHash: string): boolean {
-  const [salt] = storedHash.split(':')
-  const { hash } = hashPassword(password, salt)
-  return hash === storedHash
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-}
-
-// In-memory stores for testing (Prisma will replace these)
-interface StoredUser {
-  id: string
-  orgId: string
-  email: string
-  passwordHash: string
-  walletAddress: string | null
-  role: string
-  emailVerified: boolean
-}
-
-interface StoredOrg {
-  id: string
-  name: string
-  slug: string
-  plan: string
-}
-
-const users = new Map<string, StoredUser>()
-const orgs = new Map<string, StoredOrg>()
-const emailIndex = new Map<string, string>() // email -> userId
-const walletIndex = new Map<string, string>() // walletAddress -> userId
-
 // Exported for tests
 export function clearAuthStores() {
-  users.clear()
-  orgs.clear()
-  emailIndex.clear()
-  walletIndex.clear()
+  orgService.clearStores()
+  clearNonceStore()
 }
 
 export function getAuthStores() {
-  return { users, orgs, emailIndex, walletIndex }
+  return {
+    get users() {
+      // Provide a Map-like interface backed by orgService for backward compat
+      return {
+        get: (id: string) => orgService.getUserById(id),
+      }
+    },
+  }
 }
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
+const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? 'attestara.ai'
+const SIWE_URI = process.env.SIWE_URI ?? 'https://attestara.ai'
+const SIWE_STATEMENT = 'Sign in to Attestara'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   // POST /v1/auth/register
@@ -105,7 +93,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { email, password, orgName, walletAddress } = parsed.data
 
     // Check for existing email
-    if (emailIndex.has(email)) {
+    if (orgService.hasEmail(email)) {
       return reply.status(409).send({
         code: 'CONFLICT',
         message: 'Email already registered',
@@ -114,28 +102,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Create org
-    const org: StoredOrg = {
-      id: randomUUID(),
-      name: orgName,
-      slug: slugify(orgName) + '-' + randomUUID().slice(0, 6),
-      plan: 'starter',
-    }
-    orgs.set(org.id, org)
+    const org = orgService.createOrg(orgName)
 
     // Create user
-    const { hash } = hashPassword(password)
-    const user: StoredUser = {
-      id: randomUUID(),
-      orgId: org.id,
+    const hash = await authService.hashPassword(password)
+    const user = orgService.createUser(org.id, {
       email,
       passwordHash: hash,
       walletAddress: walletAddress ?? null,
       role: 'owner',
-      emailVerified: false,
-    }
-    users.set(user.id, user)
-    emailIndex.set(email, user.id)
-    if (walletAddress) walletIndex.set(walletAddress, user.id)
+    })
 
     // Generate tokens
     const tokenPayload = { sub: user.id, orgId: org.id, email, role: user.role }
@@ -162,8 +138,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { email, password } = parsed.data
-    const userId = emailIndex.get(email)
-    if (!userId) {
+    const user = orgService.getUserByEmail(email)
+    if (!user) {
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -171,8 +147,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const user = users.get(userId)!
-    if (!verifyPassword(password, user.passwordHash)) {
+    if (!await authService.verifyPassword(password, user.passwordHash)) {
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -231,9 +206,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
   })
 
-  // POST /v1/auth/wallet
-  app.post('/wallet', async (request, reply) => {
-    const parsed = walletAuthSchema.safeParse(request.body)
+  // POST /v1/auth/wallet/nonce — Generate a nonce for SIWE
+  app.post('/wallet/nonce', async (request, reply) => {
+    const parsed = walletNonceSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
         code: 'VALIDATION_ERROR',
@@ -243,36 +218,90 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { address } = parsed.data
-    // TODO: Validate SIWE message + signature using ethers
+    const checksumAddress = getAddress(address)
+    const nonce = generateNonce()
+    storeNonce(nonce, checksumAddress)
 
-    // Find existing user by wallet or create one
-    let userId = walletIndex.get(address)
-    let user: StoredUser
+    // Build the SIWE message for the client to sign
+    const issuedAt = new Date().toISOString()
+    const message = createSiweMessage({
+      domain: SIWE_DOMAIN,
+      address: checksumAddress,
+      statement: SIWE_STATEMENT,
+      uri: SIWE_URI,
+      version: '1',
+      chainId: 1,
+      nonce,
+      issuedAt,
+    })
 
-    if (userId) {
-      user = users.get(userId)!
-    } else {
+    return reply.status(200).send({ nonce, message })
+  })
+
+  // POST /v1/auth/wallet/verify — Verify SIWE signature and issue tokens
+  app.post('/wallet/verify', async (request, reply) => {
+    const parsed = walletVerifySchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
+
+    const { message, signature } = parsed.data
+
+    // Validate the SIWE message structure, domain, statement, nonce
+    const validation = validateSiweMessage(message, {
+      expectedDomain: SIWE_DOMAIN,
+      expectedStatement: SIWE_STATEMENT,
+    })
+    if (!validation.ok) {
+      return reply.status(401).send({
+        code: 'SIWE_VALIDATION_FAILED',
+        message: validation.error,
+        requestId: request.id,
+      })
+    }
+
+    // Verify the signature recovers the claimed address
+    let recoveredAddress: string
+    try {
+      recoveredAddress = verifySiweSignature(message, signature)
+    } catch {
+      return reply.status(401).send({
+        code: 'INVALID_SIGNATURE',
+        message: 'Signature verification failed',
+        requestId: request.id,
+      })
+    }
+
+    const expectedAddress = getAddress(validation.params.address)
+    if (recoveredAddress !== expectedAddress) {
+      return reply.status(401).send({
+        code: 'ADDRESS_MISMATCH',
+        message: 'Recovered address does not match claimed address',
+        requestId: request.id,
+      })
+    }
+
+    // Upsert user by wallet address
+    const address = recoveredAddress
+    let user = orgService.getUserByWallet(address)
+
+    if (!user) {
       // Auto-create org + user for wallet auth
-      const org: StoredOrg = {
-        id: randomUUID(),
-        name: `Wallet ${address.slice(0, 8)}`,
-        slug: `wallet-${address.slice(2, 10).toLowerCase()}`,
-        plan: 'starter',
-      }
-      orgs.set(org.id, org)
+      const org = orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
+      // Override slug for wallet orgs
+      const orgData = orgService.getOrg(org.id)!
+      ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
 
-      user = {
-        id: randomUUID(),
-        orgId: org.id,
+      user = orgService.createUser(org.id, {
         email: `${address.toLowerCase()}@wallet.attestara.ai`,
         passwordHash: '',
         walletAddress: address,
         role: 'owner',
-        emailVerified: false,
-      }
-      users.set(user.id, user)
-      walletIndex.set(address, user.id)
-      emailIndex.set(user.email, user.id)
+      })
     }
 
     const tokenPayload = { sub: user.id, orgId: user.orgId, email: user.email, role: user.role }
@@ -283,7 +312,83 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       accessToken,
       refreshToken,
       expiresIn: 900,
-      user: { id: user.id, email: user.email, orgId: user.orgId, role: user.role },
+      user: { id: user.id, email: user.email, orgId: user.orgId, role: user.role, walletAddress: address },
+    })
+  })
+
+  // POST /v1/auth/wallet (legacy — now requires real SIWE validation)
+  app.post('/wallet', async (request, reply) => {
+    const parsed = walletAuthSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
+
+    const { message, signature } = parsed.data
+
+    // Validate the SIWE message structure, domain, statement, nonce
+    const validation = validateSiweMessage(message, {
+      expectedDomain: SIWE_DOMAIN,
+      expectedStatement: SIWE_STATEMENT,
+    })
+    if (!validation.ok) {
+      return reply.status(401).send({
+        code: 'SIWE_VALIDATION_FAILED',
+        message: validation.error,
+        requestId: request.id,
+      })
+    }
+
+    // Verify the signature recovers the claimed address
+    let recoveredAddress: string
+    try {
+      recoveredAddress = verifySiweSignature(message, signature)
+    } catch {
+      return reply.status(401).send({
+        code: 'INVALID_SIGNATURE',
+        message: 'Signature verification failed',
+        requestId: request.id,
+      })
+    }
+
+    const expectedAddress = getAddress(validation.params.address)
+    if (recoveredAddress !== expectedAddress) {
+      return reply.status(401).send({
+        code: 'ADDRESS_MISMATCH',
+        message: 'Recovered address does not match claimed address',
+        requestId: request.id,
+      })
+    }
+
+    // Upsert user by wallet address
+    const address = recoveredAddress
+    let user = orgService.getUserByWallet(address)
+
+    if (!user) {
+      const org = orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
+      const orgData = orgService.getOrg(org.id)!
+      ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
+
+      user = orgService.createUser(org.id, {
+        email: `${address.toLowerCase()}@wallet.attestara.ai`,
+        passwordHash: '',
+        walletAddress: address,
+        role: 'owner',
+      })
+    }
+
+    const tokenPayload = { sub: user.id, orgId: user.orgId, email: user.email, role: user.role }
+    const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
+    const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
+
+    return reply.status(200).send({
+      accessToken,
+      refreshToken,
+      expiresIn: 900,
+      user: { id: user.id, email: user.email, orgId: user.orgId, role: user.role, walletAddress: address },
     })
   })
 }

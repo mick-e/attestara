@@ -1,19 +1,19 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { randomUUID } from 'crypto'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
-
-// In-memory stores (shared with auth via imports — will be replaced by Prisma)
-const orgMembers = new Map<string, Set<string>>() // orgId -> Set<userId>
-const invites = new Map<string, { orgId: string; email: string; role: string }>()
+import { orgService } from '../services/org.service.js'
 
 export function clearOrgStores() {
-  orgMembers.clear()
-  invites.clear()
+  orgService.clearStores()
 }
 
 export function getOrgMembers() {
-  return orgMembers
+  return {
+    get(orgId: string) {
+      const members = orgService.listMembers(orgId)
+      return members.length > 0 ? new Set(members) : undefined
+    },
+  }
 }
 
 const createOrgSchema = z.object({
@@ -48,21 +48,16 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const auth = (request as any).auth as AuthContext
-    const org = {
-      id: randomUUID(),
-      name: parsed.data.name,
-      slug: parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + randomUUID().slice(0, 6),
-      plan: parsed.data.plan ?? 'starter',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    const org = orgService.createOrg(parsed.data.name, parsed.data.plan)
 
     // Track membership
-    const members = new Set<string>()
-    members.add(auth.userId)
-    orgMembers.set(org.id, members)
+    orgService.addMember(org.id, auth.userId)
 
-    return reply.status(201).send(org)
+    return reply.status(201).send({
+      ...org,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
   })
 
   // GET /v1/orgs/:orgId
@@ -70,7 +65,6 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const auth = (request as any).auth as AuthContext
 
     // In a real implementation, fetch from DB
     return reply.status(200).send({
@@ -107,11 +101,11 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const members = orgMembers.get(orgId) ?? new Set()
+    const memberIds = orgService.listMembers(orgId)
 
     return reply.status(200).send({
-      data: Array.from(members).map(id => ({ id, orgId, role: 'member' })),
-      pagination: { total: members.size, page: 1, pageSize: 50, totalPages: 1 },
+      data: memberIds.map(id => ({ id, orgId, role: 'member' })),
+      pagination: { total: memberIds.length, page: 1, pageSize: 50, totalPages: 1 },
     })
   })
 
@@ -129,8 +123,7 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const inviteId = randomUUID()
-    invites.set(inviteId, { orgId, email: parsed.data.email, role: parsed.data.role })
+    const inviteId = orgService.createInvite(orgId, parsed.data.email, parsed.data.role)
 
     return reply.status(201).send({
       id: inviteId,
