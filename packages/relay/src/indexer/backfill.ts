@@ -44,7 +44,7 @@ export async function backfill(
     const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
 
     for (const event of events) {
-      const [agentId, did, orgAdmin] = event.args as [string, string, string]
+      const [agentId, did, orgAdmin] = event.args as unknown as [string, string, string]
       try {
         await callbacks.onAgentRegistered({
           agentId,
@@ -71,7 +71,7 @@ export async function backfill(
     const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
 
     for (const event of events) {
-      const [commitmentId, sessionId, agreementHash] = event.args as [string, string, string]
+      const [commitmentId, sessionId, agreementHash] = event.args as unknown as [string, string, string]
       try {
         await callbacks.onCommitmentCreated({
           commitmentId,
