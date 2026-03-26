@@ -7,6 +7,8 @@ export default defineConfig({
     alias: {
       '@attestara/types': path.resolve(__dirname, 'packages/types/src/index.ts'),
       '@attestara/sdk': path.resolve(__dirname, 'packages/sdk/src/index.ts'),
+      '@attestara/relay': path.resolve(__dirname, 'packages/relay/src/index.ts'),
+      '@attestara/prover': path.resolve(__dirname, 'packages/prover/src/index.ts'),
     },
   },
   test: {
