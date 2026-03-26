@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,7 +9,12 @@ import {
   ChainLink,
   LiveIndicator,
   TurnTimeline,
+  LoadingSpinner,
+  ErrorState,
 } from "@/components/ui";
+import { useSession } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
 const mockSession = {
   id: "sess_01HZN5A1B2C3D4E5F6G7H8I9J0",
@@ -66,42 +72,12 @@ const mockSession = {
     },
   ],
   proofs: [
-    {
-      circuit: "MandateBound",
-      status: "verified" as const,
-      timeMs: 400,
-      turn: 1,
-    },
-    {
-      circuit: "CredFreshness",
-      status: "verified" as const,
-      timeMs: 350,
-      turn: 1,
-    },
-    {
-      circuit: "MandateBound",
-      status: "verified" as const,
-      timeMs: 420,
-      turn: 2,
-    },
-    {
-      circuit: "ParamRange",
-      status: "verified" as const,
-      timeMs: 510,
-      turn: 2,
-    },
-    {
-      circuit: "CredFreshness",
-      status: "verified" as const,
-      timeMs: 380,
-      turn: 2,
-    },
-    {
-      circuit: "MandateBound",
-      status: "generating" as const,
-      timeMs: undefined,
-      turn: 3,
-    },
+    { circuit: "MandateBound", status: "verified" as const, timeMs: 400, turn: 1 },
+    { circuit: "CredFreshness", status: "verified" as const, timeMs: 350, turn: 1 },
+    { circuit: "MandateBound", status: "verified" as const, timeMs: 420, turn: 2 },
+    { circuit: "ParamRange", status: "verified" as const, timeMs: 510, turn: 2 },
+    { circuit: "CredFreshness", status: "verified" as const, timeMs: 380, turn: 2 },
+    { circuit: "MandateBound", status: "generating" as const, timeMs: undefined, turn: 3 },
   ],
   termsComparison: {
     headers: ["Term", "Buyer (T1)", "Seller (T2)", "Buyer (T3)"],
@@ -117,7 +93,32 @@ const mockSession = {
 export default function SessionDetailPage() {
   const params = useParams();
   const sessionId = params.id as string;
-  const isActive = mockSession.status === "active";
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: session, loading, error, refetch } = useSession(sessionId);
+
+  // Use API session status if available, otherwise fall back to mock
+  const status = session?.status ?? mockSession.status;
+  const isActive = status === "active";
+  const createdAt = session?.createdAt ?? mockSession.createdAt;
+  const turnCount = session?.turnCount ?? mockSession.currentTurn;
+  const merkleRoot = session?.merkleRoot ?? mockSession.merkleRoot;
+
+  if (loading) {
+    return (
+      <div className="py-16">
+        <LoadingSpinner label="Loading session..." />
+      </div>
+    );
+  }
+
+  if (error && !session) {
+    return <ErrorState message={error} onRetry={refetch} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -137,40 +138,46 @@ export default function SessionDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold text-white">
-              Session #{mockSession.id.slice(5, 9)}
+              Session #{sessionId.slice(0, 8)}
             </h1>
-            <StatusBadge status={mockSession.status} />
+            <StatusBadge status={status} />
             {isActive && <LiveIndicator active />}
           </div>
           <div className="text-sm text-gray-400">
-            Turn {mockSession.currentTurn}/{mockSession.maxTurns}
+            Turn {turnCount}/{mockSession.maxTurns}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-6 text-sm">
           <div>
-            <span className="text-gray-500">Buyer:</span>{" "}
+            <span className="text-gray-500">Initiator:</span>{" "}
             <Link
-              href={`/agents/${mockSession.buyerAgent.id}`}
+              href={`/agents/${session?.initiatorAgentId ?? mockSession.buyerAgent.id}`}
               className="text-accent hover:text-accent-hover underline"
             >
-              {mockSession.buyerAgent.name}
+              {session?.initiatorAgentId ?? mockSession.buyerAgent.name}
             </Link>
           </div>
           <div>
-            <span className="text-gray-500">Seller:</span>{" "}
+            <span className="text-gray-500">Counterparty:</span>{" "}
             <Link
-              href={`/agents/${mockSession.sellerAgent.id}`}
+              href={`/agents/${session?.counterpartyAgentId ?? mockSession.sellerAgent.id}`}
               className="text-accent hover:text-accent-hover underline"
             >
-              {mockSession.sellerAgent.name}
+              {session?.counterpartyAgentId ?? mockSession.sellerAgent.name}
             </Link>
           </div>
           <div>
             <span className="text-gray-500">Started:</span>{" "}
             <span className="text-white">
-              {new Date(mockSession.createdAt).toLocaleString()}
+              {new Date(createdAt).toLocaleString()}
             </span>
           </div>
+          {session && (
+            <div>
+              <span className="text-gray-500">Type:</span>{" "}
+              <span className="text-white">{session.sessionType}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -261,7 +268,7 @@ export default function SessionDetailPage() {
         <div className="flex items-center gap-2">
           <span className="text-gray-500">Merkle Root:</span>
           <span className="font-mono text-xs text-gray-300">
-            {mockSession.merkleRoot.slice(0, 10)}...{mockSession.merkleRoot.slice(-4)}
+            {merkleRoot ? `${merkleRoot.slice(0, 10)}...${merkleRoot.slice(-4)}` : "N/A"}
           </span>
         </div>
         <div className="flex items-center gap-2">

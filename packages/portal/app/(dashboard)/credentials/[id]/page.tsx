@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { StatusBadge, ChainLink } from "@/components/ui";
+import { StatusBadge, ChainLink, LoadingSpinner, ErrorState } from "@/components/ui";
+import { useCredential, useRevokeCredential } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
 const mockCredential = {
   id: "cred_01HZN4ABCDEF1234567890ABCD",
@@ -29,6 +33,53 @@ export default function CredentialDetailPage() {
   const params = useParams();
   const credId = params.id as string;
 
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: credential, loading, error, refetch } = useCredential(credId);
+  const { revokeCredential, loading: revoking } = useRevokeCredential();
+
+  // Derive display values from API or mock
+  const domain = credential
+    ? (credential.credentialDataCached?.domain as string) || "Credential"
+    : mockCredential.domain;
+  const status = credential
+    ? credential.revoked
+      ? "revoked"
+      : new Date(credential.expiry) < new Date()
+        ? "expired"
+        : "active"
+    : mockCredential.status;
+  const hash = credential?.credentialHash ?? mockCredential.hash;
+  const agentId = credential?.agentId ?? mockCredential.agentId;
+  const ipfsCid = credential?.ipfsCid ?? mockCredential.ipfsCid;
+  const txHash = credential?.registeredTxHash ?? mockCredential.txHash;
+  const issuedAt = credential?.createdAt ?? mockCredential.issuedAt;
+  const expiry = credential?.expiry.split("T")[0] ?? mockCredential.expiry;
+
+  async function handleRevoke() {
+    try {
+      await revokeCredential(credId);
+      refetch();
+    } catch {
+      // handled by hook
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="py-16">
+        <LoadingSpinner label="Loading credential..." />
+      </div>
+    );
+  }
+
+  if (error && !credential) {
+    return <ErrorState message={error} onRetry={refetch} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
@@ -40,21 +91,25 @@ export default function CredentialDetailPage() {
           Credentials
         </Link>
         <span>/</span>
-        <span className="text-white">{mockCredential.domain}</span>
+        <span className="text-white">{domain}</span>
       </div>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white">
-            {mockCredential.domain}
+            {domain}
           </h1>
           <p className="mt-1 text-sm text-gray-400">
             Credential: {credId.slice(0, 20)}...
           </p>
         </div>
-        <button className="rounded-lg border border-danger/30 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors">
-          Revoke
+        <button
+          onClick={handleRevoke}
+          disabled={revoking || status === "revoked"}
+          className="rounded-lg border border-danger/30 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors disabled:opacity-40"
+        >
+          {revoking ? "Revoking..." : status === "revoked" ? "Revoked" : "Revoke"}
         </button>
       </div>
 
@@ -65,17 +120,17 @@ export default function CredentialDetailPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Status
             </p>
-            <StatusBadge status={mockCredential.status} />
+            <StatusBadge status={status} />
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Agent
             </p>
             <Link
-              href={`/agents/${mockCredential.agentId}`}
+              href={`/agents/${agentId}`}
               className="text-sm text-accent hover:text-accent-hover underline"
             >
-              {mockCredential.agent}
+              {credential?.agentId ?? mockCredential.agent}
             </Link>
           </div>
           <div>
@@ -89,7 +144,7 @@ export default function CredentialDetailPage() {
               Issued
             </p>
             <p className="text-sm text-white">
-              {new Date(mockCredential.issuedAt).toLocaleString()}
+              {new Date(issuedAt).toLocaleString()}
             </p>
           </div>
         </div>
@@ -105,14 +160,14 @@ export default function CredentialDetailPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Domain
             </p>
-            <p className="text-sm text-white">{mockCredential.domain}</p>
+            <p className="text-sm text-white">{domain}</p>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Max Value
             </p>
             <p className="text-sm text-white font-mono">
-              {"\u20AC"}{Number(mockCredential.maxValue).toLocaleString()}
+              {"\u20AC"}{Number(credential?.credentialDataCached?.maxValue ?? mockCredential.maxValue).toLocaleString()}
             </p>
           </div>
           <div>
@@ -120,7 +175,7 @@ export default function CredentialDetailPage() {
               Floor
             </p>
             <p className="text-sm text-white font-mono">
-              {"\u20AC"}{Number(mockCredential.floor).toLocaleString()}
+              {"\u20AC"}{Number(credential?.credentialDataCached?.floor ?? mockCredential.floor).toLocaleString()}
             </p>
           </div>
           <div>
@@ -128,14 +183,14 @@ export default function CredentialDetailPage() {
               Ceiling
             </p>
             <p className="text-sm text-white font-mono">
-              {"\u20AC"}{Number(mockCredential.ceiling).toLocaleString()}
+              {"\u20AC"}{Number(credential?.credentialDataCached?.ceiling ?? mockCredential.ceiling).toLocaleString()}
             </p>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Expiry
             </p>
-            <p className="text-sm text-white">{mockCredential.expiry}</p>
+            <p className="text-sm text-white">{expiry}</p>
           </div>
         </div>
       </div>
@@ -151,31 +206,35 @@ export default function CredentialDetailPage() {
               Credential Hash
             </p>
             <p className="font-mono text-sm text-gray-300 break-all">
-              {mockCredential.hash}
+              {hash}
             </p>
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
-              On-Chain Hash
+              Schema Hash
             </p>
             <p className="font-mono text-sm text-gray-300 break-all">
-              {mockCredential.onChainHash}
+              {credential?.schemaHash ?? mockCredential.onChainHash}
             </p>
           </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
-              IPFS CID
-            </p>
-            <p className="font-mono text-sm text-accent break-all">
-              {mockCredential.ipfsCid}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
-              Transaction
-            </p>
-            <ChainLink txHash={mockCredential.txHash} />
-          </div>
+          {ipfsCid && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
+                IPFS CID
+              </p>
+              <p className="font-mono text-sm text-accent break-all">
+                {ipfsCid}
+              </p>
+            </div>
+          )}
+          {txHash && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
+                Transaction
+              </p>
+              <ChainLink txHash={txHash} />
+            </div>
+          )}
         </div>
       </div>
     </div>

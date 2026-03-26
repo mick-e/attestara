@@ -25,12 +25,9 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await apiClient.post<{
-        access_token: string;
-        refresh_token: string;
-      }>("/auth/login", { email, password });
-      setTokens(res.access_token, res.refresh_token);
-      apiClient.setToken(res.access_token);
+      const res = await apiClient.auth.login(email, password);
+      setTokens(res.accessToken, res.refreshToken);
+      apiClient.setToken(res.accessToken);
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

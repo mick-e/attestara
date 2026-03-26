@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { DataTable, StatusBadge, Modal } from "@/components/ui";
+import { DataTable, StatusBadge, Modal, LoadingSpinner, ErrorState, EmptyState } from "@/components/ui";
+import { useCredentials, useAgents } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
-interface Credential {
+interface CredentialRow {
   id: string;
   agent: string;
   domain: string;
@@ -14,7 +17,7 @@ interface Credential {
   status: string;
 }
 
-const mockCredentials: Credential[] = [
+const mockCredentials: CredentialRow[] = [
   {
     id: "cred_01HZN4ABCDEF1234567890ABCD",
     agent: "procurement-bot-eu",
@@ -71,14 +74,6 @@ const mockCredentials: Credential[] = [
   },
 ];
 
-const mockAgentNames = [
-  "procurement-bot-eu",
-  "sales-agent-na",
-  "compliance-checker",
-  "logistics-negotiator",
-  "vendor-assessment-v1",
-];
-
 const currencies = ["EUR", "USD", "GBP", "CHF"];
 
 const columns = [
@@ -94,12 +89,12 @@ const columns = [
     key: "domain" as const,
     label: "Domain",
     sortable: true,
-    render: (_: unknown, row: Credential) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <Link
         href={`/credentials/${row.id}`}
         className="text-sm font-medium text-accent hover:text-accent-hover underline"
       >
-        {row.domain}
+        {String(row.domain)}
       </Link>
     ),
   },
@@ -107,7 +102,7 @@ const columns = [
     key: "maxValue" as const,
     label: "Max Value",
     sortable: true,
-    render: (_: unknown, row: Credential) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <span className="font-mono text-sm text-white">
         {row.currency === "EUR"
           ? "\u20AC"
@@ -135,7 +130,7 @@ const columns = [
   {
     key: "id" as const,
     label: "Actions",
-    render: (_: unknown, row: Credential) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <Link
         href={`/credentials/${row.id}`}
         className="text-xs text-gray-400 hover:text-white transition-colors"
@@ -173,6 +168,32 @@ export default function CredentialsPage() {
   const [issued, setIssued] = useState(false);
   const [credHash, setCredHash] = useState("");
 
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: credentials, loading, error, refetch } = useCredentials();
+  const { data: agents } = useAgents();
+
+  // Map API credentials to display rows, or use mock data
+  const displayCredentials: CredentialRow[] = credentials
+    ? credentials.map((c) => ({
+        id: c.id,
+        agent: c.agentId,
+        domain: (c.credentialDataCached?.domain as string) || "Credential",
+        maxValue: (c.credentialDataCached?.maxValue as string) || "0",
+        currency: (c.credentialDataCached?.currency as string) || "EUR",
+        expiry: c.expiry.split("T")[0],
+        status: c.revoked ? "revoked" : new Date(c.expiry) < new Date() ? "expired" : "active",
+      }))
+    : mockCredentials;
+
+  // Agent names for the wizard dropdown
+  const agentNames = agents
+    ? agents.map((a) => a.name)
+    : ["procurement-bot-eu", "sales-agent-na", "compliance-checker", "logistics-negotiator", "vendor-assessment-v1"];
+
   function resetWizard() {
     setStep(1);
     setForm(defaultWizard);
@@ -186,11 +207,13 @@ export default function CredentialsPage() {
     const hash =
       "0x" +
       Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
+        Math.floor(Math.random() * 16).toString(16),
       ).join("");
     setCredHash(hash);
     setIssued(true);
     setStep(5);
+    // Refetch credentials list
+    refetch();
   }
 
   function canProceed(): boolean {
@@ -233,10 +256,24 @@ export default function CredentialsPage() {
         </button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={mockCredentials as unknown as Record<string, unknown>[]}
-      />
+      {loading ? (
+        <div className="py-12">
+          <LoadingSpinner label="Loading credentials..." />
+        </div>
+      ) : error && !credentials ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : displayCredentials.length === 0 ? (
+        <EmptyState
+          title="No credentials yet"
+          description="Issue your first verifiable credential to get started."
+          action={{ label: "Issue Credential", onClick: () => setWizardOpen(true) }}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={displayCredentials as unknown as Record<string, unknown>[]}
+        />
+      )}
 
       {/* Issuance Wizard */}
       <Modal
@@ -304,7 +341,7 @@ export default function CredentialsPage() {
               className="w-full rounded-md border border-navy-800 bg-navy-950 px-3 py-2 text-sm text-white outline-none focus:border-accent"
             >
               <option value="">Choose an agent...</option>
-              {mockAgentNames.map((name) => (
+              {agentNames.map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>

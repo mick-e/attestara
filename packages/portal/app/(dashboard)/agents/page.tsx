@@ -1,71 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { DataTable, StatusBadge, Modal } from "@/components/ui";
+import { DataTable, StatusBadge, Modal, LoadingSpinner, ErrorState, EmptyState } from "@/components/ui";
+import { useAgents, useCreateAgent } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient, type Agent } from "@/lib/api-client";
 
-interface Agent {
-  id: string;
-  name: string;
-  did: string;
-  status: string;
-  createdAt: string;
-}
-
+// Mock fallback data
 const mockAgents: Agent[] = [
   {
     id: "ag_01HZN3KQXV7YJWF8RMTG5B2P4D",
+    orgId: "",
     name: "procurement-bot-eu",
     did: "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
     status: "active",
+    metadata: {},
+    publicKey: "",
+    registeredTxHash: null,
     createdAt: "2026-03-15T09:30:00Z",
   },
   {
     id: "ag_01HZN3KQXV7YJWF8RMTG5B2P5E",
+    orgId: "",
     name: "sales-agent-na",
     did: "did:key:z6MkpTHR8VNs5zPAj48NStGqtZKmME7t42DXYhQHnvVAkgs2",
     status: "active",
+    metadata: {},
+    publicKey: "",
+    registeredTxHash: null,
     createdAt: "2026-03-14T14:22:00Z",
   },
   {
     id: "ag_01HZN3KQXV7YJWF8RMTG5B2P6F",
+    orgId: "",
     name: "compliance-checker",
     did: "did:key:z6Mkw1KSvGWNR7MYq8FL1ZBzbFPwyYkDCALNY9RNxEd7jKs3",
     status: "active",
+    metadata: {},
+    publicKey: "",
+    registeredTxHash: null,
     createdAt: "2026-03-12T11:45:00Z",
   },
   {
     id: "ag_01HZN3KQXV7YJWF8RMTG5B2P7G",
+    orgId: "",
     name: "logistics-negotiator",
     did: "did:key:z6MknGc3ocHs3zdPiJbnaaqDi58GCBQ1iP6jD55gPgrFiEr4",
     status: "paused",
+    metadata: {},
+    publicKey: "",
+    registeredTxHash: null,
     createdAt: "2026-03-10T08:15:00Z",
   },
   {
     id: "ag_01HZN3KQXV7YJWF8RMTG5B2P8H",
+    orgId: "",
     name: "vendor-assessment-v1",
     did: "did:key:z6MksHh7qHWvybLg5QTPPdG2DYhqSJJkFmz8hZ7EQMj5CqnT",
     status: "expired",
+    metadata: {},
+    publicKey: "",
+    registeredTxHash: null,
     createdAt: "2026-02-28T16:00:00Z",
   },
 ];
 
 const columns = [
   {
-    key: "name" as const,
+    key: "name",
     label: "Name",
     sortable: true,
-    render: (_: unknown, row: Agent) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <Link
         href={`/agents/${row.id}`}
         className="font-medium text-accent hover:text-accent-hover underline"
       >
-        {row.name}
+        {String(row.name)}
       </Link>
     ),
   },
   {
-    key: "did" as const,
+    key: "did",
     label: "DID",
     render: (v: unknown) => {
       const did = String(v);
@@ -77,13 +93,13 @@ const columns = [
     },
   },
   {
-    key: "status" as const,
+    key: "status",
     label: "Status",
     sortable: true,
     render: (v: unknown) => <StatusBadge status={String(v)} />,
   },
   {
-    key: "createdAt" as const,
+    key: "createdAt",
     label: "Created",
     sortable: true,
     render: (v: unknown) => (
@@ -98,10 +114,35 @@ export default function AgentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [agentName, setAgentName] = useState("");
 
-  function handleProvision() {
-    // Will call API later
-    setModalOpen(false);
-    setAgentName("");
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: agents, loading, error, refetch } = useAgents();
+  const { createAgent, loading: creating } = useCreateAgent();
+
+  // Use API data if available, mock data as fallback
+  const displayAgents = agents ?? mockAgents;
+
+  async function handleProvision() {
+    if (!agentName.trim()) return;
+    try {
+      // Generate a placeholder DID and key for provisioning
+      const randomHex = Array.from({ length: 32 }, () =>
+        Math.floor(Math.random() * 16).toString(16),
+      ).join("");
+      await createAgent({
+        name: agentName,
+        did: `did:key:z6Mk${randomHex}`,
+        publicKey: `0x${randomHex}`,
+      });
+      setModalOpen(false);
+      setAgentName("");
+      refetch();
+    } catch {
+      // Error is handled by the hook
+    }
   }
 
   return (
@@ -121,7 +162,21 @@ export default function AgentsPage() {
         </button>
       </div>
 
-      <DataTable columns={columns} data={mockAgents as unknown as Record<string, unknown>[]} />
+      {loading ? (
+        <div className="py-12">
+          <LoadingSpinner label="Loading agents..." />
+        </div>
+      ) : error && !agents ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : displayAgents.length === 0 ? (
+        <EmptyState
+          title="No agents yet"
+          description="Provision your first AI agent to get started with attestations."
+          action={{ label: "Provision Agent", onClick: () => setModalOpen(true) }}
+        />
+      ) : (
+        <DataTable columns={columns} data={displayAgents as unknown as Record<string, unknown>[]} />
+      )}
 
       <Modal
         open={modalOpen}
@@ -137,10 +192,10 @@ export default function AgentsPage() {
             </button>
             <button
               onClick={handleProvision}
-              disabled={!agentName.trim()}
+              disabled={!agentName.trim() || creating}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40 transition-colors"
             >
-              Provision
+              {creating ? "Provisioning..." : "Provision"}
             </button>
           </div>
         }

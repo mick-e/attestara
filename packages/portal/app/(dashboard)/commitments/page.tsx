@@ -1,7 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
-import { DataTable, ChainLink } from "@/components/ui";
+import { DataTable, ChainLink, EmptyState } from "@/components/ui";
+import { useCommitments } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
 interface Commitment {
   id: string;
@@ -69,12 +73,12 @@ const columns = [
   {
     key: "id" as const,
     label: "ID",
-    render: (_: unknown, row: Commitment) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <Link
         href={`/commitments/${row.id}`}
         className="font-mono text-xs text-accent hover:text-accent-hover underline"
       >
-        {row.id.slice(0, 16)}...
+        {String(row.id).slice(0, 16)}...
       </Link>
     ),
   },
@@ -105,11 +109,11 @@ const columns = [
   {
     key: "partyA" as const,
     label: "Parties",
-    render: (_: unknown, row: Commitment) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <span className="text-sm text-white">
-        {row.partyA}{" "}
+        {String(row.partyA)}{" "}
         <span className="text-gray-500">&amp;</span>{" "}
-        {row.partyB}
+        {String(row.partyB)}
       </span>
     ),
   },
@@ -143,6 +147,27 @@ const columns = [
 ];
 
 export default function CommitmentsPage() {
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: commitments } = useCommitments();
+
+  // Use API data if available, fallback to mock
+  const displayCommitments = commitments
+    ? commitments.map((c) => ({
+        id: c.id,
+        sessionId: c.sessionId,
+        agreementHash: c.agreementHash,
+        partyA: c.partyA,
+        partyB: c.partyB,
+        verified: String(c.verified),
+        txHash: c.txHash || "",
+        createdAt: c.createdAt,
+      }))
+    : mockCommitments;
+
   return (
     <div className="space-y-6">
       <div>
@@ -152,10 +177,17 @@ export default function CommitmentsPage() {
         </p>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={mockCommitments as unknown as Record<string, unknown>[]}
-      />
+      {displayCommitments.length === 0 ? (
+        <EmptyState
+          title="No commitments yet"
+          description="Commitments are created when negotiation sessions reach agreement."
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={displayCommitments as unknown as Record<string, unknown>[]}
+        />
+      )}
     </div>
   );
 }

@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { DataTable, StatusBadge } from "@/components/ui";
+import { DataTable, StatusBadge, LoadingSpinner, ErrorState, EmptyState } from "@/components/ui";
+import { useSessions } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient, type Session } from "@/lib/api-client";
 
-interface Session {
+// Display interface for the table
+interface SessionRow {
   id: string;
   buyerAgent: string;
   sellerAgent: string;
@@ -13,7 +17,7 @@ interface Session {
   createdAt: string;
 }
 
-const mockSessions: Session[] = [
+const mockSessions: SessionRow[] = [
   {
     id: "sess_01HZN5A1B2C3D4E5F6G7H8I9J0",
     buyerAgent: "procurement-bot-eu",
@@ -64,29 +68,40 @@ const mockSessions: Session[] = [
   },
 ];
 
-const statusOptions = ["all", "active", "completed", "rejected", "paused"];
+function apiSessionToRow(s: Session): SessionRow {
+  return {
+    id: s.id,
+    buyerAgent: s.initiatorAgentId,
+    sellerAgent: s.counterpartyAgentId,
+    status: s.status,
+    turns: String(s.turnCount),
+    createdAt: s.createdAt,
+  };
+}
+
+const statusOptions = ["all", "active", "completed", "rejected", "paused", "pending_acceptance"];
 
 const columns = [
   {
     key: "id" as const,
     label: "ID",
-    render: (_: unknown, row: Session) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <Link
         href={`/sessions/${row.id}`}
         className="font-mono text-xs text-accent hover:text-accent-hover underline"
       >
-        {row.id.slice(0, 16)}...
+        {String(row.id).slice(0, 16)}...
       </Link>
     ),
   },
   {
     key: "buyerAgent" as const,
     label: "Parties",
-    render: (_: unknown, row: Session) => (
+    render: (_: unknown, row: Record<string, unknown>) => (
       <span className="text-sm text-white">
-        {row.buyerAgent}{" "}
+        {String(row.buyerAgent)}{" "}
         <span className="text-gray-500">{"\u21C4"}</span>{" "}
-        {row.sellerAgent}
+        {String(row.sellerAgent)}
       </span>
     ),
   },
@@ -121,8 +136,20 @@ export default function SessionsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: sessions, loading, error, refetch } = useSessions();
+
+  // Convert API sessions to rows, or use mock data
+  const rows: SessionRow[] = sessions
+    ? sessions.map(apiSessionToRow)
+    : mockSessions;
+
   const filtered = useMemo(() => {
-    let result = mockSessions;
+    let result = rows;
     if (statusFilter !== "all") {
       result = result.filter((s) => s.status === statusFilter);
     }
@@ -131,11 +158,11 @@ export default function SessionsPage() {
     }
     if (dateTo) {
       result = result.filter(
-        (s) => s.createdAt <= dateTo + "T23:59:59Z"
+        (s) => s.createdAt <= dateTo + "T23:59:59Z",
       );
     }
     return result;
-  }, [statusFilter, dateFrom, dateTo]);
+  }, [rows, statusFilter, dateFrom, dateTo]);
 
   return (
     <div className="space-y-6">
@@ -159,7 +186,7 @@ export default function SessionsPage() {
           >
             {statusOptions.map((s) => (
               <option key={s} value={s}>
-                {s === "all" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1)}
+                {s === "all" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1).replace("_", " ")}
               </option>
             ))}
           </select>
@@ -200,10 +227,23 @@ export default function SessionsPage() {
         )}
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered as unknown as Record<string, unknown>[]}
-      />
+      {loading ? (
+        <div className="py-12">
+          <LoadingSpinner label="Loading sessions..." />
+        </div>
+      ) : error && !sessions ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="No sessions found"
+          description="No negotiation sessions match the current filters."
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered as unknown as Record<string, unknown>[]}
+        />
+      )}
     </div>
   );
 }

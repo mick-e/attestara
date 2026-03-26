@@ -37,17 +37,14 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await apiClient.post<{
-        access_token: string;
-        refresh_token: string;
-      }>("/auth/register", {
-        org_name: orgName,
+      const res = await apiClient.auth.register({
+        orgName,
         email,
         password,
-        wallet_address: walletAddress || undefined,
+        walletAddress: walletAddress || undefined,
       });
-      setTokens(res.access_token, res.refresh_token);
-      apiClient.setToken(res.access_token);
+      setTokens(res.accessToken, res.refreshToken);
+      apiClient.setToken(res.accessToken);
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
