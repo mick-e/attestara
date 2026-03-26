@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { Wallet } from 'ethers'
 import { buildServer } from '../src/server.js'
 import { clearAuthStores } from '../src/routes/auth.js'
 import { clearAgentStores } from '../src/routes/agents.js'
@@ -165,17 +166,27 @@ describe('Auth routes', () => {
   })
 
   describe('POST /v1/auth/wallet', () => {
-    it('should authenticate with wallet address', async () => {
-      const app = await createApp()
-      const res = await app.inject({
+    async function walletAuthFlow(app: any, wallet: Wallet) {
+      // Step 1: Get nonce
+      const nonceRes = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/wallet/nonce',
+        payload: { address: wallet.address },
+      })
+      const { message } = JSON.parse(nonceRes.payload)
+      // Step 2: Sign and verify via legacy /wallet endpoint
+      const signature = await wallet.signMessage(message)
+      return app.inject({
         method: 'POST',
         url: '/v1/auth/wallet',
-        payload: {
-          message: 'Sign in with Ethereum',
-          signature: '0xsignature',
-          address: '0xAbCdEf1234567890AbCdEf1234567890AbCdEf12',
-        },
+        payload: { message, signature, address: wallet.address },
       })
+    }
+
+    it('should authenticate with wallet address', async () => {
+      const app = await createApp()
+      const wallet = Wallet.createRandom()
+      const res = await walletAuthFlow(app, wallet)
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.payload)
       expect(body.accessToken).toBeDefined()
@@ -184,17 +195,9 @@ describe('Auth routes', () => {
 
     it('should return same user for repeated wallet auth', async () => {
       const app = await createApp()
-      const addr = '0x1111111111111111111111111111111111111111'
-      const r1 = await app.inject({
-        method: 'POST',
-        url: '/v1/auth/wallet',
-        payload: { message: 'msg', signature: 'sig', address: addr },
-      })
-      const r2 = await app.inject({
-        method: 'POST',
-        url: '/v1/auth/wallet',
-        payload: { message: 'msg', signature: 'sig', address: addr },
-      })
+      const wallet = Wallet.createRandom()
+      const r1 = await walletAuthFlow(app, wallet)
+      const r2 = await walletAuthFlow(app, wallet)
       const b1 = JSON.parse(r1.payload)
       const b2 = JSON.parse(r2.payload)
       expect(b1.user.id).toBe(b2.user.id)
