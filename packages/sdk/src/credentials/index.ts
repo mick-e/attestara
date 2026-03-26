@@ -4,7 +4,8 @@ import type { IPFSClient } from './ipfs.js'
 import { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './schemas.js'
 
 export { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './schemas.js'
-export { IPFSClient, PinataIPFSClient, MemoryIPFSClient } from './ipfs.js'
+export type { IPFSClient } from './ipfs.js'
+export { PinataIPFSClient, MemoryIPFSClient } from './ipfs.js'
 
 export interface IssueOptions {
   expiresInSeconds?: number
