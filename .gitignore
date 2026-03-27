@@ -4,7 +4,13 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
-packages/contracts/circuits/build/
+packages/contracts/circuits/build/ptau/
+packages/contracts/circuits/build/*/*.r1cs
+packages/contracts/circuits/build/*/*.sym
+packages/contracts/circuits/build/*/MandateBound_js/
+packages/contracts/circuits/build/*/ParameterRange_js/
+packages/contracts/circuits/build/*/CredentialFreshness_js/
+packages/contracts/circuits/build/*/IdentityBinding_js/
 packages/contracts/artifacts/
 packages/contracts/cache/
 packages/contracts/typechain-types/
