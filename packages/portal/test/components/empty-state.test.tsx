@@ -33,8 +33,8 @@ describe("EmptyState", () => {
   });
 
   it("should render a custom icon", () => {
-    render(<EmptyState title="Empty" icon="\uD83D\uDD0D" />);
-    expect(screen.getByText("\uD83D\uDD0D")).toBeInTheDocument();
+    render(<EmptyState title="Empty" icon="!" />);
+    expect(screen.getByText("!")).toBeInTheDocument();
   });
 
   it("should render the action button when provided", () => {

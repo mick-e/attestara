@@ -1,7 +1,10 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
-// Mock next/link as a simple anchor
-import { vi } from "vitest";
+afterEach(() => {
+  cleanup();
+});
 
 vi.mock("next/link", () => ({
   __esModule: true,
