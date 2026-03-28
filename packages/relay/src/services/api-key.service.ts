@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
 import { generateApiKey } from '../middleware/auth.js'
+import { getPrisma } from '../utils/prisma.js'
+import type { ApiKey } from '@prisma/client'
 
 export interface StoredApiKey {
   id: string
@@ -12,77 +14,85 @@ export interface StoredApiKey {
   createdAt: string
 }
 
-export class ApiKeyService {
-  private keys = new Map<string, StoredApiKey>()
-  private orgIndex = new Map<string, Set<string>>() // orgId -> Set<keyId>
+function toStoredApiKey(record: ApiKey): StoredApiKey {
+  return {
+    id: record.id,
+    orgId: record.orgId,
+    keyHash: record.keyHash,
+    name: record.name,
+    scopes: record.scopes,
+    lastUsedAt: record.lastUsedAt ? record.lastUsedAt.toISOString() : null,
+    expiresAt: record.expiresAt ? record.expiresAt.toISOString() : null,
+    createdAt: record.createdAt.toISOString(),
+  }
+}
 
-  create(
+export class ApiKeyService {
+  async create(
     orgId: string,
     name: string,
     scopes: string[],
     expiresAt?: string,
-  ): { apiKey: StoredApiKey; rawKey: string } {
+  ): Promise<{ apiKey: StoredApiKey; rawKey: string }> {
     const { raw, hash } = generateApiKey()
 
-    const apiKey: StoredApiKey = {
-      id: randomUUID(),
-      orgId,
-      keyHash: hash,
-      name,
-      scopes,
-      lastUsedAt: null,
-      expiresAt: expiresAt ?? null,
-      createdAt: new Date().toISOString(),
-    }
+    const record = await getPrisma().apiKey.create({
+      data: {
+        id: randomUUID(),
+        orgId,
+        keyHash: hash,
+        name,
+        scopes,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      },
+    })
 
-    this.keys.set(apiKey.id, apiKey)
-
-    if (!this.orgIndex.has(orgId)) {
-      this.orgIndex.set(orgId, new Set())
-    }
-    this.orgIndex.get(orgId)!.add(apiKey.id)
-
-    return { apiKey, rawKey: raw }
+    return { apiKey: toStoredApiKey(record), rawKey: raw }
   }
 
-  listByOrg(orgId: string): StoredApiKey[] {
-    const keyIds = this.orgIndex.get(orgId)
-    if (!keyIds) return []
-    return Array.from(keyIds)
-      .map(id => this.keys.get(id))
-      .filter((k): k is StoredApiKey => k !== undefined)
+  async validateByHash(keyHash: string): Promise<StoredApiKey | null> {
+    const record = await getPrisma().apiKey.findUnique({
+      where: { keyHash },
+    })
+
+    if (!record) return null
+
+    if (record.expiresAt && record.expiresAt < new Date()) {
+      return null
+    }
+
+    const updated = await getPrisma().apiKey.update({
+      where: { keyHash },
+      data: { lastUsedAt: new Date() },
+    })
+
+    return toStoredApiKey(updated)
   }
 
-  revoke(id: string, orgId: string): boolean {
-    const key = this.keys.get(id)
-    if (!key || key.orgId !== orgId) return false
+  async listByOrg(orgId: string): Promise<StoredApiKey[]> {
+    const records = await getPrisma().apiKey.findMany({
+      where: { orgId },
+    })
 
-    this.keys.delete(id)
-    const orgKeys = this.orgIndex.get(orgId)
-    if (orgKeys) {
-      orgKeys.delete(id)
-    }
+    return records.map(toStoredApiKey)
+  }
+
+  async revoke(id: string, orgId: string): Promise<boolean> {
+    const record = await getPrisma().apiKey.findUnique({
+      where: { id },
+    })
+
+    if (!record || record.orgId !== orgId) return false
+
+    await getPrisma().apiKey.delete({
+      where: { id },
+    })
+
     return true
   }
 
-  validateByHash(keyHash: string): StoredApiKey | null {
-    for (const key of this.keys.values()) {
-      if (key.keyHash === keyHash) {
-        // Check expiry
-        if (key.expiresAt && new Date(key.expiresAt) < new Date()) {
-          return null
-        }
-        // Update lastUsedAt
-        key.lastUsedAt = new Date().toISOString()
-        return key
-      }
-    }
-    return null
-  }
-
-  clearStores(): void {
-    this.keys.clear()
-    this.orgIndex.clear()
+  async clearStores(): Promise<void> {
+    await getPrisma().apiKey.deleteMany()
   }
 }
 

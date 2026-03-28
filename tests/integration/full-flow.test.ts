@@ -105,12 +105,12 @@ describe('Full Protocol Flow', () => {
     await app.close()
   })
 
-  beforeEach(() => {
-    clearAuthStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
+  beforeEach(async () => {
+    await clearAuthStores()
+    await clearAgentStores()
+    await clearCredentialStores()
+    await clearSessionStores()
+    await clearCommitmentStores()
   })
 
   it('completes the full negotiation and commitment pipeline', async () => {

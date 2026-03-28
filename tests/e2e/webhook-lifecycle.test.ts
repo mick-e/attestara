@@ -67,13 +67,13 @@ describe('E2E: Webhook Lifecycle', () => {
     await app.close()
   })
 
-  beforeEach(() => {
-    clearAuthStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
-    clearWebhookStores()
+  beforeEach(async () => {
+    await clearAuthStores()
+    await clearAgentStores()
+    await clearCredentialStores()
+    await clearSessionStores()
+    await clearCommitmentStores()
+    await clearWebhookStores()
   })
 
   // ── Phase 1: Create webhook ────────────────────────────────────────────────

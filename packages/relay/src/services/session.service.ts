@@ -1,4 +1,6 @@
-import { createHash, randomBytes, randomUUID } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
+import type { Prisma } from '@prisma/client'
+import { getPrisma } from '../utils/prisma.js'
 
 export interface StoredSession {
   id: string
@@ -48,12 +50,68 @@ export interface AppendTurnData {
   signature: string
 }
 
-export class SessionService {
-  private sessions = new Map<string, StoredSession>()
-  private turns = new Map<string, StoredTurn[]>()
-  private inviteTokens = new Map<string, string>() // tokenHash -> sessionId
+function toStoredSession(row: {
+  id: string
+  initiatorAgentId: string
+  initiatorOrgId: string
+  counterpartyAgentId: string
+  counterpartyOrgId: string
+  sessionType: string
+  inviteTokenHash: string | null
+  status: string
+  sessionConfig: unknown
+  merkleRoot: string | null
+  turnCount: number
+  anchorTxHash: string | null
+  createdAt: Date
+  updatedAt: Date
+}): StoredSession {
+  return {
+    id: row.id,
+    initiatorAgentId: row.initiatorAgentId,
+    initiatorOrgId: row.initiatorOrgId,
+    counterpartyAgentId: row.counterpartyAgentId,
+    counterpartyOrgId: row.counterpartyOrgId,
+    sessionType: row.sessionType,
+    inviteTokenHash: row.inviteTokenHash,
+    status: row.status,
+    sessionConfig: (row.sessionConfig as Record<string, unknown>) ?? {},
+    merkleRoot: row.merkleRoot,
+    turnCount: row.turnCount,
+    anchorTxHash: row.anchorTxHash,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }
+}
 
-  createSession(data: CreateSessionData): { session: StoredSession; inviteToken?: string } {
+function toStoredTurn(row: {
+  id: string
+  sessionId: string
+  agentId: string
+  sequenceNumber: number
+  terms: unknown
+  proofType: string
+  proof: unknown
+  publicSignals: unknown
+  signature: string
+  createdAt: Date
+}): StoredTurn {
+  return {
+    id: row.id,
+    sessionId: row.sessionId,
+    agentId: row.agentId,
+    sequenceNumber: row.sequenceNumber,
+    terms: (row.terms as Record<string, unknown>) ?? {},
+    proofType: row.proofType,
+    proof: (row.proof as Record<string, unknown>) ?? {},
+    publicSignals: (row.publicSignals as Record<string, unknown>) ?? {},
+    signature: row.signature,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
+export class SessionService {
+  async createSession(data: CreateSessionData): Promise<{ session: StoredSession; inviteToken?: string }> {
     const isCrossOrg = data.sessionType === 'cross_org'
     let inviteTokenHash: string | null = null
     let inviteToken: string | undefined
@@ -64,51 +122,47 @@ export class SessionService {
       inviteToken = rawToken
     }
 
-    const session: StoredSession = {
-      id: randomUUID(),
-      initiatorAgentId: data.initiatorAgentId,
-      initiatorOrgId: data.initiatorOrgId,
-      counterpartyAgentId: data.counterpartyAgentId,
-      counterpartyOrgId: data.counterpartyOrgId,
-      sessionType: data.sessionType,
-      inviteTokenHash,
-      status: isCrossOrg ? 'pending_acceptance' : 'active',
-      sessionConfig: data.sessionConfig ?? {},
-      merkleRoot: null,
-      turnCount: 0,
-      anchorTxHash: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    const row = await getPrisma().session.create({
+      data: {
+        initiatorAgentId: data.initiatorAgentId,
+        initiatorOrgId: data.initiatorOrgId,
+        counterpartyAgentId: data.counterpartyAgentId,
+        counterpartyOrgId: data.counterpartyOrgId,
+        sessionType: data.sessionType,
+        inviteTokenHash,
+        status: isCrossOrg ? 'pending_acceptance' : 'active',
+        sessionConfig: (data.sessionConfig ?? {}) as Prisma.InputJsonValue,
+      },
+    })
 
-    this.sessions.set(session.id, session)
-    this.turns.set(session.id, [])
-    if (inviteTokenHash) {
-      this.inviteTokens.set(inviteTokenHash, session.id)
-    }
-
-    return { session, inviteToken }
+    return { session: toStoredSession(row), inviteToken }
   }
 
-  getSession(sessionId: string): StoredSession | null {
-    return this.sessions.get(sessionId) ?? null
+  async getSession(sessionId: string): Promise<StoredSession | null> {
+    const row = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    return row ? toStoredSession(row) : null
   }
 
-  getSessionWithOrgCheck(sessionId: string, orgId: string): StoredSession | null {
-    const session = this.sessions.get(sessionId)
-    if (!session) return null
-    if (session.initiatorOrgId !== orgId && session.counterpartyOrgId !== orgId) return null
-    return session
+  async getSessionWithOrgCheck(sessionId: string, orgId: string): Promise<StoredSession | null> {
+    const row = await getPrisma().session.findFirst({
+      where: {
+        id: sessionId,
+        OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }],
+      },
+    })
+    return row ? toStoredSession(row) : null
   }
 
-  listByOrg(orgId: string): StoredSession[] {
-    return Array.from(this.sessions.values()).filter(
-      s => s.initiatorOrgId === orgId || s.counterpartyOrgId === orgId,
-    )
+  async listByOrg(orgId: string): Promise<StoredSession[]> {
+    const rows = await getPrisma().session.findMany({
+      where: { OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }] },
+      orderBy: { createdAt: 'desc' },
+    })
+    return rows.map(toStoredSession)
   }
 
-  acceptSession(sessionId: string, rawInviteToken: string): StoredSession | { error: string; code: string } {
-    const session = this.sessions.get(sessionId)
+  async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
     if (!session) {
       return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     }
@@ -122,13 +176,15 @@ export class SessionService {
       return { error: 'Invalid invite token', code: 'INVALID_TOKEN' }
     }
 
-    session.status = 'active'
-    session.updatedAt = new Date().toISOString()
-    return session
+    const row = await getPrisma().session.update({
+      where: { id: sessionId },
+      data: { status: 'active' },
+    })
+    return toStoredSession(row)
   }
 
-  generateInviteToken(sessionId: string): { inviteToken: string; sessionId: string } | { error: string; code: string } {
-    const session = this.sessions.get(sessionId)
+  async generateInviteToken(sessionId: string): Promise<{ inviteToken: string; sessionId: string } | { error: string; code: string }> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
     if (!session) {
       return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     }
@@ -139,14 +195,17 @@ export class SessionService {
 
     const rawToken = randomBytes(32).toString('hex')
     const tokenHash = createHash('sha256').update(rawToken).digest('hex')
-    session.inviteTokenHash = tokenHash
-    this.inviteTokens.set(tokenHash, sessionId)
+
+    await getPrisma().session.update({
+      where: { id: sessionId },
+      data: { inviteTokenHash: tokenHash },
+    })
 
     return { inviteToken: rawToken, sessionId }
   }
 
-  appendTurn(sessionId: string, data: AppendTurnData): StoredTurn | { error: string; code: string } {
-    const session = this.sessions.get(sessionId)
+  async appendTurn(sessionId: string, data: AppendTurnData): Promise<StoredTurn | { error: string; code: string }> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
     if (!session) {
       return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     }
@@ -159,43 +218,48 @@ export class SessionService {
       return { error: 'Agent is not a party to this session', code: 'AGENT_NOT_PARTY' }
     }
 
-    const sessionTurns = this.turns.get(sessionId) ?? []
-    const sequenceNumber = sessionTurns.length + 1
+    // Use transaction for atomic turn creation + session update
+    const sequenceNumber = session.turnCount + 1
 
-    const turn: StoredTurn = {
-      id: randomUUID(),
-      sessionId,
-      agentId: data.agentId,
-      sequenceNumber,
-      terms: data.terms,
-      proofType: data.proofType,
-      proof: data.proof,
-      publicSignals: data.publicSignals,
-      signature: data.signature,
-      createdAt: new Date().toISOString(),
-    }
+    const [turn] = await getPrisma().$transaction([
+      getPrisma().turn.create({
+        data: {
+          sessionId,
+          agentId: data.agentId,
+          sequenceNumber,
+          terms: data.terms as Prisma.InputJsonValue,
+          proofType: data.proofType,
+          proof: data.proof as Prisma.InputJsonValue,
+          publicSignals: data.publicSignals as Prisma.InputJsonValue,
+          signature: data.signature,
+        },
+      }),
+      getPrisma().session.update({
+        where: { id: sessionId },
+        data: { turnCount: sequenceNumber },
+      }),
+    ])
 
-    sessionTurns.push(turn)
-    this.turns.set(sessionId, sessionTurns)
-    session.turnCount = sequenceNumber
-    session.updatedAt = new Date().toISOString()
-
-    return turn
+    return toStoredTurn(turn)
   }
 
-  getTurns(sessionId: string, requestingOrgId: string): (StoredTurn | (Omit<StoredTurn, 'terms'> & { terms: Record<string, unknown> }))[] {
-    const session = this.sessions.get(sessionId)
+  async getTurns(sessionId: string, requestingOrgId: string): Promise<StoredTurn[]> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
     if (!session) return []
 
-    const sessionTurns = this.turns.get(sessionId) ?? []
+    const rows = await getPrisma().turn.findMany({
+      where: { sessionId },
+      orderBy: { sequenceNumber: 'asc' },
+    })
+    const turns = rows.map(toStoredTurn)
 
     if (session.sessionType !== 'cross_org') {
-      return sessionTurns
+      return turns
     }
 
     // Redact counterparty terms for cross-org sessions
     const isInitiator = session.initiatorOrgId === requestingOrgId
-    return sessionTurns.map(t => {
+    return turns.map(t => {
       const isOwnTurn = isInitiator
         ? t.agentId === session.initiatorAgentId
         : t.agentId === session.counterpartyAgentId
@@ -206,10 +270,9 @@ export class SessionService {
     })
   }
 
-  clearStores(): void {
-    this.sessions.clear()
-    this.turns.clear()
-    this.inviteTokens.clear()
+  async clearStores(): Promise<void> {
+    await getPrisma().turn.deleteMany()
+    await getPrisma().session.deleteMany()
   }
 }
 

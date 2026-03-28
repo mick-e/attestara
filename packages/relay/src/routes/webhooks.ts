@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { webhookService } from '../services/webhook.service.js'
 
-export function clearWebhookStores() {
-  webhookService.clearStores()
+export async function clearWebhookStores() {
+  await webhookService.clearStores()
 }
 
 const registerWebhookSchema = z.object({
@@ -30,7 +30,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const { webhook, secret } = webhookService.register(orgId, parsed.data.url, parsed.data.events)
+    const { webhook, secret } = await webhookService.register(orgId, parsed.data.url, parsed.data.events)
 
     return reply.status(201).send({ ...webhook, secret })
   })
@@ -40,7 +40,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const webhooks = webhookService.listByOrg(orgId)
+    const webhooks = await webhookService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: webhooks,
@@ -54,7 +54,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
 
-    const deactivated = webhookService.deactivate(id, orgId)
+    const deactivated = await webhookService.deactivate(id, orgId)
     if (!deactivated) {
       return reply.status(404).send({
         code: 'WEBHOOK_NOT_FOUND',
@@ -72,7 +72,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
 
-    const history = webhookService.getDeliveryHistory(id, orgId)
+    const history = await webhookService.getDeliveryHistory(id, orgId)
     if (history === null) {
       return reply.status(404).send({
         code: 'WEBHOOK_NOT_FOUND',

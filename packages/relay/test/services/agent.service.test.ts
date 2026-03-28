@@ -1,17 +1,27 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { AgentService } from '../../src/services/agent.service.js'
 import type { StoredAgent } from '../../src/services/agent.service.js'
+import { clearAllStores } from '../helpers/db-cleanup.js'
+import { getPrisma } from '../../src/utils/prisma.js'
 
 describe('AgentService', () => {
   const service = new AgentService()
 
-  beforeEach(() => {
-    service.clearStores()
+  beforeEach(async () => {
+    await clearAllStores()
+    // Create FK parent orgs used across tests
+    const db = getPrisma()
+    await db.organisation.createMany({
+      data: [
+        { id: 'org-1', name: 'Test Org 1', slug: 'test-org-1', plan: 'starter' },
+        { id: 'org-2', name: 'Test Org 2', slug: 'test-org-2', plan: 'starter' },
+      ],
+    })
   })
 
   describe('create', () => {
-    it('should create an agent with valid DID and return agent with id, orgId, status=active', () => {
-      const agent = service.create('org-1', {
+    it('should create an agent with valid DID and return agent with id, orgId, status=active', async () => {
+      const agent = await service.create('org-1', {
         did: 'did:ethr:0xAAA',
         name: 'Agent 1',
         publicKey: '0xpubkey123',
@@ -28,8 +38,8 @@ describe('AgentService', () => {
       expect(agent.createdAt).toBeDefined()
     })
 
-    it('should store optional metadata when provided', () => {
-      const agent = service.create('org-1', {
+    it('should store optional metadata when provided', async () => {
+      const agent = await service.create('org-1', {
         did: 'did:ethr:0xBBB',
         name: 'Agent 2',
         publicKey: '0xpubkey456',
@@ -39,9 +49,9 @@ describe('AgentService', () => {
       expect(agent.metadata).toEqual({ env: 'production' })
     })
 
-    it('should return error for duplicate DID', () => {
-      service.create('org-1', { did: 'did:ethr:0xDUP', name: 'Agent A', publicKey: '0xkey' })
-      const result = service.create('org-2', { did: 'did:ethr:0xDUP', name: 'Agent B', publicKey: '0xkey2' })
+    it('should return error for duplicate DID', async () => {
+      await service.create('org-1', { did: 'did:ethr:0xDUP', name: 'Agent A', publicKey: '0xkey' })
+      const result = await service.create('org-2', { did: 'did:ethr:0xDUP', name: 'Agent B', publicKey: '0xkey2' })
 
       expect(result).toEqual({
         error: 'DID is already registered',
@@ -49,112 +59,115 @@ describe('AgentService', () => {
       })
     })
 
-    it('should generate unique IDs for each agent', () => {
-      const a1 = service.create('org-1', { did: 'did:ethr:0x111', name: 'A1', publicKey: 'k1' }) as StoredAgent
-      const a2 = service.create('org-1', { did: 'did:ethr:0x222', name: 'A2', publicKey: 'k2' }) as StoredAgent
+    it('should generate unique IDs for each agent', async () => {
+      const a1 = await service.create('org-1', { did: 'did:ethr:0x111', name: 'A1', publicKey: 'k1' }) as StoredAgent
+      const a2 = await service.create('org-1', { did: 'did:ethr:0x222', name: 'A2', publicKey: 'k2' }) as StoredAgent
 
       expect(a1.id).not.toBe(a2.id)
     })
   })
 
   describe('listByOrg', () => {
-    it('should return only agents belonging to the given org', () => {
-      service.create('org-1', { did: 'did:ethr:0x111', name: 'A1', publicKey: 'k1' })
-      service.create('org-1', { did: 'did:ethr:0x222', name: 'A2', publicKey: 'k2' })
-      service.create('org-2', { did: 'did:ethr:0x333', name: 'A3', publicKey: 'k3' })
+    it('should return only agents belonging to the given org', async () => {
+      await service.create('org-1', { did: 'did:ethr:0x111', name: 'A1', publicKey: 'k1' })
+      await service.create('org-1', { did: 'did:ethr:0x222', name: 'A2', publicKey: 'k2' })
+      await service.create('org-2', { did: 'did:ethr:0x333', name: 'A3', publicKey: 'k3' })
 
-      const org1Agents = service.listByOrg('org-1')
+      const org1Agents = await service.listByOrg('org-1')
       expect(org1Agents).toHaveLength(2)
       expect(org1Agents.every(a => a.orgId === 'org-1')).toBe(true)
     })
 
-    it('should return empty array when org has no agents', () => {
-      expect(service.listByOrg('nonexistent-org')).toEqual([])
+    it('should return empty array when org has no agents', async () => {
+      expect(await service.listByOrg('nonexistent-org')).toEqual([])
     })
   })
 
   describe('getById', () => {
-    it('should return the agent when id and orgId match', () => {
-      const created = service.create('org-1', { did: 'did:ethr:0xAAA', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      const fetched = service.getById(created.id, 'org-1')
+    it('should return the agent when id and orgId match', async () => {
+      const created = await service.create('org-1', { did: 'did:ethr:0xAAA', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      const fetched = await service.getById(created.id, 'org-1')
 
       expect(fetched).not.toBeNull()
       expect(fetched!.id).toBe(created.id)
     })
 
-    it('should return null when orgId does not match', () => {
-      const created = service.create('org-1', { did: 'did:ethr:0xBBB', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      expect(service.getById(created.id, 'org-2')).toBeNull()
+    it('should return null when orgId does not match', async () => {
+      const created = await service.create('org-1', { did: 'did:ethr:0xBBB', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      expect(await service.getById(created.id, 'org-2')).toBeNull()
     })
 
-    it('should return null for unknown agentId', () => {
-      expect(service.getById('nonexistent', 'org-1')).toBeNull()
+    it('should return null for unknown agentId', async () => {
+      expect(await service.getById('nonexistent', 'org-1')).toBeNull()
     })
   })
 
   describe('update', () => {
-    it('should update agent name and reflect change', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0xCCC', name: 'Original', publicKey: 'k' }) as StoredAgent
-      const updated = service.update(agent.id, 'org-1', { name: 'Updated' })
+    it('should update agent name and reflect change', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0xCCC', name: 'Original', publicKey: 'k' }) as StoredAgent
+      const updated = await service.update(agent.id, 'org-1', { name: 'Updated' })
 
       expect(updated).not.toBeNull()
       expect(updated!.name).toBe('Updated')
     })
 
-    it('should update agent metadata', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0xDDD', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      const updated = service.update(agent.id, 'org-1', { metadata: { version: '2' } })
+    it('should update agent metadata', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0xDDD', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      const updated = await service.update(agent.id, 'org-1', { metadata: { version: '2' } })
 
       expect(updated!.metadata).toEqual({ version: '2' })
     })
 
-    it('should update agent status', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0xEEE', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      const updated = service.update(agent.id, 'org-1', { status: 'inactive' })
+    it('should update agent status', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0xEEE', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      const updated = await service.update(agent.id, 'org-1', { status: 'inactive' })
 
       expect(updated!.status).toBe('inactive')
     })
 
-    it('should return null when orgId does not match', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0xFFF', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      expect(service.update(agent.id, 'org-2', { name: 'Hacked' })).toBeNull()
+    it('should return null when orgId does not match', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0xFFF', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      expect(await service.update(agent.id, 'org-2', { name: 'Hacked' })).toBeNull()
     })
 
-    it('should return null for unknown agentId', () => {
-      expect(service.update('nonexistent', 'org-1', { name: 'X' })).toBeNull()
+    it('should return null for unknown agentId', async () => {
+      expect(await service.update('nonexistent', 'org-1', { name: 'X' })).toBeNull()
     })
   })
 
   describe('deactivate', () => {
-    it('should set agent status to deactivated', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0x999', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      const result = service.deactivate(agent.id, 'org-1')
+    it('should set agent status to deactivated', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0x999', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      const result = await service.deactivate(agent.id, 'org-1')
 
       expect(result).not.toBeNull()
       expect(result!.status).toBe('deactivated')
     })
 
-    it('should return null when orgId does not match', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0x888', name: 'Agent', publicKey: 'k' }) as StoredAgent
-      expect(service.deactivate(agent.id, 'org-2')).toBeNull()
+    it('should return null when orgId does not match', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0x888', name: 'Agent', publicKey: 'k' }) as StoredAgent
+      expect(await service.deactivate(agent.id, 'org-2')).toBeNull()
     })
 
-    it('should return null for unknown agentId', () => {
-      expect(service.deactivate('nonexistent', 'org-1')).toBeNull()
+    it('should return null for unknown agentId', async () => {
+      expect(await service.deactivate('nonexistent', 'org-1')).toBeNull()
     })
   })
 
   describe('clearStores', () => {
-    it('should empty all data so agents and DID index are cleared', () => {
-      const agent = service.create('org-1', { did: 'did:ethr:0x777', name: 'Agent', publicKey: 'k' }) as StoredAgent
+    it('should empty all data so agents and DID index are cleared', async () => {
+      const agent = await service.create('org-1', { did: 'did:ethr:0x777', name: 'Agent', publicKey: 'k' }) as StoredAgent
 
-      service.clearStores()
+      await clearAllStores()
 
-      expect(service.listByOrg('org-1')).toEqual([])
-      expect(service.getById(agent.id, 'org-1')).toBeNull()
+      expect(await service.listByOrg('org-1')).toEqual([])
+      expect(await service.getById(agent.id, 'org-1')).toBeNull()
 
-      // DID should be available again after clear
-      const recreated = service.create('org-1', { did: 'did:ethr:0x777', name: 'Agent', publicKey: 'k' })
+      // DID should be available again after clear — recreate FK parent first
+      const db = getPrisma()
+      await db.organisation.create({ data: { id: 'org-1', name: 'Test Org 1', slug: 'test-org-1', plan: 'starter' } })
+
+      const recreated = await service.create('org-1', { did: 'did:ethr:0x777', name: 'Agent', publicKey: 'k' })
       expect((recreated as StoredAgent).id).toBeDefined()
     })
   })

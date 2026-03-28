@@ -2,17 +2,44 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { SessionService } from '../../src/services/session.service.js'
 import type { StoredSession, StoredTurn } from '../../src/services/session.service.js'
 import { createHash } from 'crypto'
+import { clearAllStores } from '../helpers/db-cleanup.js'
+import { getPrisma } from '../../src/utils/prisma.js'
 
 describe('SessionService', () => {
   const service = new SessionService()
 
-  beforeEach(() => {
-    service.clearStores()
+  beforeEach(async () => {
+    await clearAllStores()
+    // Create FK parent orgs and agents used across tests
+    const db = getPrisma()
+    await db.organisation.createMany({
+      data: [
+        { id: 'org-1', name: 'Test Org 1', slug: 'test-org-1', plan: 'starter' },
+        { id: 'org-2', name: 'Test Org 2', slug: 'test-org-2', plan: 'starter' },
+        { id: 'org-3', name: 'Test Org 3', slug: 'test-org-3', plan: 'starter' },
+      ],
+    })
+    await db.agent.createMany({
+      data: [
+        { id: 'agent-1', orgId: 'org-1', did: 'did:test:agent-1', name: 'Test Agent 1', publicKey: '0xtest1' },
+        { id: 'agent-2', orgId: 'org-1', did: 'did:test:agent-2', name: 'Test Agent 2', publicKey: '0xtest2' },
+        { id: 'agent-3', orgId: 'org-1', did: 'did:test:agent-3', name: 'Test Agent 3', publicKey: '0xtest3' },
+        { id: 'agent-4', orgId: 'org-1', did: 'did:test:agent-4', name: 'Test Agent 4', publicKey: '0xtest4' },
+        { id: 'agent-5', orgId: 'org-2', did: 'did:test:agent-5', name: 'Test Agent 5', publicKey: '0xtest5' },
+        { id: 'agent-6', orgId: 'org-2', did: 'did:test:agent-6', name: 'Test Agent 6', publicKey: '0xtest6' },
+        { id: 'a1', orgId: 'org-1', did: 'did:test:a1', name: 'Agent a1', publicKey: '0xtesta1' },
+        { id: 'a2', orgId: 'org-2', did: 'did:test:a2', name: 'Agent a2', publicKey: '0xtesta2' },
+        { id: 'a3', orgId: 'org-3', did: 'did:test:a3', name: 'Agent a3', publicKey: '0xtesta3' },
+        { id: 'a4', orgId: 'org-1', did: 'did:test:a4', name: 'Agent a4', publicKey: '0xtesta4' },
+        { id: 'a5', orgId: 'org-2', did: 'did:test:a5', name: 'Agent a5', publicKey: '0xtesta5' },
+        { id: 'a6', orgId: 'org-3', did: 'did:test:a6', name: 'Agent a6', publicKey: '0xtesta6' },
+      ],
+    })
   })
 
   describe('createSession', () => {
-    it('should create intra_org session with status=active and no invite token', () => {
-      const result = service.createSession({
+    it('should create intra_org session with status=active and no invite token', async () => {
+      const result = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -38,8 +65,8 @@ describe('SessionService', () => {
       expect(result.inviteToken).toBeUndefined()
     })
 
-    it('should create cross_org session with status=pending_acceptance and invite token', () => {
-      const result = service.createSession({
+    it('should create cross_org session with status=pending_acceptance and invite token', async () => {
+      const result = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -57,8 +84,8 @@ describe('SessionService', () => {
       expect(result.session.inviteTokenHash).toBe(expectedHash)
     })
 
-    it('should default sessionConfig to empty object', () => {
-      const result = service.createSession({
+    it('should default sessionConfig to empty object', async () => {
+      const result = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -69,15 +96,15 @@ describe('SessionService', () => {
       expect(result.session.sessionConfig).toEqual({})
     })
 
-    it('should generate unique IDs for each session', () => {
-      const r1 = service.createSession({
+    it('should generate unique IDs for each session', async () => {
+      const r1 = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
         counterpartyOrgId: 'org-1',
         sessionType: 'intra_org',
       })
-      const r2 = service.createSession({
+      const r2 = await service.createSession({
         initiatorAgentId: 'agent-3',
         counterpartyAgentId: 'agent-4',
         initiatorOrgId: 'org-1',
@@ -90,8 +117,8 @@ describe('SessionService', () => {
   })
 
   describe('getSession', () => {
-    it('should return session by id', () => {
-      const { session } = service.createSession({
+    it('should return session by id', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -99,17 +126,17 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      expect(service.getSession(session.id)).toEqual(session)
+      expect(await service.getSession(session.id)).toEqual(session)
     })
 
-    it('should return null for unknown id', () => {
-      expect(service.getSession('nonexistent')).toBeNull()
+    it('should return null for unknown id', async () => {
+      expect(await service.getSession('nonexistent')).toBeNull()
     })
   })
 
   describe('getSessionWithOrgCheck', () => {
-    it('should return session when org is initiator', () => {
-      const { session } = service.createSession({
+    it('should return session when org is initiator', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -117,11 +144,11 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      expect(service.getSessionWithOrgCheck(session.id, 'org-1')).toEqual(session)
+      expect(await service.getSessionWithOrgCheck(session.id, 'org-1')).toEqual(session)
     })
 
-    it('should return session when org is counterparty', () => {
-      const { session } = service.createSession({
+    it('should return session when org is counterparty', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -129,11 +156,11 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      expect(service.getSessionWithOrgCheck(session.id, 'org-2')).toEqual(session)
+      expect(await service.getSessionWithOrgCheck(session.id, 'org-2')).toEqual(session)
     })
 
-    it('should return null for non-party org', () => {
-      const { session } = service.createSession({
+    it('should return null for non-party org', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -141,31 +168,31 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      expect(service.getSessionWithOrgCheck(session.id, 'org-3')).toBeNull()
+      expect(await service.getSessionWithOrgCheck(session.id, 'org-3')).toBeNull()
     })
 
-    it('should return null for unknown session id', () => {
-      expect(service.getSessionWithOrgCheck('nonexistent', 'org-1')).toBeNull()
+    it('should return null for unknown session id', async () => {
+      expect(await service.getSessionWithOrgCheck('nonexistent', 'org-1')).toBeNull()
     })
   })
 
   describe('listByOrg', () => {
-    it('should return sessions where org is either party', () => {
-      service.createSession({
+    it('should return sessions where org is either party', async () => {
+      await service.createSession({
         initiatorAgentId: 'a1',
         counterpartyAgentId: 'a2',
         initiatorOrgId: 'org-1',
         counterpartyOrgId: 'org-2',
         sessionType: 'cross_org',
       })
-      service.createSession({
+      await service.createSession({
         initiatorAgentId: 'a3',
         counterpartyAgentId: 'a4',
         initiatorOrgId: 'org-3',
         counterpartyOrgId: 'org-1',
         sessionType: 'cross_org',
       })
-      service.createSession({
+      await service.createSession({
         initiatorAgentId: 'a5',
         counterpartyAgentId: 'a6',
         initiatorOrgId: 'org-2',
@@ -173,18 +200,18 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      const org1Sessions = service.listByOrg('org-1')
+      const org1Sessions = await service.listByOrg('org-1')
       expect(org1Sessions).toHaveLength(2)
     })
 
-    it('should return empty array when org has no sessions', () => {
-      expect(service.listByOrg('nonexistent')).toEqual([])
+    it('should return empty array when org has no sessions', async () => {
+      expect(await service.listByOrg('nonexistent')).toEqual([])
     })
   })
 
   describe('acceptSession', () => {
-    it('should accept with valid token and set status=active', () => {
-      const { session, inviteToken } = service.createSession({
+    it('should accept with valid token and set status=active', async () => {
+      const { session, inviteToken } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -192,13 +219,13 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      const result = service.acceptSession(session.id, inviteToken!)
+      const result = await service.acceptSession(session.id, inviteToken!)
       expect('error' in result).toBe(false)
       expect((result as StoredSession).status).toBe('active')
     })
 
-    it('should return error for invalid token', () => {
-      const { session } = service.createSession({
+    it('should return error for invalid token', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -206,12 +233,12 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      const result = service.acceptSession(session.id, 'wrong-token')
+      const result = await service.acceptSession(session.id, 'wrong-token')
       expect(result).toEqual({ error: 'Invalid invite token', code: 'INVALID_TOKEN' })
     })
 
-    it('should return error for non-pending session', () => {
-      const { session, inviteToken } = service.createSession({
+    it('should return error for non-pending session', async () => {
+      const { session, inviteToken } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -220,22 +247,22 @@ describe('SessionService', () => {
       })
 
       // Accept first
-      service.acceptSession(session.id, inviteToken!)
+      await service.acceptSession(session.id, inviteToken!)
 
       // Try again
-      const result = service.acceptSession(session.id, inviteToken!)
+      const result = await service.acceptSession(session.id, inviteToken!)
       expect(result).toEqual({ error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' })
     })
 
-    it('should return error for unknown session', () => {
-      const result = service.acceptSession('nonexistent', 'some-token')
+    it('should return error for unknown session', async () => {
+      const result = await service.acceptSession('nonexistent', 'some-token')
       expect(result).toEqual({ error: 'Session not found', code: 'SESSION_NOT_FOUND' })
     })
   })
 
   describe('generateInviteToken', () => {
-    it('should generate new invite token for cross_org session', () => {
-      const { session } = service.createSession({
+    it('should generate new invite token for cross_org session', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -243,7 +270,7 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      const result = service.generateInviteToken(session.id)
+      const result = await service.generateInviteToken(session.id)
       expect('error' in result).toBe(false)
       const data = result as { inviteToken: string; sessionId: string }
       expect(data.inviteToken).toBeDefined()
@@ -251,13 +278,13 @@ describe('SessionService', () => {
       expect(data.sessionId).toBe(session.id)
 
       // Verify the new token hash is stored
-      const updated = service.getSession(session.id)!
+      const updated = (await service.getSession(session.id))!
       const expectedHash = createHash('sha256').update(data.inviteToken).digest('hex')
       expect(updated.inviteTokenHash).toBe(expectedHash)
     })
 
-    it('should return error for intra_org session', () => {
-      const { session } = service.createSession({
+    it('should return error for intra_org session', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -265,19 +292,19 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      const result = service.generateInviteToken(session.id)
+      const result = await service.generateInviteToken(session.id)
       expect(result).toEqual({ error: 'Invites are only for cross-org sessions', code: 'VALIDATION_ERROR' })
     })
 
-    it('should return error for unknown session', () => {
-      const result = service.generateInviteToken('nonexistent')
+    it('should return error for unknown session', async () => {
+      const result = await service.generateInviteToken('nonexistent')
       expect(result).toEqual({ error: 'Session not found', code: 'SESSION_NOT_FOUND' })
     })
   })
 
   describe('appendTurn', () => {
-    it('should append turn to active session with auto-incrementing sequence', () => {
-      const { session } = service.createSession({
+    it('should append turn to active session with auto-incrementing sequence', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -285,7 +312,7 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      const turn1 = service.appendTurn(session.id, {
+      const turn1 = await service.appendTurn(session.id, {
         agentId: 'agent-1',
         terms: { price: 100 },
         proofType: 'mandate_bound',
@@ -307,7 +334,7 @@ describe('SessionService', () => {
       expect(t1.signature).toBe('0xsig1')
       expect(t1.createdAt).toBeDefined()
 
-      const turn2 = service.appendTurn(session.id, {
+      const turn2 = await service.appendTurn(session.id, {
         agentId: 'agent-2',
         terms: { price: 90 },
         proofType: 'mandate_bound',
@@ -319,8 +346,8 @@ describe('SessionService', () => {
       expect((turn2 as StoredTurn).sequenceNumber).toBe(2)
     })
 
-    it('should return error for non-active session', () => {
-      const { session } = service.createSession({
+    it('should return error for non-active session', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -328,7 +355,7 @@ describe('SessionService', () => {
         sessionType: 'cross_org',
       })
 
-      const result = service.appendTurn(session.id, {
+      const result = await service.appendTurn(session.id, {
         agentId: 'agent-1',
         terms: { price: 100 },
         proofType: 'mandate_bound',
@@ -340,8 +367,8 @@ describe('SessionService', () => {
       expect(result).toEqual({ error: 'Session is not active', code: 'SESSION_NOT_ACTIVE' })
     })
 
-    it('should return error for non-party agent', () => {
-      const { session } = service.createSession({
+    it('should return error for non-party agent', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -349,7 +376,7 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      const result = service.appendTurn(session.id, {
+      const result = await service.appendTurn(session.id, {
         agentId: 'agent-999',
         terms: { price: 100 },
         proofType: 'mandate_bound',
@@ -361,8 +388,8 @@ describe('SessionService', () => {
       expect(result).toEqual({ error: 'Agent is not a party to this session', code: 'AGENT_NOT_PARTY' })
     })
 
-    it('should return error for unknown session', () => {
-      const result = service.appendTurn('nonexistent', {
+    it('should return error for unknown session', async () => {
+      const result = await service.appendTurn('nonexistent', {
         agentId: 'agent-1',
         terms: {},
         proofType: 'x',
@@ -376,8 +403,8 @@ describe('SessionService', () => {
   })
 
   describe('getTurns', () => {
-    it('should return all turns for intra_org session with full terms visible', () => {
-      const { session } = service.createSession({
+    it('should return all turns for intra_org session with full terms visible', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -385,7 +412,7 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      service.appendTurn(session.id, {
+      await service.appendTurn(session.id, {
         agentId: 'agent-1',
         terms: { price: 100 },
         proofType: 'mandate_bound',
@@ -393,7 +420,7 @@ describe('SessionService', () => {
         publicSignals: {},
         signature: '0xsig1',
       })
-      service.appendTurn(session.id, {
+      await service.appendTurn(session.id, {
         agentId: 'agent-2',
         terms: { price: 90 },
         proofType: 'mandate_bound',
@@ -402,14 +429,14 @@ describe('SessionService', () => {
         signature: '0xsig2',
       })
 
-      const turns = service.getTurns(session.id, 'org-1')
+      const turns = await service.getTurns(session.id, 'org-1')
       expect(turns).toHaveLength(2)
       expect(turns[0].terms).toEqual({ price: 100 })
       expect(turns[1].terms).toEqual({ price: 90 })
     })
 
-    it('should redact counterparty terms for cross_org session (initiator perspective)', () => {
-      const { session, inviteToken } = service.createSession({
+    it('should redact counterparty terms for cross_org session (initiator perspective)', async () => {
+      const { session, inviteToken } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -418,9 +445,9 @@ describe('SessionService', () => {
       })
 
       // Accept to make active
-      service.acceptSession(session.id, inviteToken!)
+      await service.acceptSession(session.id, inviteToken!)
 
-      service.appendTurn(session.id, {
+      await service.appendTurn(session.id, {
         agentId: 'agent-1',
         terms: { price: 100 },
         proofType: 'mandate_bound',
@@ -428,7 +455,7 @@ describe('SessionService', () => {
         publicSignals: {},
         signature: '0xsig1',
       })
-      service.appendTurn(session.id, {
+      await service.appendTurn(session.id, {
         agentId: 'agent-2',
         terms: { price: 90 },
         proofType: 'mandate_bound',
@@ -438,18 +465,18 @@ describe('SessionService', () => {
       })
 
       // Initiator sees own terms, counterparty terms redacted
-      const turnsForOrg1 = service.getTurns(session.id, 'org-1')
+      const turnsForOrg1 = await service.getTurns(session.id, 'org-1')
       expect(turnsForOrg1[0].terms).toEqual({ price: 100 }) // own turn
       expect(turnsForOrg1[1].terms).toEqual({ redacted: true }) // counterparty turn
 
       // Counterparty sees own terms, initiator terms redacted
-      const turnsForOrg2 = service.getTurns(session.id, 'org-2')
+      const turnsForOrg2 = await service.getTurns(session.id, 'org-2')
       expect(turnsForOrg2[0].terms).toEqual({ redacted: true }) // initiator turn
       expect(turnsForOrg2[1].terms).toEqual({ price: 90 }) // own turn
     })
 
-    it('should return empty array for session with no turns', () => {
-      const { session } = service.createSession({
+    it('should return empty array for session with no turns', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -457,17 +484,17 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      expect(service.getTurns(session.id, 'org-1')).toEqual([])
+      expect(await service.getTurns(session.id, 'org-1')).toEqual([])
     })
 
-    it('should return empty array for unknown session', () => {
-      expect(service.getTurns('nonexistent', 'org-1')).toEqual([])
+    it('should return empty array for unknown session', async () => {
+      expect(await service.getTurns('nonexistent', 'org-1')).toEqual([])
     })
   })
 
   describe('clearStores', () => {
-    it('should empty all stores', () => {
-      const { session } = service.createSession({
+    it('should empty all stores', async () => {
+      const { session } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
         initiatorOrgId: 'org-1',
@@ -475,7 +502,7 @@ describe('SessionService', () => {
         sessionType: 'intra_org',
       })
 
-      service.appendTurn(session.id, {
+      await service.appendTurn(session.id, {
         agentId: 'agent-1',
         terms: {},
         proofType: 'x',
@@ -484,11 +511,11 @@ describe('SessionService', () => {
         signature: '0x',
       })
 
-      service.clearStores()
+      await clearAllStores()
 
-      expect(service.getSession(session.id)).toBeNull()
-      expect(service.listByOrg('org-1')).toEqual([])
-      expect(service.getTurns(session.id, 'org-1')).toEqual([])
+      expect(await service.getSession(session.id)).toBeNull()
+      expect(await service.listByOrg('org-1')).toEqual([])
+      expect(await service.getTurns(session.id, 'org-1')).toEqual([])
     })
   })
 })

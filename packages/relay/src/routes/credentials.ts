@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { credentialService } from '../services/credential.service.js'
 
-export function clearCredentialStores() {
-  credentialService.clearStores()
+export async function clearCredentialStores() {
+  await credentialService.clearStores()
 }
 
 export function getCredentialStores() {
@@ -37,7 +37,7 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = credentialService.create(orgId, {
+    const result = await credentialService.create(orgId, {
       agentId: parsed.data.agentId,
       credentialHash: parsed.data.credentialHash,
       schemaHash: parsed.data.schemaHash,
@@ -62,7 +62,7 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgCreds = credentialService.listByOrg(orgId)
+    const orgCreds = await credentialService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: orgCreds,
@@ -75,7 +75,7 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
-    const credential = credentialService.getById(id, orgId)
+    const credential = await credentialService.getById(id, orgId)
 
     if (!credential) {
       return reply.status(404).send({
@@ -93,7 +93,7 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
-    const credential = credentialService.revoke(id, orgId)
+    const credential = await credentialService.revoke(id, orgId)
 
     if (!credential) {
       return reply.status(404).send({

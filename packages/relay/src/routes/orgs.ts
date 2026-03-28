@@ -3,14 +3,14 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { orgService } from '../services/org.service.js'
 
-export function clearOrgStores() {
-  orgService.clearStores()
+export async function clearOrgStores() {
+  await orgService.clearStores()
 }
 
 export function getOrgMembers() {
   return {
-    get(orgId: string) {
-      const members = orgService.listMembers(orgId)
+    async get(orgId: string) {
+      const members = await orgService.listMembers(orgId)
       return members.length > 0 ? new Set(members) : undefined
     },
   }
@@ -48,10 +48,10 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const auth = (request as any).auth as AuthContext
-    const org = orgService.createOrg(parsed.data.name, parsed.data.plan)
+    const org = await orgService.createOrg(parsed.data.name, parsed.data.plan)
 
     // Track membership
-    orgService.addMember(org.id, auth.userId)
+    await orgService.addMember(org.id, auth.userId)
 
     return reply.status(201).send({
       ...org,
@@ -101,7 +101,7 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const memberIds = orgService.listMembers(orgId)
+    const memberIds = await orgService.listMembers(orgId)
 
     return reply.status(200).send({
       data: memberIds.map(id => ({ id, orgId, role: 'member' })),
@@ -123,7 +123,7 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const inviteId = orgService.createInvite(orgId, parsed.data.email, parsed.data.role)
+    const inviteId = await orgService.createInvite(orgId, parsed.data.email, parsed.data.role)
 
     return reply.status(201).send({
       id: inviteId,

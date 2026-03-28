@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { sessionService } from '../services/session.service.js'
 
-export function clearSessionStores() {
-  sessionService.clearStores()
+export async function clearSessionStores() {
+  await sessionService.clearStores()
 }
 
 export function getSessionStores() {
@@ -53,7 +53,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const { session, inviteToken } = sessionService.createSession(parsed.data)
+    const { session, inviteToken } = await sessionService.createSession(parsed.data)
 
     const response: Record<string, unknown> = { ...session }
     if (inviteToken) {
@@ -68,7 +68,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = (request as any).auth as AuthContext
-    const orgSessions = sessionService.listByOrg(auth.orgId)
+    const orgSessions = await sessionService.listByOrg(auth.orgId)
 
     return reply.status(200).send({
       data: orgSessions,
@@ -82,11 +82,11 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
     const auth = (request as any).auth as AuthContext
-    const session = sessionService.getSessionWithOrgCheck(sessionId, auth.orgId)
+    const session = await sessionService.getSessionWithOrgCheck(sessionId, auth.orgId)
 
     if (!session) {
       // Check if session exists at all (for 404 vs 403)
-      const exists = sessionService.getSession(sessionId)
+      const exists = await sessionService.getSession(sessionId)
       if (!exists) {
         return reply.status(404).send({
           code: 'SESSION_NOT_FOUND',
@@ -110,7 +110,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
     const auth = (request as any).auth as AuthContext
-    const session = sessionService.getSession(sessionId)
+    const session = await sessionService.getSession(sessionId)
 
     if (!session) {
       return reply.status(404).send({
@@ -128,7 +128,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const redactedTurns = sessionService.getTurns(sessionId, auth.orgId)
+    const redactedTurns = await sessionService.getTurns(sessionId, auth.orgId)
 
     return reply.status(200).send({
       data: redactedTurns,
@@ -150,7 +150,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = sessionService.appendTurn(sessionId, parsed.data)
+    const result = await sessionService.appendTurn(sessionId, parsed.data)
 
     if ('error' in result) {
       const statusCode = result.code === 'SESSION_NOT_FOUND' ? 404 : 400
@@ -170,7 +170,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
 
-    const result = sessionService.generateInviteToken(sessionId)
+    const result = await sessionService.generateInviteToken(sessionId)
 
     if ('error' in result) {
       const statusCode = result.code === 'SESSION_NOT_FOUND' ? 404 : 400
@@ -198,7 +198,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = sessionService.acceptSession(sessionId, parsed.data.inviteToken)
+    const result = await sessionService.acceptSession(sessionId, parsed.data.inviteToken)
 
     if ('error' in result) {
       let statusCode = 400

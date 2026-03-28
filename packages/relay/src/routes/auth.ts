@@ -57,8 +57,8 @@ const walletAuthSchema = z.object({
 })
 
 // Exported for tests
-export function clearAuthStores() {
-  orgService.clearStores()
+export async function clearAuthStores() {
+  await orgService.clearStores()
   clearNonceStore()
 }
 
@@ -67,7 +67,7 @@ export function getAuthStores() {
     get users() {
       // Provide a Map-like interface backed by orgService for backward compat
       return {
-        get: (id: string) => orgService.getUserById(id),
+        get: async (id: string) => await orgService.getUserById(id),
       }
     },
   }
@@ -93,7 +93,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { email, password, orgName, walletAddress } = parsed.data
 
     // Check for existing email
-    if (orgService.hasEmail(email)) {
+    if (await orgService.hasEmail(email)) {
       return reply.status(409).send({
         code: 'CONFLICT',
         message: 'Email already registered',
@@ -102,11 +102,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Create org
-    const org = orgService.createOrg(orgName)
+    const org = await orgService.createOrg(orgName)
 
     // Create user
     const hash = await authService.hashPassword(password)
-    const user = orgService.createUser(org.id, {
+    const user = await orgService.createUser(org.id, {
       email,
       passwordHash: hash,
       walletAddress: walletAddress ?? null,
@@ -138,7 +138,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { email, password } = parsed.data
-    const user = orgService.getUserByEmail(email)
+    const user = await orgService.getUserByEmail(email)
     if (!user) {
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
@@ -287,16 +287,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     // Upsert user by wallet address
     const address = recoveredAddress
-    let user = orgService.getUserByWallet(address)
+    let user = await orgService.getUserByWallet(address)
 
     if (!user) {
       // Auto-create org + user for wallet auth
-      const org = orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
+      const org = await orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
       // Override slug for wallet orgs
-      const orgData = orgService.getOrg(org.id)!
+      const orgData = (await orgService.getOrg(org.id))!
       ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
 
-      user = orgService.createUser(org.id, {
+      user = await orgService.createUser(org.id, {
         email: `${address.toLowerCase()}@wallet.attestara.ai`,
         passwordHash: '',
         walletAddress: address,
@@ -365,14 +365,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     // Upsert user by wallet address
     const address = recoveredAddress
-    let user = orgService.getUserByWallet(address)
+    let user = await orgService.getUserByWallet(address)
 
     if (!user) {
-      const org = orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
-      const orgData = orgService.getOrg(org.id)!
+      const org = await orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
+      const orgData = (await orgService.getOrg(org.id))!
       ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
 
-      user = orgService.createUser(org.id, {
+      user = await orgService.createUser(org.id, {
         email: `${address.toLowerCase()}@wallet.attestara.ai`,
         passwordHash: '',
         walletAddress: address,

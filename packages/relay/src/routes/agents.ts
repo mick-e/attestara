@@ -6,8 +6,8 @@ import { agentService } from '../services/agent.service.js'
 export { agentService as agentServiceInstance }
 
 /** @deprecated use agentService.clearStores() directly */
-export function clearAgentStores() {
-  agentService.clearStores()
+export async function clearAgentStores() {
+  await agentService.clearStores()
 }
 
 const createAgentSchema = z.object({
@@ -40,7 +40,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = agentService.create(orgId, parsed.data)
+    const result = await agentService.create(orgId, parsed.data)
 
     if ('code' in result) {
       return reply.status(409).send({
@@ -58,7 +58,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgAgents = agentService.listByOrg(orgId)
+    const orgAgents = await agentService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: orgAgents,
@@ -71,7 +71,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
-    const agent = agentService.getById(agentId, orgId)
+    const agent = await agentService.getById(agentId, orgId)
 
     if (!agent) {
       return reply.status(404).send({
@@ -98,7 +98,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const agent = agentService.update(agentId, orgId, parsed.data)
+    const agent = await agentService.update(agentId, orgId, parsed.data)
     if (!agent) {
       return reply.status(404).send({
         code: 'AGENT_NOT_FOUND',
@@ -115,7 +115,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
-    const agent = agentService.deactivate(agentId, orgId)
+    const agent = await agentService.deactivate(agentId, orgId)
 
     if (!agent) {
       return reply.status(404).send({

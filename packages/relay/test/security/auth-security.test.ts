@@ -3,33 +3,15 @@ import { randomUUID } from 'crypto'
 import jwt from 'jsonwebtoken'
 import { Wallet } from 'ethers'
 import { buildServer } from '../../src/server.js'
-import { clearAuthStores } from '../../src/routes/auth.js'
-import { clearOrgStores } from '../../src/routes/orgs.js'
-import { clearAgentStores } from '../../src/routes/agents.js'
-import { clearCredentialStores } from '../../src/routes/credentials.js'
-import { clearSessionStores } from '../../src/routes/sessions.js'
-import { clearCommitmentStores } from '../../src/routes/commitments.js'
-import { clearApiKeyStores } from '../../src/routes/api-keys.js'
-import { clearWebhookStores } from '../../src/routes/webhooks.js'
 import { generateAccessToken, generateRefreshToken } from '../../src/middleware/auth.js'
 import { generateNonce, storeNonce, createSiweMessage, getNonceStore } from '../../src/utils/siwe.js'
+import { clearAllStores } from '../helpers/db-cleanup.js'
 
 const JWT_SECRET = 'test-secret-at-least-32-chars-long!!'
 const WRONG_SECRET = 'wrong-secret-at-least-32-chars-long!!'
 
 async function createApp() {
   return buildServer({ logger: false })
-}
-
-function clearAllStores() {
-  clearAuthStores()
-  clearOrgStores()
-  clearAgentStores()
-  clearCredentialStores()
-  clearSessionStores()
-  clearCommitmentStores()
-  clearApiKeyStores()
-  clearWebhookStores()
 }
 
 async function registerUser(app: any, email?: string) {
@@ -56,8 +38,8 @@ async function hitProtectedRoute(app: any, authHeader: string) {
 }
 
 describe('Authentication Security', () => {
-  beforeEach(() => {
-    clearAllStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   describe('JWT Token Security', () => {

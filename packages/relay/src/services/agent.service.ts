@@ -1,4 +1,6 @@
-import { randomUUID } from 'crypto'
+import type { Prisma } from '@prisma/client'
+import { getPrisma } from '../utils/prisma.js'
+import { isUniqueViolation } from '../utils/prisma-errors.js'
 
 export interface StoredAgent {
   id: string
@@ -25,65 +27,90 @@ export interface UpdateAgentData {
   status?: string
 }
 
+function toStoredAgent(row: {
+  id: string
+  orgId: string
+  did: string
+  name: string
+  status: string
+  metadata: unknown
+  publicKey: string
+  registeredTxHash: string | null
+  createdAt: Date
+}): StoredAgent {
+  return {
+    id: row.id,
+    orgId: row.orgId,
+    did: row.did,
+    name: row.name,
+    status: row.status,
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
+    publicKey: row.publicKey,
+    registeredTxHash: row.registeredTxHash,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
 export class AgentService {
-  private agents = new Map<string, StoredAgent>()
-  private didIndex = new Map<string, string>() // did -> agentId
-
-  create(orgId: string, data: CreateAgentData): StoredAgent | { error: string; code: string } {
-    if (this.didIndex.has(data.did)) {
-      return { error: 'DID is already registered', code: 'DID_ALREADY_REGISTERED' }
+  async create(orgId: string, data: CreateAgentData): Promise<StoredAgent | { error: string; code: string }> {
+    try {
+      const row = await getPrisma().agent.create({
+        data: {
+          orgId,
+          did: data.did,
+          name: data.name,
+          status: 'active',
+          metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
+          publicKey: data.publicKey,
+        },
+      })
+      return toStoredAgent(row)
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        return { error: 'DID is already registered', code: 'DID_ALREADY_REGISTERED' }
+      }
+      throw err
     }
-
-    const agent: StoredAgent = {
-      id: randomUUID(),
-      orgId,
-      did: data.did,
-      name: data.name,
-      status: 'active',
-      metadata: data.metadata ?? {},
-      publicKey: data.publicKey,
-      registeredTxHash: null,
-      createdAt: new Date().toISOString(),
-    }
-
-    this.agents.set(agent.id, agent)
-    this.didIndex.set(agent.did, agent.id)
-
-    return agent
   }
 
-  listByOrg(orgId: string): StoredAgent[] {
-    return Array.from(this.agents.values()).filter(a => a.orgId === orgId)
+  async listByOrg(orgId: string): Promise<StoredAgent[]> {
+    const rows = await getPrisma().agent.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } })
+    return rows.map(toStoredAgent)
   }
 
-  getById(agentId: string, orgId: string): StoredAgent | null {
-    const agent = this.agents.get(agentId)
-    if (!agent || agent.orgId !== orgId) return null
-    return agent
+  async getById(agentId: string, orgId: string): Promise<StoredAgent | null> {
+    const row = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    return row ? toStoredAgent(row) : null
   }
 
-  update(agentId: string, orgId: string, updates: UpdateAgentData): StoredAgent | null {
-    const agent = this.agents.get(agentId)
-    if (!agent || agent.orgId !== orgId) return null
+  async update(agentId: string, orgId: string, updates: UpdateAgentData): Promise<StoredAgent | null> {
+    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    if (!existing) return null
 
-    if (updates.name !== undefined) agent.name = updates.name
-    if (updates.metadata !== undefined) agent.metadata = updates.metadata
-    if (updates.status !== undefined) agent.status = updates.status
-
-    return agent
+    const row = await getPrisma().agent.update({
+      where: { id: agentId },
+      data: {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.metadata !== undefined && { metadata: updates.metadata as Prisma.InputJsonValue }),
+        ...(updates.status !== undefined && { status: updates.status }),
+      },
+    })
+    return toStoredAgent(row)
   }
 
-  deactivate(agentId: string, orgId: string): StoredAgent | null {
-    const agent = this.agents.get(agentId)
-    if (!agent || agent.orgId !== orgId) return null
+  async deactivate(agentId: string, orgId: string): Promise<StoredAgent | null> {
+    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    if (!existing) return null
 
-    agent.status = 'deactivated'
-    return agent
+    const row = await getPrisma().agent.update({
+      where: { id: agentId },
+      data: { status: 'deactivated' },
+    })
+    return toStoredAgent(row)
   }
 
-  clearStores(): void {
-    this.agents.clear()
-    this.didIndex.clear()
+  async clearStores(): Promise<void> {
+    await getPrisma().agent.deleteMany()
   }
 }
 

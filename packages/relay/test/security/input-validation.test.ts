@@ -1,28 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { randomUUID } from 'crypto'
 import { buildServer } from '../../src/server.js'
-import { clearAuthStores } from '../../src/routes/auth.js'
-import { clearOrgStores } from '../../src/routes/orgs.js'
-import { clearAgentStores } from '../../src/routes/agents.js'
-import { clearCredentialStores } from '../../src/routes/credentials.js'
-import { clearSessionStores } from '../../src/routes/sessions.js'
-import { clearCommitmentStores } from '../../src/routes/commitments.js'
-import { clearApiKeyStores } from '../../src/routes/api-keys.js'
-import { clearWebhookStores } from '../../src/routes/webhooks.js'
+import { clearAllStores } from '../helpers/db-cleanup.js'
 
 async function createApp() {
   return buildServer({ logger: false })
-}
-
-function clearAllStores() {
-  clearAuthStores()
-  clearOrgStores()
-  clearAgentStores()
-  clearCredentialStores()
-  clearSessionStores()
-  clearCommitmentStores()
-  clearApiKeyStores()
-  clearWebhookStores()
 }
 
 async function registerUser(app: any, email?: string) {
@@ -50,8 +32,8 @@ async function createAgent(app: any, token: string, orgId: string) {
 }
 
 describe('Input Validation Security', () => {
-  beforeEach(() => {
-    clearAllStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   describe('SQL/NoSQL Injection Prevention', () => {

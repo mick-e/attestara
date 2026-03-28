@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Wallet } from 'ethers'
 import { buildServer } from '../src/server.js'
-import { clearAuthStores } from '../src/routes/auth.js'
-import { clearAgentStores } from '../src/routes/agents.js'
-import { clearCredentialStores } from '../src/routes/credentials.js'
-import { clearSessionStores } from '../src/routes/sessions.js'
-import { clearOrgStores } from '../src/routes/orgs.js'
+import { clearAllStores } from './helpers/db-cleanup.js'
 
 async function createApp() {
   const app = await buildServer({ logger: false })
@@ -33,12 +29,8 @@ describe('Health endpoint', () => {
 })
 
 describe('Auth routes', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   describe('POST /v1/auth/register', () => {
@@ -206,10 +198,8 @@ describe('Auth routes', () => {
 })
 
 describe('Auth middleware', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   it('should reject requests without auth header', async () => {

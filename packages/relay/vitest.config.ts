@@ -5,5 +5,8 @@ export default defineConfig({
     globals: false,
     testTimeout: 30000,
     include: ['test/**/*.test.ts'],
+    // Serialize test files — they share a single PostgreSQL database
+    fileParallelism: false,
+    pool: 'forks',
   },
 })

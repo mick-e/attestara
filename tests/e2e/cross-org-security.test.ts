@@ -117,11 +117,11 @@ describe('E2E: Cross-Org Security Boundaries', () => {
   })
 
   beforeEach(async () => {
-    clearAuthStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
+    await clearAuthStores()
+    await clearAgentStores()
+    await clearCredentialStores()
+    await clearSessionStores()
+    await clearCommitmentStores()
 
     orgA = await registerAndGetToken(baseUrl, 'org-a@example.com', 'pass1234', 'Org Alpha')
     orgB = await registerAndGetToken(baseUrl, 'org-b@example.com', 'pass1234', 'Org Beta')

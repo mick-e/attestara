@@ -1,4 +1,5 @@
 import { randomBytes, createHash, createHmac } from 'crypto'
+import { getPrisma } from '../utils/prisma.js'
 
 const ORG_MASTER_KEY_SECRET = process.env.ORG_MASTER_KEY_SECRET ?? 'test-master-key-at-least-32-chars!!'
 
@@ -53,95 +54,128 @@ export interface StoredDelivery {
 export type WebhookView = Omit<StoredWebhook, 'rawSecretEncrypted' | 'secretHash'>
 
 export class WebhookService {
-  private webhooks = new Map<string, StoredWebhook>()
-  private deliveries = new Map<string, StoredDelivery[]>() // webhookId -> deliveries
-
-  register(orgId: string, url: string, events: string[]): { webhook: WebhookView; secret: string } {
+  async register(orgId: string, url: string, events: string[]): Promise<{ webhook: WebhookView; secret: string }> {
     const rawSecret = 'whsec_' + randomBytes(32).toString('hex')
-    const secretHash = createHash('sha256').update(rawSecret).digest('hex')
     const rawSecretEncrypted = encryptSecret(rawSecret)
 
-    const webhook: StoredWebhook = {
-      id: randomBytes(16).toString('hex'),
-      orgId,
-      url,
-      secretHash,
-      rawSecretEncrypted,
-      events,
-      active: true,
-      createdAt: new Date().toISOString(),
-    }
+    const db = getPrisma()
+    // Store the encrypted raw secret in secretHash column so we can decrypt for signing
+    const row = await db.webhook.create({
+      data: {
+        orgId,
+        url,
+        secretHash: rawSecretEncrypted,
+        events,
+        active: true,
+      },
+    })
 
-    this.webhooks.set(webhook.id, webhook)
-    this.deliveries.set(webhook.id, [])
-
+    const stored = this._fromRow(row)
     return {
-      webhook: this._toView(webhook),
+      webhook: this._toView(stored),
       secret: rawSecret,
     }
   }
 
-  listByOrg(orgId: string): WebhookView[] {
-    const result: WebhookView[] = []
-    for (const wh of this.webhooks.values()) {
-      if (wh.orgId === orgId) {
-        result.push(this._toView(wh))
-      }
-    }
-    return result
+  async listByOrg(orgId: string): Promise<WebhookView[]> {
+    const db = getPrisma()
+    const rows = await db.webhook.findMany({ where: { orgId } })
+    return rows.map((row: any) => this._toView(this._fromRow(row)))
   }
 
-  deactivate(id: string, orgId: string): boolean {
-    const wh = this.webhooks.get(id)
-    if (!wh || wh.orgId !== orgId) return false
-    wh.active = false
+  async deactivate(id: string, orgId: string): Promise<boolean> {
+    const db = getPrisma()
+    const existing = await db.webhook.findUnique({ where: { id } })
+    if (!existing || existing.orgId !== orgId) return false
+
+    await db.webhook.update({
+      where: { id },
+      data: { active: false },
+    })
     return true
   }
 
-  deliver(webhookId: string, event: string, payload: unknown): StoredDelivery | null {
-    const wh = this.webhooks.get(webhookId)
+  async deliver(webhookId: string, event: string, payload: unknown): Promise<StoredDelivery | null> {
+    const db = getPrisma()
+    const wh = await db.webhook.findUnique({ where: { id: webhookId } })
     if (!wh) return null
 
-    const delivery: StoredDelivery = {
-      id: randomBytes(16).toString('hex'),
-      webhookId,
-      event,
-      payload,
-      status: 'pending',
-      attempts: 1,
-      lastAttemptedAt: new Date().toISOString(),
-      deliveredAt: null,
-      createdAt: new Date().toISOString(),
-    }
+    const now = new Date()
+    const row = await db.webhookDelivery.create({
+      data: {
+        webhookId,
+        event,
+        payload: payload as any,
+        status: 'pending',
+        attempts: 1,
+        lastAttemptedAt: now,
+        createdAt: now,
+      },
+    })
 
-    const list = this.deliveries.get(webhookId) ?? []
-    list.push(delivery)
-    this.deliveries.set(webhookId, list)
-
-    return delivery
+    return this._deliveryFromRow(row)
   }
 
-  getDeliveryHistory(webhookId: string, orgId: string): StoredDelivery[] | null {
-    const wh = this.webhooks.get(webhookId)
+  async getDeliveryHistory(webhookId: string, orgId: string): Promise<StoredDelivery[] | null> {
+    const db = getPrisma()
+    const wh = await db.webhook.findUnique({ where: { id: webhookId } })
     if (!wh || wh.orgId !== orgId) return null
-    return this.deliveries.get(webhookId) ?? []
+
+    const rows = await db.webhookDelivery.findMany({
+      where: { webhookId },
+      orderBy: { createdAt: 'asc' },
+    })
+    return rows.map((row: any) => this._deliveryFromRow(row))
   }
 
-  signPayload(webhookId: string, payload: unknown): string | null {
-    const wh = this.webhooks.get(webhookId)
+  async signPayload(webhookId: string, payload: unknown): Promise<string | null> {
+    const db = getPrisma()
+    const wh = await db.webhook.findUnique({ where: { id: webhookId } })
     if (!wh) return null
-    const rawSecret = decryptSecret(wh.rawSecretEncrypted)
+    // secretHash column stores the encrypted raw secret; decrypt it for signing
+    const rawSecret = decryptSecret(wh.secretHash)
     return createHmac('sha256', rawSecret).update(JSON.stringify(payload)).digest('hex')
   }
 
-  clearStores(): void {
-    this.webhooks.clear()
-    this.deliveries.clear()
+  async clearStores(): Promise<void> {
+    const db = getPrisma()
+    await db.webhookDelivery.deleteMany()
+    await db.webhook.deleteMany()
   }
 
   private _toView(wh: StoredWebhook): WebhookView {
     const { rawSecretEncrypted: _rse, secretHash: _sh, ...view } = wh
     return view
+  }
+
+  private _fromRow(row: any): StoredWebhook {
+    // secretHash column holds the encrypted raw secret
+    const rawSecretEncrypted = row.secretHash
+    const secretHash = createHash('sha256').update(decryptSecret(rawSecretEncrypted)).digest('hex')
+    return {
+      id: row.id,
+      orgId: row.orgId,
+      url: row.url,
+      secretHash,
+      rawSecretEncrypted,
+      events: row.events,
+      active: row.active,
+      createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    }
+  }
+
+  private _deliveryFromRow(row: any): StoredDelivery {
+    return {
+      id: row.id,
+      webhookId: row.webhookId,
+      event: row.event,
+      payload: row.payload,
+      status: row.status as DeliveryStatus,
+      attempts: row.attempts,
+      lastAttemptedAt: row.lastAttemptedAt instanceof Date ? row.lastAttemptedAt.toISOString() : row.lastAttemptedAt,
+      deliveredAt: row.deliveredAt instanceof Date ? row.deliveredAt.toISOString() : row.deliveredAt,
+      createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    }
   }
 }
 

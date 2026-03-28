@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto'
+import { getPrisma } from '../utils/prisma.js'
 
 export interface StoredUser {
   id: string
@@ -24,14 +25,31 @@ export interface CreateUserData {
   role: string
 }
 
-export class OrgService {
-  private orgs = new Map<string, StoredOrg>()
-  private users = new Map<string, StoredUser>()
-  private emailIndex = new Map<string, string>() // email -> userId
-  private walletIndex = new Map<string, string>() // walletAddress -> userId
-  private orgMembers = new Map<string, Set<string>>() // orgId -> Set<userId>
-  private invites = new Map<string, { orgId: string; email: string; role: string }>()
+function toStoredOrg(row: { id: string; name: string; slug: string; plan: string }): StoredOrg {
+  return { id: row.id, name: row.name, slug: row.slug, plan: row.plan }
+}
 
+function toStoredUser(row: {
+  id: string
+  orgId: string
+  email: string
+  passwordHash: string
+  walletAddress: string | null
+  role: string
+  emailVerified: boolean
+}): StoredUser {
+  return {
+    id: row.id,
+    orgId: row.orgId,
+    email: row.email,
+    passwordHash: row.passwordHash,
+    walletAddress: row.walletAddress,
+    role: row.role,
+    emailVerified: row.emailVerified,
+  }
+}
+
+export class OrgService {
   slugify(name: string): string {
     return name
       .toLowerCase()
@@ -39,109 +57,105 @@ export class OrgService {
       .replace(/(^-|-$)/g, '')
   }
 
-  createOrg(name: string, plan = 'starter'): StoredOrg {
-    const org: StoredOrg = {
-      id: randomUUID(),
-      name,
-      slug: this.slugify(name) + '-' + randomUUID().slice(0, 6),
-      plan,
-    }
-    this.orgs.set(org.id, org)
-    return org
+  async createOrg(name: string, plan = 'starter'): Promise<StoredOrg> {
+    const row = await getPrisma().organisation.create({
+      data: {
+        name,
+        slug: this.slugify(name) + '-' + randomUUID().slice(0, 6),
+        plan,
+      },
+    })
+    return toStoredOrg(row)
   }
 
-  getOrg(id: string): StoredOrg | null {
-    return this.orgs.get(id) ?? null
+  async getOrg(id: string): Promise<StoredOrg | null> {
+    const row = await getPrisma().organisation.findUnique({ where: { id } })
+    return row ? toStoredOrg(row) : null
   }
 
-  updateOrg(id: string, updates: Partial<Pick<StoredOrg, 'name' | 'plan'>>): StoredOrg | null {
-    const org = this.orgs.get(id)
-    if (!org) return null
-    if (updates.name !== undefined) org.name = updates.name
-    if (updates.plan !== undefined) org.plan = updates.plan
-    return org
+  async updateOrg(id: string, updates: Partial<Pick<StoredOrg, 'name' | 'plan'>>): Promise<StoredOrg | null> {
+    const existing = await getPrisma().organisation.findUnique({ where: { id } })
+    if (!existing) return null
+
+    const row = await getPrisma().organisation.update({
+      where: { id },
+      data: {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.plan !== undefined && { plan: updates.plan }),
+      },
+    })
+    return toStoredOrg(row)
   }
 
-  createUser(orgId: string, data: CreateUserData): StoredUser {
-    const user: StoredUser = {
-      id: randomUUID(),
-      orgId,
-      email: data.email,
-      passwordHash: data.passwordHash,
-      walletAddress: data.walletAddress,
-      role: data.role,
-      emailVerified: false,
-    }
-    this.users.set(user.id, user)
-    this.emailIndex.set(data.email, user.id)
-    if (data.walletAddress) {
-      this.walletIndex.set(data.walletAddress, user.id)
-    }
-
-    // Add to orgMembers
-    let members = this.orgMembers.get(orgId)
-    if (!members) {
-      members = new Set<string>()
-      this.orgMembers.set(orgId, members)
-    }
-    members.add(user.id)
-
-    return user
+  async createUser(orgId: string, data: CreateUserData): Promise<StoredUser> {
+    const row = await getPrisma().user.create({
+      data: {
+        orgId,
+        email: data.email,
+        passwordHash: data.passwordHash,
+        walletAddress: data.walletAddress,
+        role: data.role,
+        emailVerified: false,
+      },
+    })
+    return toStoredUser(row)
   }
 
-  getUserByEmail(email: string): StoredUser | null {
-    const userId = this.emailIndex.get(email)
-    if (!userId) return null
-    return this.users.get(userId) ?? null
+  async getUserByEmail(email: string): Promise<StoredUser | null> {
+    const row = await getPrisma().user.findUnique({ where: { email } })
+    return row ? toStoredUser(row) : null
   }
 
-  getUserByWallet(address: string): StoredUser | null {
-    const userId = this.walletIndex.get(address)
-    if (!userId) return null
-    return this.users.get(userId) ?? null
+  async getUserByWallet(address: string): Promise<StoredUser | null> {
+    const row = await getPrisma().user.findUnique({ where: { walletAddress: address } })
+    return row ? toStoredUser(row) : null
   }
 
-  getUserById(id: string): StoredUser | null {
-    return this.users.get(id) ?? null
+  async getUserById(id: string): Promise<StoredUser | null> {
+    const row = await getPrisma().user.findUnique({ where: { id } })
+    return row ? toStoredUser(row) : null
   }
 
-  hasEmail(email: string): boolean {
-    return this.emailIndex.has(email)
+  async hasEmail(email: string): Promise<boolean> {
+    const count = await getPrisma().user.count({ where: { email } })
+    return count > 0
   }
 
-  listMembers(orgId: string): string[] {
-    const members = this.orgMembers.get(orgId)
-    if (!members) return []
-    return Array.from(members)
+  async listMembers(orgId: string): Promise<string[]> {
+    const users = await getPrisma().user.findMany({
+      where: { orgId },
+      select: { id: true },
+    })
+    return users.map(u => u.id)
   }
 
-  addMember(orgId: string, userId: string): void {
-    let members = this.orgMembers.get(orgId)
-    if (!members) {
-      members = new Set<string>()
-      this.orgMembers.set(orgId, members)
-    }
-    members.add(userId)
+  async addMember(orgId: string, userId: string): Promise<void> {
+    await getPrisma().user.update({
+      where: { id: userId },
+      data: { orgId },
+    })
   }
 
-  createInvite(orgId: string, email: string, role: string): string {
+  async createInvite(orgId: string, email: string, role: string): Promise<string> {
+    // Invites are ephemeral — keep in memory for now (no Prisma model)
     const inviteId = randomUUID()
-    this.invites.set(inviteId, { orgId, email, role })
+    this._invites.set(inviteId, { orgId, email, role })
     return inviteId
   }
 
   getInvite(inviteId: string): { orgId: string; email: string; role: string } | null {
-    return this.invites.get(inviteId) ?? null
+    return this._invites.get(inviteId) ?? null
   }
 
-  clearStores(): void {
-    this.orgs.clear()
-    this.users.clear()
-    this.emailIndex.clear()
-    this.walletIndex.clear()
-    this.orgMembers.clear()
-    this.invites.clear()
+  async clearStores(): Promise<void> {
+    // Delete in FK-safe order
+    await getPrisma().user.deleteMany()
+    await getPrisma().organisation.deleteMany()
+    this._invites.clear()
   }
+
+  // Invites stay in-memory (no Prisma model defined)
+  private _invites = new Map<string, { orgId: string; email: string; role: string }>()
 }
 
 /** Singleton instance shared across routes */

@@ -1,13 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { randomUUID } from 'crypto'
 import { buildServer } from '../src/server.js'
-import { clearAuthStores } from '../src/routes/auth.js'
-import { clearOrgStores } from '../src/routes/orgs.js'
-import { clearAgentStores } from '../src/routes/agents.js'
-import { clearCredentialStores } from '../src/routes/credentials.js'
-import { clearSessionStores } from '../src/routes/sessions.js'
-import { clearCommitmentStores } from '../src/routes/commitments.js'
-import { clearApiKeyStores } from '../src/routes/api-keys.js'
+import { clearAllStores } from './helpers/db-cleanup.js'
 
 async function createApp() {
   return buildServer({ logger: false })
@@ -27,14 +21,8 @@ async function registerUser(app: any, email?: string) {
 }
 
 describe('API Key routes', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
-    clearApiKeyStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   describe('POST /v1/orgs/:orgId/api-keys', () => {

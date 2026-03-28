@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { randomUUID, createHash } from 'crypto'
 import { buildServer } from '../src/server.js'
-import { clearAuthStores } from '../src/routes/auth.js'
-import { clearOrgStores } from '../src/routes/orgs.js'
-import { clearAgentStores } from '../src/routes/agents.js'
-import { clearCredentialStores } from '../src/routes/credentials.js'
-import { clearSessionStores } from '../src/routes/sessions.js'
+import { clearAllStores } from './helpers/db-cleanup.js'
 
 async function createApp() {
   return buildServer({ logger: false })
@@ -36,12 +32,8 @@ async function createAgent(app: any, token: string, orgId: string) {
 }
 
 describe('Session routes', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   describe('Intra-org sessions', () => {

@@ -1,17 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Wallet } from 'ethers'
 import { buildServer } from '../src/server.js'
-import { clearAuthStores, getAuthStores } from '../src/routes/auth.js'
-import { clearAgentStores } from '../src/routes/agents.js'
-import { clearCredentialStores } from '../src/routes/credentials.js'
-import { clearSessionStores } from '../src/routes/sessions.js'
-import { clearOrgStores } from '../src/routes/orgs.js'
+import { clearAllStores } from './helpers/db-cleanup.js'
 import {
   generateNonce,
   createSiweMessage,
   parseSiweMessage,
   storeNonce,
-  clearNonceStore,
   getNonceStore,
 } from '../src/utils/siwe.js'
 import jwt from 'jsonwebtoken'
@@ -93,12 +88,8 @@ describe('SIWE Utility', () => {
 })
 
 describe('POST /v1/auth/wallet/nonce', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   it('should return a nonce and SIWE message for a valid address', async () => {
@@ -131,12 +122,8 @@ describe('POST /v1/auth/wallet/nonce', () => {
 })
 
 describe('POST /v1/auth/wallet/verify', () => {
-  beforeEach(() => {
-    clearAuthStores()
-    clearOrgStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
+  beforeEach(async () => {
+    await clearAllStores()
   })
 
   it('should create user and return tokens for valid signature', async () => {

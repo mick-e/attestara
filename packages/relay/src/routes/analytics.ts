@@ -14,10 +14,10 @@ export const analyticsRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
 
-    const agents = agentService.listByOrg(orgId)
-    const credentials = credentialService.listByOrg(orgId)
-    const sessions = sessionService.listByOrg(orgId)
-    const commitments = commitmentService.listByOrg(orgId, sessionService)
+    const agents = await agentService.listByOrg(orgId)
+    const credentials = await credentialService.listByOrg(orgId)
+    const sessions = await sessionService.listByOrg(orgId)
+    const commitments = await commitmentService.listByOrg(orgId)
 
     const activeSessionCount = sessions.filter(s => s.status === 'active').length
 

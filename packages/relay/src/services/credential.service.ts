@@ -1,4 +1,6 @@
-import { randomUUID } from 'crypto'
+import type { Prisma } from '@prisma/client'
+import { getPrisma } from '../utils/prisma.js'
+import { isUniqueViolation } from '../utils/prisma-errors.js'
 
 export interface StoredCredential {
   id: string
@@ -23,54 +25,80 @@ export interface CreateCredentialData {
   expiry: string
 }
 
-export class CredentialService {
-  private credentials = new Map<string, StoredCredential>()
+function toStoredCredential(row: {
+  id: string
+  orgId: string
+  agentId: string
+  credentialHash: string
+  schemaHash: string
+  ipfsCid: string | null
+  credentialDataCached: unknown
+  expiry: Date
+  revoked: boolean
+  registeredTxHash: string | null
+  createdAt: Date
+}): StoredCredential {
+  return {
+    id: row.id,
+    orgId: row.orgId,
+    agentId: row.agentId,
+    credentialHash: row.credentialHash,
+    schemaHash: row.schemaHash,
+    ipfsCid: row.ipfsCid,
+    credentialDataCached: (row.credentialDataCached as Record<string, unknown>) ?? null,
+    expiry: row.expiry.toISOString(),
+    revoked: row.revoked,
+    registeredTxHash: row.registeredTxHash,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
 
-  create(orgId: string, data: CreateCredentialData): StoredCredential | { error: string; code: string } {
-    // Check for duplicate hash (global uniqueness)
-    for (const cred of this.credentials.values()) {
-      if (cred.credentialHash === data.credentialHash) {
+export class CredentialService {
+  async create(orgId: string, data: CreateCredentialData): Promise<StoredCredential | { error: string; code: string }> {
+    try {
+      const row = await getPrisma().credential.create({
+        data: {
+          orgId,
+          agentId: data.agentId,
+          credentialHash: data.credentialHash,
+          schemaHash: data.schemaHash,
+          ipfsCid: data.ipfsCid ?? null,
+          credentialDataCached: (data.credentialData ?? undefined) as Prisma.InputJsonValue | undefined,
+          expiry: new Date(data.expiry),
+        },
+      })
+      return toStoredCredential(row)
+    } catch (err) {
+      if (isUniqueViolation(err)) {
         return { error: 'Credential hash already exists', code: 'DUPLICATE_CREDENTIAL_HASH' }
       }
+      throw err
     }
-
-    const credential: StoredCredential = {
-      id: randomUUID(),
-      orgId,
-      agentId: data.agentId,
-      credentialHash: data.credentialHash,
-      schemaHash: data.schemaHash,
-      ipfsCid: data.ipfsCid ?? null,
-      credentialDataCached: data.credentialData ?? null,
-      expiry: data.expiry,
-      revoked: false,
-      registeredTxHash: null,
-      createdAt: new Date().toISOString(),
-    }
-
-    this.credentials.set(credential.id, credential)
-    return credential
   }
 
-  listByOrg(orgId: string): StoredCredential[] {
-    return Array.from(this.credentials.values()).filter(c => c.orgId === orgId)
+  async listByOrg(orgId: string): Promise<StoredCredential[]> {
+    const rows = await getPrisma().credential.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } })
+    return rows.map(toStoredCredential)
   }
 
-  getById(id: string, orgId: string): StoredCredential | null {
-    const credential = this.credentials.get(id)
-    if (!credential || credential.orgId !== orgId) return null
-    return credential
+  async getById(id: string, orgId: string): Promise<StoredCredential | null> {
+    const row = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    return row ? toStoredCredential(row) : null
   }
 
-  revoke(id: string, orgId: string): StoredCredential | null {
-    const credential = this.credentials.get(id)
-    if (!credential || credential.orgId !== orgId) return null
-    credential.revoked = true
-    return credential
+  async revoke(id: string, orgId: string): Promise<StoredCredential | null> {
+    const existing = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    if (!existing) return null
+
+    const row = await getPrisma().credential.update({
+      where: { id },
+      data: { revoked: true },
+    })
+    return toStoredCredential(row)
   }
 
-  clearStores(): void {
-    this.credentials.clear()
+  async clearStores(): Promise<void> {
+    await getPrisma().credential.deleteMany()
   }
 }
 

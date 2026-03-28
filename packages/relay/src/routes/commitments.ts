@@ -2,17 +2,9 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { commitmentService } from '../services/commitment.service.js'
-import { sessionService } from '../services/session.service.js'
 
-export function clearCommitmentStores() {
-  commitmentService.clearStores()
-}
-
-export function getCommitmentStores() {
-  return {
-    commitments: (commitmentService as any).commitments as Map<string, unknown>,
-    sessionIndex: (commitmentService as any).sessionIndex as Map<string, string>,
-  }
+export async function clearCommitmentStores() {
+  await commitmentService.clearStores()
 }
 
 const createCommitmentSchema = z.object({
@@ -40,7 +32,7 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = commitmentService.create({
+    const result = await commitmentService.create({
       sessionId,
       agreementHash: parsed.data.agreementHash,
       parties: parsed.data.parties,
@@ -65,7 +57,7 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = (request as any).auth as AuthContext
-    const orgCommitments = commitmentService.listByOrg(auth.orgId, sessionService)
+    const orgCommitments = await commitmentService.listByOrg(auth.orgId)
 
     return reply.status(200).send({
       data: orgCommitments,
@@ -78,7 +70,7 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const commitment = commitmentService.getById(id)
+    const commitment = await commitmentService.getById(id)
 
     if (!commitment) {
       return reply.status(404).send({
@@ -96,7 +88,7 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const commitment = commitmentService.verify(id)
+    const commitment = await commitmentService.verify(id)
 
     if (!commitment) {
       return reply.status(404).send({

@@ -1,17 +1,35 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { CredentialService } from '../../src/services/credential.service.js'
 import type { StoredCredential } from '../../src/services/credential.service.js'
+import { clearAllStores } from '../helpers/db-cleanup.js'
+import { getPrisma } from '../../src/utils/prisma.js'
 
 describe('CredentialService', () => {
   const service = new CredentialService()
 
-  beforeEach(() => {
-    service.clearStores()
+  beforeEach(async () => {
+    await clearAllStores()
+    // Create FK parent orgs and agents used across tests
+    const db = getPrisma()
+    await db.organisation.createMany({
+      data: [
+        { id: 'org-1', name: 'Test Org 1', slug: 'test-org-1', plan: 'starter' },
+        { id: 'org-2', name: 'Test Org 2', slug: 'test-org-2', plan: 'starter' },
+      ],
+    })
+    await db.agent.createMany({
+      data: [
+        { id: 'agent-1', orgId: 'org-1', did: 'did:test:agent-1', name: 'Test Agent 1', publicKey: '0xtest1' },
+        { id: 'agent-2', orgId: 'org-2', did: 'did:test:agent-2', name: 'Test Agent 2', publicKey: '0xtest2' },
+        { id: 'a1', orgId: 'org-1', did: 'did:test:a1', name: 'Agent a1', publicKey: '0xtesta1' },
+        { id: 'a2', orgId: 'org-2', did: 'did:test:a2', name: 'Agent a2', publicKey: '0xtesta2' },
+      ],
+    })
   })
 
   describe('create', () => {
-    it('should create a credential and return it with id, orgId, revoked=false', () => {
-      const result = service.create('org-1', {
+    it('should create a credential and return it with id, orgId, revoked=false', async () => {
+      const result = await service.create('org-1', {
         agentId: 'agent-1',
         credentialHash: '0xhash123',
         schemaHash: '0xschema456',
@@ -31,8 +49,8 @@ describe('CredentialService', () => {
       expect(result.createdAt).toBeDefined()
     })
 
-    it('should store optional ipfsCid and credentialData when provided', () => {
-      const result = service.create('org-1', {
+    it('should store optional ipfsCid and credentialData when provided', async () => {
+      const result = await service.create('org-1', {
         agentId: 'agent-1',
         credentialHash: '0xhash-with-opts',
         schemaHash: '0xschema',
@@ -45,15 +63,15 @@ describe('CredentialService', () => {
       expect(result.credentialDataCached).toEqual({ key: 'value' })
     })
 
-    it('should return error for duplicate credential hash', () => {
-      service.create('org-1', {
+    it('should return error for duplicate credential hash', async () => {
+      await service.create('org-1', {
         agentId: 'agent-1',
         credentialHash: '0xdup',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       })
 
-      const result = service.create('org-2', {
+      const result = await service.create('org-2', {
         agentId: 'agent-2',
         credentialHash: '0xdup',
         schemaHash: '0xs',
@@ -66,15 +84,15 @@ describe('CredentialService', () => {
       })
     })
 
-    it('should generate unique IDs for each credential', () => {
-      const c1 = service.create('org-1', {
+    it('should generate unique IDs for each credential', async () => {
+      const c1 = await service.create('org-1', {
         agentId: 'agent-1',
         credentialHash: '0xhash-a',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      const c2 = service.create('org-1', {
+      const c2 = await service.create('org-1', {
         agentId: 'agent-1',
         credentialHash: '0xhash-b',
         schemaHash: '0xs',
@@ -86,101 +104,105 @@ describe('CredentialService', () => {
   })
 
   describe('listByOrg', () => {
-    it('should return only credentials belonging to the given org', () => {
-      service.create('org-1', { agentId: 'a1', credentialHash: '0xh1', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
-      service.create('org-1', { agentId: 'a1', credentialHash: '0xh2', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
-      service.create('org-2', { agentId: 'a2', credentialHash: '0xh3', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
+    it('should return only credentials belonging to the given org', async () => {
+      await service.create('org-1', { agentId: 'a1', credentialHash: '0xh1', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
+      await service.create('org-1', { agentId: 'a1', credentialHash: '0xh2', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
+      await service.create('org-2', { agentId: 'a2', credentialHash: '0xh3', schemaHash: '0xs', expiry: '2027-01-01T00:00:00.000Z' })
 
-      const org1Creds = service.listByOrg('org-1')
+      const org1Creds = await service.listByOrg('org-1')
       expect(org1Creds).toHaveLength(2)
       expect(org1Creds.every(c => c.orgId === 'org-1')).toBe(true)
     })
 
-    it('should return empty array when org has no credentials', () => {
-      expect(service.listByOrg('nonexistent-org')).toEqual([])
+    it('should return empty array when org has no credentials', async () => {
+      expect(await service.listByOrg('nonexistent-org')).toEqual([])
     })
   })
 
   describe('getById', () => {
-    it('should return the credential when id and orgId match', () => {
-      const created = service.create('org-1', {
+    it('should return the credential when id and orgId match', async () => {
+      const created = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xgetById',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      const fetched = service.getById(created.id, 'org-1')
+      const fetched = await service.getById(created.id, 'org-1')
       expect(fetched).not.toBeNull()
       expect(fetched!.id).toBe(created.id)
     })
 
-    it('should return null when orgId does not match', () => {
-      const created = service.create('org-1', {
+    it('should return null when orgId does not match', async () => {
+      const created = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xwrong-org',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      expect(service.getById(created.id, 'org-2')).toBeNull()
+      expect(await service.getById(created.id, 'org-2')).toBeNull()
     })
 
-    it('should return null for unknown id', () => {
-      expect(service.getById('nonexistent', 'org-1')).toBeNull()
+    it('should return null for unknown id', async () => {
+      expect(await service.getById('nonexistent', 'org-1')).toBeNull()
     })
   })
 
   describe('revoke', () => {
-    it('should set revoked=true and return the credential', () => {
-      const created = service.create('org-1', {
+    it('should set revoked=true and return the credential', async () => {
+      const created = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xrevoke',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      const result = service.revoke(created.id, 'org-1')
+      const result = await service.revoke(created.id, 'org-1')
       expect(result).not.toBeNull()
       expect(result!.revoked).toBe(true)
 
       // Verify the change persists in store
-      const fetched = service.getById(created.id, 'org-1')
+      const fetched = await service.getById(created.id, 'org-1')
       expect(fetched!.revoked).toBe(true)
     })
 
-    it('should return null when orgId does not match', () => {
-      const created = service.create('org-1', {
+    it('should return null when orgId does not match', async () => {
+      const created = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xrevoke-wrong-org',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      expect(service.revoke(created.id, 'org-2')).toBeNull()
+      expect(await service.revoke(created.id, 'org-2')).toBeNull()
     })
 
-    it('should return null for unknown id', () => {
-      expect(service.revoke('nonexistent', 'org-1')).toBeNull()
+    it('should return null for unknown id', async () => {
+      expect(await service.revoke('nonexistent', 'org-1')).toBeNull()
     })
   })
 
   describe('clearStores', () => {
-    it('should empty all credentials so they cannot be retrieved', () => {
-      const created = service.create('org-1', {
+    it('should empty all credentials so they cannot be retrieved', async () => {
+      const created = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xclear',
         schemaHash: '0xs',
         expiry: '2027-01-01T00:00:00.000Z',
       }) as StoredCredential
 
-      service.clearStores()
+      await clearAllStores()
 
-      expect(service.listByOrg('org-1')).toEqual([])
-      expect(service.getById(created.id, 'org-1')).toBeNull()
+      expect(await service.listByOrg('org-1')).toEqual([])
+      expect(await service.getById(created.id, 'org-1')).toBeNull()
 
-      // Hash should be reusable after clear
-      const recreated = service.create('org-1', {
+      // Hash should be reusable after clear — recreate FK parents first
+      const db = getPrisma()
+      await db.organisation.create({ data: { id: 'org-1', name: 'Test Org 1', slug: 'test-org-1', plan: 'starter' } })
+      await db.agent.create({ data: { id: 'a1', orgId: 'org-1', did: 'did:test:a1', name: 'Agent a1', publicKey: '0xtesta1' } })
+
+      const recreated = await service.create('org-1', {
         agentId: 'a1',
         credentialHash: '0xclear',
         schemaHash: '0xs',

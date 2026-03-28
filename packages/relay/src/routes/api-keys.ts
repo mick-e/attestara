@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { apiKeyService } from '../services/api-key.service.js'
 
-export function clearApiKeyStores() {
-  apiKeyService.clearStores()
+export async function clearApiKeyStores() {
+  await apiKeyService.clearStores()
 }
 
 const createApiKeySchema = z.object({
@@ -31,7 +31,7 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const { apiKey, rawKey } = apiKeyService.create(
+    const { apiKey, rawKey } = await apiKeyService.create(
       orgId,
       parsed.data.name,
       parsed.data.scopes,
@@ -46,7 +46,7 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const keys = apiKeyService.listByOrg(orgId)
+    const keys = await apiKeyService.listByOrg(orgId)
 
     return reply.status(200).send({
       data: keys,
@@ -60,7 +60,7 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
 
-    const deleted = apiKeyService.revoke(id, orgId)
+    const deleted = await apiKeyService.revoke(id, orgId)
     if (!deleted) {
       return reply.status(404).send({
         code: 'API_KEY_NOT_FOUND',

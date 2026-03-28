@@ -150,12 +150,12 @@ describe('E2E: Analytics Dashboard', () => {
     await app.close()
   })
 
-  beforeEach(() => {
-    clearAuthStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
+  beforeEach(async () => {
+    await clearAuthStores()
+    await clearAgentStores()
+    await clearCredentialStores()
+    await clearSessionStores()
+    await clearCommitmentStores()
   })
 
   // ── Empty org ──────────────────────────────────────────────────────────────

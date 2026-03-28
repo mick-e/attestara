@@ -1,5 +1,6 @@
-import { randomUUID } from 'crypto'
-import type { SessionService } from './session.service.js'
+import type { Prisma } from '@prisma/client'
+import { getPrisma } from '../utils/prisma.js'
+import { isUniqueViolation } from '../utils/prisma-errors.js'
 
 export interface StoredCommitment {
   id: string
@@ -24,68 +25,103 @@ export interface CreateCommitmentData {
   circuitVersions: string[]
 }
 
+function toStoredCommitment(row: {
+  id: string
+  sessionId: string
+  agreementHash: string
+  parties: string[]
+  credentialHashes: string[]
+  proofs: unknown
+  circuitVersions: string[]
+  txHash: string | null
+  blockNumber: number | null
+  verified: boolean
+  createdAt: Date
+}): StoredCommitment {
+  return {
+    id: row.id,
+    sessionId: row.sessionId,
+    agreementHash: row.agreementHash,
+    parties: row.parties,
+    credentialHashes: row.credentialHashes,
+    proofs: (row.proofs as Record<string, unknown>) ?? {},
+    circuitVersions: row.circuitVersions,
+    txHash: row.txHash,
+    blockNumber: row.blockNumber,
+    verified: row.verified,
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
 export class CommitmentService {
-  private commitments = new Map<string, StoredCommitment>()
-  private sessionIndex = new Map<string, string>() // sessionId -> commitmentId
-
-  create(data: CreateCommitmentData): StoredCommitment | { error: string; code: string } {
-    if (this.sessionIndex.has(data.sessionId)) {
-      return {
-        error: 'Commitment already exists for this session',
-        code: 'DUPLICATE_SESSION_COMMITMENT',
+  async create(data: CreateCommitmentData): Promise<StoredCommitment | { error: string; code: string }> {
+    try {
+      const row = await getPrisma().commitment.create({
+        data: {
+          sessionId: data.sessionId,
+          agreementHash: data.agreementHash,
+          parties: data.parties,
+          credentialHashes: data.credentialHashes,
+          proofs: data.proofs as Prisma.InputJsonValue,
+          circuitVersions: data.circuitVersions,
+        },
+      })
+      return toStoredCommitment(row)
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        return {
+          error: 'Commitment already exists for this session',
+          code: 'DUPLICATE_SESSION_COMMITMENT',
+        }
       }
+      throw err
     }
-
-    const commitment: StoredCommitment = {
-      id: randomUUID(),
-      sessionId: data.sessionId,
-      agreementHash: data.agreementHash,
-      parties: data.parties,
-      credentialHashes: data.credentialHashes,
-      proofs: data.proofs,
-      circuitVersions: data.circuitVersions,
-      txHash: null,
-      blockNumber: null,
-      verified: false,
-      createdAt: new Date().toISOString(),
-    }
-
-    this.commitments.set(commitment.id, commitment)
-    this.sessionIndex.set(data.sessionId, commitment.id)
-
-    return commitment
   }
 
-  getById(id: string): StoredCommitment | null {
-    return this.commitments.get(id) ?? null
+  async getById(id: string): Promise<StoredCommitment | null> {
+    const row = await getPrisma().commitment.findUnique({ where: { id } })
+    return row ? toStoredCommitment(row) : null
   }
 
-  listByOrg(orgId: string, sessionService: SessionService): StoredCommitment[] {
-    return Array.from(this.commitments.values()).filter(c => {
-      const session = sessionService.getSession(c.sessionId)
-      if (!session) return false
-      return session.initiatorOrgId === orgId || session.counterpartyOrgId === orgId
+  async listByOrg(orgId: string): Promise<StoredCommitment[]> {
+    const rows = await getPrisma().commitment.findMany({
+      where: {
+        session: {
+          OR: [
+            { initiatorOrgId: orgId },
+            { counterpartyOrgId: orgId },
+          ],
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     })
+    return rows.map(toStoredCommitment)
   }
 
-  verify(id: string): StoredCommitment | null {
-    const commitment = this.commitments.get(id)
-    if (!commitment) return null
-    commitment.verified = true
-    return commitment
+  async verify(id: string): Promise<StoredCommitment | null> {
+    const existing = await getPrisma().commitment.findUnique({ where: { id } })
+    if (!existing) return null
+
+    const row = await getPrisma().commitment.update({
+      where: { id },
+      data: { verified: true },
+    })
+    return toStoredCommitment(row)
   }
 
-  updateOnChainStatus(id: string, txHash: string, blockNumber: number): StoredCommitment | null {
-    const commitment = this.commitments.get(id)
-    if (!commitment) return null
-    commitment.txHash = txHash
-    commitment.blockNumber = blockNumber
-    return commitment
+  async updateOnChainStatus(id: string, txHash: string, blockNumber: number): Promise<StoredCommitment | null> {
+    const existing = await getPrisma().commitment.findUnique({ where: { id } })
+    if (!existing) return null
+
+    const row = await getPrisma().commitment.update({
+      where: { id },
+      data: { txHash, blockNumber },
+    })
+    return toStoredCommitment(row)
   }
 
-  clearStores(): void {
-    this.commitments.clear()
-    this.sessionIndex.clear()
+  async clearStores(): Promise<void> {
+    await getPrisma().commitment.deleteMany()
   }
 }
 

@@ -78,13 +78,13 @@ describe('E2E: API Key Lifecycle', () => {
     await app.close()
   })
 
-  beforeEach(() => {
-    clearAuthStores()
-    clearAgentStores()
-    clearCredentialStores()
-    clearSessionStores()
-    clearCommitmentStores()
-    clearApiKeyStores()
+  beforeEach(async () => {
+    await clearAuthStores()
+    await clearAgentStores()
+    await clearCredentialStores()
+    await clearSessionStores()
+    await clearCommitmentStores()
+    await clearApiKeyStores()
   })
 
   // ── Phase 1: Create API key ────────────────────────────────────────────────
