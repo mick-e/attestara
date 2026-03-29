@@ -217,8 +217,8 @@ describe('E2E: Full Negotiation Flow', () => {
       expect(recorder.eventCount).toBe(0)
     })
 
-    it('should be retrievable from the session manager', () => {
-      const retrieved = sessionManager.get(session.id)
+    it('should be retrievable from the session manager', async () => {
+      const retrieved = await sessionManager.get(session.id)
       expect(retrieved).toBe(session)
     })
   })

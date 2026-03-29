@@ -231,8 +231,6 @@ export default function SessionsPage() {
         <div className="py-12">
           <LoadingSpinner label="Loading sessions..." />
         </div>
-      ) : error && !sessions ? (
-        <ErrorState message={error} onRetry={refetch} />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="No sessions found"

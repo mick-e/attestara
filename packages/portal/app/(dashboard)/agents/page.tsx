@@ -166,8 +166,6 @@ export default function AgentsPage() {
         <div className="py-12">
           <LoadingSpinner label="Loading agents..." />
         </div>
-      ) : error && !agents ? (
-        <ErrorState message={error} onRetry={refetch} />
       ) : displayAgents.length === 0 ? (
         <EmptyState
           title="No agents yet"

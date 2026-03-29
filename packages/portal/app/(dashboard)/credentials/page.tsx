@@ -260,8 +260,6 @@ export default function CredentialsPage() {
         <div className="py-12">
           <LoadingSpinner label="Loading credentials..." />
         </div>
-      ) : error && !credentials ? (
-        <ErrorState message={error} onRetry={refetch} />
       ) : displayCredentials.length === 0 ? (
         <EmptyState
           title="No credentials yet"
@@ -294,6 +292,12 @@ export default function CredentialsPage() {
               ))}
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={resetWizard}
+                className="rounded-lg border border-navy-800 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
               {step > 1 && !issued && (
                 <button
                   onClick={() => setStep(step - 1)}
@@ -333,7 +337,7 @@ export default function CredentialsPage() {
         {step === 1 && (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-300">
-              Select Agent
+              Agent
             </label>
             <select
               value={form.agent}

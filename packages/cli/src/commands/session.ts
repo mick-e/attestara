@@ -88,7 +88,7 @@ Examples:
     .description('List negotiation sessions')
     .option('--json', 'Output as JSON')
     .action(async (options) => {
-      const sessions = sessionManager.list()
+      const sessions = await sessionManager.list()
 
       if (options.json) {
         printJson(sessions.map((s) => ({
@@ -129,7 +129,7 @@ Examples:
     .argument('<id>', 'Session ID')
     .option('--json', 'Output as JSON')
     .action(async (id, options) => {
-      const sess = findSession(id)
+      const sess = await findSession(id)
       if (!sess) {
         printError(`Session not found: ${id}`)
         process.exitCode = 1
@@ -187,10 +187,10 @@ Examples:
   return session
 }
 
-function findSession(id: string) {
+async function findSession(id: string) {
   // Try exact match first, then partial
-  const exact = sessionManager.get(id)
+  const exact = await sessionManager.get(id)
   if (exact) return exact
-  const all = sessionManager.list()
+  const all = await sessionManager.list()
   return all.find((s) => s.id.startsWith(id)) ?? null
 }

@@ -40,7 +40,7 @@ Examples:
 
       try {
         const config = await requireConfig()
-        const sess = findSession(options.session)
+        const sess = await findSession(options.session)
         if (!sess) {
           spinner.fail(`Session not found: ${options.session}`)
           process.exitCode = 1
@@ -109,7 +109,7 @@ Examples:
 
       try {
         const config = await requireConfig()
-        const sess = findSession(options.session)
+        const sess = await findSession(options.session)
         if (!sess) {
           spinner.fail(`Session not found: ${options.session}`)
           process.exitCode = 1
@@ -158,7 +158,7 @@ Examples:
       const spinner = ora('Rejecting negotiation...').start()
 
       try {
-        const sess = findSession(options.session)
+        const sess = await findSession(options.session)
         if (!sess) {
           spinner.fail(`Session not found: ${options.session}`)
           process.exitCode = 1
@@ -189,9 +189,9 @@ Examples:
   return negotiate
 }
 
-function findSession(id: string) {
-  const exact = sessionManager.get(id)
+async function findSession(id: string) {
+  const exact = await sessionManager.get(id)
   if (exact) return exact
-  const all = sessionManager.list()
+  const all = await sessionManager.list()
   return all.find((s) => s.id.startsWith(id)) ?? null
 }

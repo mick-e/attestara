@@ -9,9 +9,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'pnpm dev',
+    command: 'pnpm build && pnpm start',
     port: 3000,
     reuseExistingServer: true,
-    timeout: 60000,
+    timeout: 180000,
   },
 })

@@ -208,7 +208,7 @@ export default function DemoPage() {
               disabled={isFirst}
               className="rounded-lg border border-navy-700 bg-navy-800 px-5 py-2 text-sm font-medium text-white transition-colors hover:border-navy-600 hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              ← Back
+              ← Previous
             </button>
 
             <span className="text-xs text-navy-500">

@@ -49,7 +49,7 @@ describe('SessionManager', () => {
       sessionConfig: defaultConfig,
     })
 
-    const retrieved = manager.get(session.id)
+    const retrieved = await manager.get(session.id)
     expect(retrieved).toBe(session)
   })
 
@@ -66,12 +66,12 @@ describe('SessionManager', () => {
       sessionConfig: defaultConfig,
     })
 
-    expect(manager.list()).toHaveLength(2)
+    expect(await manager.list()).toHaveLength(2)
   })
 
-  it('should return undefined for unknown session id', () => {
+  it('should return undefined for unknown session id', async () => {
     const manager = new SessionManager()
-    expect(manager.get('nonexistent')).toBeUndefined()
+    expect(await manager.get('nonexistent')).toBeUndefined()
   })
 })
 
