@@ -165,18 +165,20 @@ describe('ChainCommitmentClient', () => {
     })).rejects.toThrow('Commitment contract address not configured')
   })
 
-  it('should throw on submit when contract not deployed', async () => {
+  it('should throw on submit when signer not configured', async () => {
     const client = new ChainCommitmentClient('http://localhost:8545', '0xContract')
     await expect(client.submit({
       agreementHash: '0xabc',
       parties: ['a'],
       merkleRoot: '0xroot',
       credentialHashes: ['0xcred'],
-    })).rejects.toThrow('not yet implemented')
+    })).rejects.toThrow('Signer (private key) required')
   })
 
-  it('should throw on verifyOnChain when contract not deployed', async () => {
+  it('should return null for unknown commitment on verifyOnChain', async () => {
+    // verifyOnChain returns null when RPC is unreachable (catches errors)
     const client = new ChainCommitmentClient('http://localhost:8545', '0xContract')
-    await expect(client.verifyOnChain('id-1')).rejects.toThrow('not yet implemented')
+    const result = await client.verifyOnChain('id-1')
+    expect(result).toBeNull()
   })
 })

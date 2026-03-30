@@ -1,0 +1,9 @@
+{
+  "agentRegistry": "0x18fDE761a217A91Be8bD3A35fA285dCc7307B808",
+  "credentialRegistry": "0xB29a580fd2c7D72Ff0e49DF595F9B63837E0Ec86",
+  "verifierRegistry": "0x7B1969CBB1001C1fEAA2259153ada679d09CE5d5",
+  "commitmentContract": "0x8f6a1496314B76464e36ee5c04ebDd270f9AF6f8",
+  "deployer": "0x3067aC6fFf45BCA7aA14639543AD9d8fbffcc2d5",
+  "network": "arbitrum-sepolia",
+  "timestamp": "2026-03-30T16:24:46.712Z"
+}

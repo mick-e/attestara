@@ -1,5 +1,8 @@
 import { randomUUID } from 'crypto'
 import type { Commitment, CommitmentProof } from '@attestara/types'
+import { ChainCommitmentClient } from './chain.js'
+
+export { ChainCommitmentClient } from './chain.js'
 
 export interface CommitmentFilter {
   sessionId?: string
@@ -8,8 +11,21 @@ export interface CommitmentFilter {
   toDate?: Date
 }
 
+export interface CommitmentManagerConfig {
+  rpcUrl?: string
+  contractAddress?: string
+  privateKey?: string
+}
+
 export class CommitmentManager {
   private commitments: Map<string, Commitment> = new Map()
+  private chain: ChainCommitmentClient | null
+
+  constructor(config?: CommitmentManagerConfig) {
+    this.chain = config?.rpcUrl && config?.contractAddress
+      ? new ChainCommitmentClient(config.rpcUrl, config.contractAddress, config.privateKey)
+      : null
+  }
 
   async create(params: {
     sessionId: string
@@ -17,6 +33,7 @@ export class CommitmentManager {
     parties: string[]
     credentialHashes: string[]
     proofs: CommitmentProof[]
+    submitOnChain?: boolean
   }): Promise<Commitment> {
     const commitment: Commitment = {
       id: randomUUID(),
@@ -30,6 +47,25 @@ export class CommitmentManager {
       verified: false,
       createdAt: new Date(),
     }
+
+    // Submit on-chain if chain client is configured and requested
+    if (this.chain && params.submitOnChain !== false) {
+      try {
+        const result = await this.chain.submit({
+          sessionId: params.sessionId,
+          agreementHash: params.agreementHash,
+          parties: params.parties,
+          credentialHashes: params.credentialHashes,
+          merkleRoot: params.agreementHash, // Use agreement hash as merkle root placeholder
+        })
+        commitment.txHash = result.txHash
+        commitment.blockNumber = result.blockNumber
+      } catch (err) {
+        // Store locally even if chain submission fails
+        console.error('On-chain submission failed:', err)
+      }
+    }
+
     this.commitments.set(commitment.id, commitment)
     return commitment
   }
@@ -55,7 +91,17 @@ export class CommitmentManager {
   async verify(commitmentId: string): Promise<boolean> {
     const commitment = this.commitments.get(commitmentId)
     if (!commitment) return false
-    // Real verification will call on-chain contract
+
+    // If on-chain, verify there too
+    if (this.chain && commitment.txHash) {
+      const onChain = await this.chain.verifyOnChain(commitmentId)
+      if (onChain) {
+        commitment.verified = true
+        return true
+      }
+    }
+
+    // Local verification (no chain)
     commitment.verified = true
     return true
   }

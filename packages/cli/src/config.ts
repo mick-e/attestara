@@ -25,9 +25,9 @@ export function defaultConfig(did: string): AttestaraConfig {
       chain: 'arbitrum-sepolia',
       rpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
       contracts: {
-        agentRegistry: '0x0000000000000000000000000000000000000000',
-        credentialRegistry: '0x0000000000000000000000000000000000000000',
-        commitmentContract: '0x0000000000000000000000000000000000000000',
+        agentRegistry: '0x18fDE761a217A91Be8bD3A35fA285dCc7307B808',
+        credentialRegistry: '0xB29a580fd2c7D72Ff0e49DF595F9B63837E0Ec86',
+        commitmentContract: '0x8f6a1496314B76464e36ee5c04ebDd270f9AF6f8',
       },
     },
     prover: {
