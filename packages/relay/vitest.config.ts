@@ -1,4 +1,8 @@
 import { defineConfig } from 'vitest/config'
+import { config } from 'dotenv'
+
+// Load test env vars if not already set
+config({ path: '.env.test' })
 
 export default defineConfig({
   test: {

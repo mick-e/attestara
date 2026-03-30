@@ -10,7 +10,8 @@
       "persistent": true
     },
     "test": {
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "env": ["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "PROVER_INTERNAL_SECRET"]
     },
     "test:integration": {
       "dependsOn": ["build"],
