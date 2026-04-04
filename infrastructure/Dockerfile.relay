@@ -2,14 +2,17 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY packages/types ./packages/types
+COPY packages/contracts ./packages/contracts
 COPY packages/relay ./packages/relay
 RUN corepack enable && pnpm install --frozen-lockfile
+RUN pnpm --filter @attestara/relay db:generate
 RUN pnpm --filter @attestara/relay build
 
 FROM node:20-alpine
 WORKDIR /app
 COPY --from=builder /app/packages/relay/dist ./dist
 COPY --from=builder /app/packages/relay/prisma ./prisma
+COPY --from=builder /app/packages/relay/node_modules/.prisma ./.prisma
 COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3001
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/start.js"]
