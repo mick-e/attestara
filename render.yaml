@@ -1,0 +1,83 @@
+services:
+  # ── Portal (Next.js) ────────────────────────────────────────────────────
+  - type: web
+    name: attestara-portal
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install && pnpm --filter @attestara/portal build
+    startCommand: pnpm --filter @attestara/portal start
+    envVars:
+      - key: NEXT_PUBLIC_RELAY_URL
+        sync: false
+      - key: NEXT_PUBLIC_CHAIN_ID
+        value: "421614"
+      - key: NODE_ENV
+        value: production
+
+  # ── Relay API (Fastify + Prisma) ────────────────────────────────────────
+  - type: web
+    name: attestara-relay
+    runtime: docker
+    plan: starter
+    dockerfilePath: infrastructure/Dockerfile.relay
+    preDeployCommand: npx prisma migrate deploy --schema ./prisma/schema.prisma
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attestara-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: attestara-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PROVER_INTERNAL_SECRET
+        generateValue: true
+      - key: ORG_MASTER_KEY_SECRET
+        generateValue: true
+      - key: PROVER_URL
+        value: http://attestara-prover:3002
+      - key: CORS_ORIGIN
+        sync: false
+      - key: IPFS_GATEWAY_URL
+        value: https://gateway.pinata.cloud
+      - key: PINATA_API_KEY
+        sync: false
+      - key: PINATA_API_SECRET
+        sync: false
+      - key: ARBITRUM_SEPOLIA_RPC_URL
+        sync: false
+      - key: NODE_ENV
+        value: production
+
+  # ── Prover Service (Fastify, private) ───────────────────────────────────
+  - type: pserv
+    name: attestara-prover
+    runtime: docker
+    plan: starter
+    dockerfilePath: infrastructure/Dockerfile.prover
+    envVars:
+      - key: PROVER_INTERNAL_SECRET
+        fromService:
+          name: attestara-relay
+          type: web
+          envVarKey: PROVER_INTERNAL_SECRET
+      - key: REDIS_URL
+        fromService:
+          name: attestara-redis
+          type: redis
+          property: connectionString
+      - key: CIRCUIT_DIR
+        value: ./circuits/build
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: attestara-db
+    plan: starter
+
+  - name: attestara-redis
+    plan: starter
