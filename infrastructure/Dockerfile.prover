@@ -13,4 +13,4 @@ COPY --from=builder /app/packages/prover/dist ./dist
 COPY --from=builder /app/circuits/build ./circuits/build
 COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3002
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/start.js"]
