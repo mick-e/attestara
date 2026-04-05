@@ -13,7 +13,6 @@ FROM node:20-alpine
 WORKDIR /app
 COPY --from=builder /app/packages/relay/dist ./dist
 COPY --from=builder /app/packages/relay/prisma ./prisma
-COPY --from=builder /app/packages/relay/node_modules/.prisma ./.prisma
 COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3001
 CMD ["node", "dist/start.js"]
