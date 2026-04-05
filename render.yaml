@@ -4,7 +4,7 @@ services:
     name: attestara-portal
     runtime: node
     plan: starter
-    buildCommand: corepack enable && pnpm install && pnpm --filter @attestara/portal build
+    buildCommand: corepack enable && NODE_ENV=development pnpm install && pnpm --filter @attestara/portal build
     startCommand: pnpm --filter @attestara/portal start
     envVars:
       - key: NEXT_PUBLIC_RELAY_URL
