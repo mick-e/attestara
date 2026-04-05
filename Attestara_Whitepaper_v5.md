@@ -1,10 +1,12 @@
 # Attestara: A Cryptographic Trust Protocol for Autonomous AI Agent Commerce
 
-**Version 5.0 — March 2026**
+**Version 6.0 — April 2026**
 
-**Authors:** Littledata Research & Engineering
+**Authors:** Michael Sheridan-Sherbourne (Littledata Research & Engineering)
 
 **Contact:** mick@littledata.ai
+
+**Reference implementation status:** Phase 1 reference implementation in progress. Smart contracts deployed to Arbitrum Sepolia testnet. ZK circuits compiled and tested. SDK, relay, and prover services functional. Production mainnet deployment is planned for Phase 2 following formal circuit audit.
 
 **Standards alignment:** W3C Verifiable Credentials Data Model v2.0 (Rec. May 2025) · W3C Bitstring Status List v1.0 (Rec. May 2025) · DIF Trusted AI Agents Working Group · CEN-CENELEC JTC 21 / M/593 · ISO/IEC 42001:2023 · ISO/IEC 23894:2023
 
@@ -336,7 +338,7 @@ Four core circuits enforce compliance:
 | **MandateBound** | proposed_value ≤ max_value | max_value, credential_hash | proposed_value, session_id |
 | **ParameterRange** | floor ≤ parameter ≤ ceiling | floor, ceiling | parameter_value, session_id |
 | **CredentialFreshness** | credential is valid and unrevoked at time T | valid_from, valid_until, status_bit_witness | current_timestamp, status_list_root |
-| **IdentityBinding** | session key belongs to DID | private_key | public_key, did_document_hash |
+| **IdentityBinding** | The agent knows the private key whose Poseidon hash equals the on-chain key commitment registered for its DID | private_key | key_commitment, session_id, did_document_hash |
 
 These circuits are composable. A single negotiation turn may require proofs from multiple circuits, which are batched into a `TurnProofBundle` and verified together.
 
@@ -406,11 +408,39 @@ The internal Merkle tree uses Poseidon hash (ZK-friendly); the on-chain anchor a
 
 The ParameterRange circuit generalises MandateBound to multi-dimensional constraints, proving that a proposed parameter falls within an authorised range `[floor, ceiling]`. Multiple ParameterRange proofs are composed to cover all dimensions of a complex proposal.
 
-### 4.6 Proof Composition and Batching
+### 4.6 IdentityBinding Circuit (Normative)
+
+The IdentityBinding circuit proves that the acting agent controls the private key associated with its registered DID, without revealing the private key. Specifically, the circuit proves knowledge of a `private_key` whose Poseidon hash equals `key_commitment` — the public key commitment registered on-chain in the CredentialRegistry for this agent's DID.
+
+Given:
+
+- **Private input:** `private_key`
+- **Public inputs:** `key_commitment`, `session_id`, `did_document_hash`
+
+The circuit proves:
+
+1. `Poseidon(private_key) == key_commitment`
+2. `did_document_hash` is the hash of the DID document containing `key_commitment`
+3. `session_id` links this proof to the current negotiation session
+
+The Poseidon hash function is used rather than a conventional cryptographic hash because Poseidon is specifically designed for ZK-SNARK circuit efficiency. Its algebraic structure over the BN254 scalar field produces dramatically lower constraint counts than SHA-256 or similar hash functions. At approximately 932 constraints, the IdentityBinding circuit is the most computationally efficient of the four core circuits, with proof generation completing in under 100ms on the managed prover service.
+
+The `session_id` public input binds the identity proof to the specific negotiation session, preventing a valid identity proof from one session being replayed into another. The `did_document_hash` public input ensures the key commitment being proven is the one registered in the agent's current DID document, preventing an agent from using a key commitment from a superseded DID document after key rotation.
+
+**Security properties:**
+
+- **Soundness:** A cheating prover cannot generate a valid IdentityBinding proof without knowing the private key whose Poseidon hash matches `key_commitment`, except with negligible probability under the collision resistance of Poseidon over BN254.
+- **Zero-knowledge:** The verifier learns nothing about `private_key` beyond the fact that the prover knows a value that Poseidon-hashes to `key_commitment`.
+- **Session binding:** The `session_id` public input prevents cross-session proof replay.
+- **DID binding:** The `did_document_hash` public input ensures the proven key is current — proofs generated under a rotated key fail verification against the updated `did_document_hash`.
+
+**Implementation note:** The IdentityBinding circuit uses Poseidon as implemented in the circomlib library. The Poseidon parameters used are the standard BN254-compatible parameters with t=3 (2 inputs, 1 output) as specified in the Poseidon paper. The circuit implementation is the `Poseidon(2)` template from circomlib which is audited and widely deployed in production ZK systems. The IdentityBinding circuit generates proofs within the managed prover service performance target of under 100ms at approximately 932 constraints. Browser-based proof generation via WebAssembly is supported given its low constraint count, with proof generation completing under 500ms on modern desktop hardware.
+
+### 4.7 Proof Composition and Batching
 
 A typical negotiation turn requires proofs from 2–4 circuits. Attestara batches these into a single `TurnProofBundle` with a common session anchor. The bundle is verified atomically — all proofs **MUST** pass for the turn to be accepted. A single compromised circuit cannot undermine overall turn security.
 
-### 4.7 Post-Quantum Cryptography Migration Path
+### 4.8 Post-Quantum Cryptography Migration Path
 
 The secp256k1 curve used throughout Attestara — for DID keys, credential signatures, and commitment signatures — is vulnerable to attacks from a sufficiently powerful quantum computer (Shor's algorithm). Groth16's underlying bilinear pairing assumptions are similarly at risk.
 
@@ -704,6 +734,42 @@ Both Agents **MUST** sign the commitment terms before the record is accepted. Th
 
 Arbitrum inherits Ethereum's security guarantees (fraud proofs settle to L1) while reducing costs by two orders of magnitude.
 
+### 6.4 Circuit Versioning and VerifierRegistry
+
+Each ZK circuit is versioned using semantic versioning (`MAJOR.MINOR.PATCH`) and registered on-chain in the **VerifierRegistry** contract. The VerifierRegistry maps circuit identifiers to deployed Groth16 verifier contract addresses and tracks circuit deprecation status.
+
+**Circuit identifier derivation.** The on-chain `bytes32` circuit identifier is computed deterministically as:
+
+```
+circuitId = keccak256(abi.encodePacked("<circuit-name>-<MAJOR.MINOR.PATCH>"))
+```
+
+For the four core circuits at v1.0.0:
+
+| Circuit | Identifier Input | On-Chain `bytes32` |
+|---------|-----------------|-------------------|
+| MandateBound | `"mandate-bound-1.0.0"` | `keccak256("mandate-bound-1.0.0")` |
+| ParameterRange | `"parameter-range-1.0.0"` | `keccak256("parameter-range-1.0.0")` |
+| CredentialFreshness | `"credential-freshness-1.0.0"` | `keccak256("credential-freshness-1.0.0")` |
+| IdentityBinding | `"identity-binding-1.0.0"` | `keccak256("identity-binding-1.0.0")` |
+
+**VerifierRegistry contract.** The registry exposes four operations:
+
+1. `registerVerifier(bytes32 circuitId, address verifier)` — Owner-only. Registers a deployed Groth16 verifier contract for a specific circuit version.
+2. `getVerifier(bytes32 circuitId)` — Public. Returns the verifier contract address for a given circuit identifier, or the zero address if not registered.
+3. `deprecateCircuit(bytes32 circuitId)` — Owner-only. Marks a circuit version as deprecated. Deprecated circuits **SHOULD NOT** be used for new proofs but remain verifiable for historical commitment records.
+4. `isDeprecated(bytes32 circuitId)` — Public. Returns whether a circuit version has been deprecated.
+
+**Versioning rules:**
+
+- **PATCH** increment (e.g., 1.0.0 → 1.0.1): Constraint optimisation or implementation improvement with identical public/private input interfaces and identical proof semantics. Proof outputs are interchangeable. The previous PATCH version **SHOULD** be deprecated.
+- **MINOR** increment (e.g., 1.0.0 → 1.1.0): Addition of new optional public inputs or extension of circuit capabilities. Backward-compatible: proofs generated under 1.0.x remain verifiable. The previous MINOR version **MAY** be deprecated after a transition period.
+- **MAJOR** increment (e.g., 1.0.0 → 2.0.0): Breaking change to proof semantics, public input structure, or security assumptions. A new trusted setup ceremony is required. Previous MAJOR versions **MUST** remain verifiable for existing commitment records but **MUST** be deprecated for new proof generation.
+
+**SDK version compatibility.** The SDK and prover service both expose the semantic version and derived `circuitId` for each circuit. Before generating a proof, the SDK **MUST** verify that the `circuitId` it would produce matches a non-deprecated entry in the VerifierRegistry. If the circuit is deprecated or unregistered, the SDK **MUST** reject the proof generation request with a clear error indicating the version mismatch.
+
+**Trusted setup ceremony per version.** Each MAJOR circuit version requires an independent trusted setup ceremony. PATCH and MINOR versions within the same MAJOR version **MAY** reuse the existing trusted setup if the constraint system structure is unchanged.
+
 ---
 
 ## 7. Session Protocol
@@ -831,8 +897,8 @@ Recommended application-layer mitigations (outside Attestara scope):
 | MandateBound | ~5,000 | < 500ms | < 1.5s | ~210K |
 | ParameterRange | ~8,000 | < 800ms | < 2.0s | ~215K |
 | CredentialFreshness | ~20,000 * | < 1.2s | < 3.0s | ~230K |
-| IdentityBinding | ~6,000 | < 600ms | < 1.8s | ~210K |
-| **Bundled (4 circuits)** | **~39,000** | **< 2.0s** | **< 4.5s** | **~280K (batched)** |
+| IdentityBinding | ~932 | < 100ms | < 500ms | ~180K |
+| **Bundled (4 circuits)** | **~33,932** | **< 1.8s** | **< 4.0s** | **~260K (batched)** |
 
 \* CredentialFreshness constraint count includes Poseidon Merkle path verification over the Bitstring Status List (~12K constraints for a 2^16 entry list) and the SHA-256 bridging gadget (~6K constraints). Actual count depends on status list size; benchmarks assume a 2^16 (65,536) entry list.
 
