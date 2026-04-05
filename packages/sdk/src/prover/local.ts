@@ -38,7 +38,7 @@ const CIRCUIT_FILES: Record<string, { wasm: string; zkey: string; vkey: string }
 }
 
 /** Circuit version string embedded in proof results */
-const CIRCUIT_VERSION = 'v1'
+const CIRCUIT_VERSION = 'v1.0.0'
 
 /**
  * Normalize circuit inputs: convert all values to strings for snarkjs.

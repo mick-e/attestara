@@ -7,7 +7,7 @@ describe("VerifierRegistry", function () {
   let owner: any;
   let other: any;
 
-  const circuitId = ethers.keccak256(ethers.toUtf8Bytes("mandate-bound-v1"));
+  const circuitId = ethers.keccak256(ethers.toUtf8Bytes("mandate-bound-1.0.0"));
   const ZERO_ADDRESS = ethers.ZeroAddress;
 
   beforeEach(async () => {

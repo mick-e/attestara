@@ -14,8 +14,8 @@ describe("CommitmentContract", function () {
   const sessionId = ethers.keccak256(ethers.toUtf8Bytes("session-001"));
   const merkleRoot = ethers.keccak256(ethers.toUtf8Bytes("merkle-root"));
   const agreementHash = ethers.keccak256(ethers.toUtf8Bytes("agreement-001"));
-  const circuitId = ethers.keccak256(ethers.toUtf8Bytes("mandate-bound-v1"));
-  const circuitId2 = ethers.keccak256(ethers.toUtf8Bytes("param-range-v1"));
+  const circuitId = ethers.keccak256(ethers.toUtf8Bytes("mandate-bound-1.0.0"));
+  const circuitId2 = ethers.keccak256(ethers.toUtf8Bytes("parameter-range-1.0.0"));
   const party1 = ethers.keccak256(ethers.toUtf8Bytes("agent-1"));
   const party2 = ethers.keccak256(ethers.toUtf8Bytes("agent-2"));
   const credHash = ethers.keccak256(ethers.toUtf8Bytes("cred-001"));

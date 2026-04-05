@@ -47,7 +47,7 @@ const CIRCUIT_METADATA: Record<string, Omit<CircuitMetadata, 'available'>> = {
     id: 'IdentityBinding',
     name: 'Identity Binding',
     version: '1.0.0',
-    constraintCount: 1200,
+    constraintCount: 932,
     publicInputs: ['did_public_key', 'session_commitment'],
     privateInputs: ['did_private_key', 'session_id', 'session_public_key'],
   },

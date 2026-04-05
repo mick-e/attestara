@@ -86,6 +86,31 @@ export type CircuitInputMap = {
   [CircuitId.IDENTITY_BINDING]: IdentityBindingInputs
 }
 
+/**
+ * Circuit name to identifier string mapping for on-chain VerifierRegistry.
+ * The circuit ID is computed as keccak256("<name>-<semver>") where the
+ * semver has no 'v' prefix. This mapping defines the canonical names.
+ */
+export const CIRCUIT_NAMES: Record<CircuitId, string> = {
+  [CircuitId.MANDATE_BOUND]: 'mandate-bound',
+  [CircuitId.PARAMETER_RANGE]: 'parameter-range',
+  [CircuitId.CREDENTIAL_FRESHNESS]: 'credential-freshness',
+  [CircuitId.IDENTITY_BINDING]: 'identity-binding',
+}
+
+/**
+ * Derive the on-chain circuit identifier (bytes32) from a circuit name and version.
+ * Matches the VerifierRegistry's keccak256(abi.encodePacked("<name>-<semver>")) scheme.
+ *
+ * @param circuitName - Canonical circuit name (e.g., "mandate-bound")
+ * @param version - Semantic version with optional 'v' prefix (e.g., "v1.0.0" or "1.0.0")
+ * @returns The identifier string to be hashed with keccak256 (e.g., "mandate-bound-1.0.0")
+ */
+export function deriveCircuitIdString(circuitName: string, version: string): string {
+  const semver = version.startsWith('v') ? version.slice(1) : version
+  return `${circuitName}-${semver}`
+}
+
 /** A bundled set of ZK proofs for a single negotiation turn */
 export interface TurnProofBundle {
   proofs: ProofResult[]
