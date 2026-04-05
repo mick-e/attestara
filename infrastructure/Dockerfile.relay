@@ -5,15 +5,16 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.js
 COPY packages/types ./packages/types
 COPY packages/contracts ./packages/contracts
 COPY packages/relay ./packages/relay
-RUN corepack enable && echo "node-linker=hoisted" > .npmrc && pnpm install --frozen-lockfile
+RUN corepack enable && pnpm install --frozen-lockfile
 RUN pnpm --filter @attestara/types build
 RUN pnpm --filter @attestara/relay db:generate
 RUN pnpm --filter @attestara/relay build
+RUN cp -rL /app/node_modules /app/node_modules_resolved
 
 FROM node:20-alpine
 WORKDIR /app
 COPY --from=builder /app/packages/relay/dist ./dist
 COPY --from=builder /app/packages/relay/prisma ./prisma
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules_resolved ./node_modules
 EXPOSE 3001
 CMD ["node", "dist/start.js"]
