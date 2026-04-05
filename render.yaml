@@ -75,9 +75,12 @@ services:
       - key: NODE_ENV
         value: production
 
+  # ── Redis ───────────────────────────────────────────────────────────────
+  - type: redis
+    name: attestara-redis
+    plan: free
+    ipAllowList: []
+
 databases:
   - name: attestara-db
-    plan: basic-256mb
-
-  - name: attestara-redis
-    plan: basic-128mb
+    plan: free
