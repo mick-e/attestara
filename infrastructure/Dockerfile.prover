@@ -1,19 +1,14 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json ./
 COPY packages/types ./packages/types
 COPY packages/prover ./packages/prover
-COPY packages/contracts/circuits/build ./circuits/build
+COPY packages/contracts/circuits/build ./packages/contracts/circuits/build
 RUN corepack enable && pnpm install --frozen-lockfile
 RUN pnpm --filter @attestara/types build
 RUN pnpm --filter @attestara/prover build
-RUN cp -rL /app/node_modules /app/node_modules_resolved
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/packages/prover/dist ./dist
-COPY --from=builder /app/circuits/build ./circuits/build
-COPY --from=builder /app/node_modules_resolved ./node_modules
+RUN apk del python3 make g++
 EXPOSE 3002
+WORKDIR /app/packages/prover
 CMD ["node", "dist/start.js"]

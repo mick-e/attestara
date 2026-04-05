@@ -20,7 +20,7 @@ services:
     runtime: docker
     plan: starter
     dockerfilePath: infrastructure/Dockerfile.relay
-    preDeployCommand: node ./node_modules/.bin/prisma migrate deploy --schema ./prisma/schema.prisma
+    preDeployCommand: npx prisma migrate deploy
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL

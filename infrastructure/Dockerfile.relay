@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json ./
@@ -9,12 +9,7 @@ RUN corepack enable && pnpm install --frozen-lockfile
 RUN pnpm --filter @attestara/types build
 RUN pnpm --filter @attestara/relay db:generate
 RUN pnpm --filter @attestara/relay build
-RUN cp -rL /app/node_modules /app/node_modules_resolved
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/packages/relay/dist ./dist
-COPY --from=builder /app/packages/relay/prisma ./prisma
-COPY --from=builder /app/node_modules_resolved ./node_modules
+RUN apk del python3 make g++
 EXPOSE 3001
+WORKDIR /app/packages/relay
 CMD ["node", "dist/start.js"]
