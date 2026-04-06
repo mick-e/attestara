@@ -8,6 +8,7 @@ import {
   CommitmentManager,
   CredentialManager,
   MemoryIPFSClient,
+  AttestaraClient,
 } from '@attestara/sdk'
 import { CircuitId } from '@attestara/types'
 import type { MandateParams } from '@attestara/types'
@@ -28,11 +29,19 @@ export function demoCommand(): Command {
     .option('--currency <code>', 'Currency', 'EUR')
     .option('--turns <n>', 'Number of negotiation turns', '5')
     .option('--json', 'Output as JSON')
+    .option('--relay-url <url>', 'Relay API URL (enables live mode)')
+    .option('--rpc-url <url>', 'Arbitrum Sepolia RPC URL (enables on-chain commitments)')
+    .option('--private-key <key>', 'Deployer private key for on-chain transactions')
     .addHelpText('after', `
 Examples:
   $ attestara demo
   $ attestara demo --buyer-budget 1000000 --seller-min 700000 --currency USD
   $ attestara demo --turns 3 --json
+
+  # Live mode — connects to deployed relay + Arbitrum Sepolia:
+  $ attestara demo --relay-url https://attestara-relay.onrender.com \\
+      --rpc-url https://arb-sepolia.g.alchemy.com/v2/KEY \\
+      --private-key 0x...
     `)
     .action(async (options) => {
       const buyerBudget = BigInt(options.buyerBudget)
@@ -40,10 +49,43 @@ Examples:
       const currency = options.currency
       const maxTurns = parseInt(options.turns, 10)
 
+      const isLiveMode = !!(options.relayUrl || options.rpcUrl)
+
       console.log()
       console.log(chalk.bold(`Attestara v0.1.0 | Interactive Demo`))
+      if (isLiveMode) {
+        console.log(chalk.cyan(`  Mode: LIVE (relay + Arbitrum Sepolia)`))
+        if (options.relayUrl) console.log(chalk.gray(`  Relay: ${options.relayUrl}`))
+        if (options.rpcUrl) console.log(chalk.gray(`  RPC: ${options.rpcUrl.substring(0, 40)}...`))
+      } else {
+        console.log(chalk.gray(`  Mode: LOCAL (in-memory, no chain)`))
+      }
       console.log(chalk.gray('─'.repeat(40)))
       console.log()
+
+      // Load deployed contract addresses for live mode
+      let contractAddresses: { agentRegistry: string; credentialRegistry: string; commitmentContract: string } | undefined
+      if (isLiveMode) {
+        try {
+          const fs = await import('fs')
+          const path = await import('path')
+          const deploymentsPath = path.resolve(
+            import.meta.dirname ?? '.',
+            '../../contracts/deployments.arbitrum-sepolia.json',
+          )
+          if (fs.existsSync(deploymentsPath)) {
+            const deployments = JSON.parse(fs.readFileSync(deploymentsPath, 'utf-8'))
+            contractAddresses = {
+              agentRegistry: deployments.agentRegistry,
+              credentialRegistry: deployments.credentialRegistry,
+              commitmentContract: deployments.commitmentContract,
+            }
+            printDetail('CommitmentContract', contractAddresses.commitmentContract)
+          }
+        } catch {
+          // Fall through — contracts optional
+        }
+      }
 
       // Step 1: Create agents
       const agentSpinner = ora('Creating agents...').start()
@@ -91,7 +133,11 @@ Examples:
       proofSpinner.succeed(`ZK proofs generated (3 proofs, ${proofMs}ms)`)
 
       // Step 4: Create session and negotiate
-      const sessionManager = new SessionManager()
+      // Use relay-backed session manager in live mode
+      const sessionManager = options.relayUrl
+        ? new SessionManager({ url: options.relayUrl })
+        : new SessionManager()
+
       const sess = await sessionManager.create({
         initiatorAgentId: buyer.did,
         counterpartyAgentId: seller.did,
@@ -105,7 +151,7 @@ Examples:
 
       console.log()
       printInfo(`Session: ${sess.id}`)
-      console.log(`  ${symbols.success} Session anchored`)
+      console.log(`  ${symbols.success} Session anchored${isLiveMode ? ' (relay-backed)' : ''}`)
       console.log()
 
       // Simulate negotiation turns
@@ -179,9 +225,20 @@ Examples:
       console.log()
       console.log(`  ${symbols.success} ${chalk.bold('Agreement')}: ${formatCurrency(agreedValue, currency)} / ${agreedDays} days`)
 
-      // Create commitment
-      const commitSpinner = ora('Recording commitment on-chain...').start()
-      const commitmentManager = new CommitmentManager()
+      // Create commitment — use on-chain CommitmentManager if RPC configured
+      const commitSpinner = ora(
+        isLiveMode && options.rpcUrl
+          ? 'Recording commitment on Arbitrum Sepolia...'
+          : 'Recording commitment (local)...',
+      ).start()
+
+      const commitmentManager = (options.rpcUrl && contractAddresses)
+        ? new CommitmentManager({
+            rpcUrl: options.rpcUrl,
+            contractAddress: contractAddresses.commitmentContract,
+            privateKey: options.privateKey || process.env.DEPLOYER_PRIVATE_KEY,
+          })
+        : new CommitmentManager()
 
       const buyerCredHash = credManager.hashCredential(buyerCred)
       const sellerCredHash = credManager.hashCredential(sellerCred)
@@ -193,23 +250,31 @@ Examples:
         credentialHashes: [buyerCredHash, sellerCredHash],
         proofs: [{
           circuitId: CircuitId.MANDATE_BOUND,
-          circuitVersion: 'v1-test',
+          circuitVersion: 'v1.0.0',
           proof: buyerProof.proof,
           publicSignals: buyerProof.publicSignals,
         }],
       })
 
       await commitmentManager.verify(commitment.id)
-      commitSpinner.succeed('Commitment recorded and verified!')
+
+      if (commitment.txHash) {
+        commitSpinner.succeed(`Commitment settled on-chain!`)
+        printDetail('TX Hash', commitment.txHash)
+        printDetail('Block', String(commitment.blockNumber))
+      } else {
+        commitSpinner.succeed('Commitment recorded and verified!')
+      }
       printDetail('Commitment ID', commitment.id)
       printDetail('Merkle Root', sess.merkleRoot)
 
       // Summary
       console.log()
       console.log(chalk.gray('─'.repeat(40)))
+      const modeLabel = isLiveMode ? 'LIVE' : 'LOCAL'
       console.log(
         chalk.gray(
-          `  Total turns: ${sess.turnCount} | ZK proofs: ${maxTurns + 3} | Proof overhead: ${proofMs}ms`,
+          `  [${modeLabel}] Total turns: ${sess.turnCount} | ZK proofs: ${maxTurns + 3} | Proof overhead: ${proofMs}ms`,
         ),
       )
       console.log()
@@ -217,6 +282,7 @@ Examples:
       if (options.json) {
         console.log()
         console.log(JSON.stringify({
+          mode: isLiveMode ? 'live' : 'local',
           buyer: { did: buyer.did, budget: buyerBudget.toString() },
           seller: { did: seller.did, minPrice: sellerMin.toString() },
           session: {
@@ -233,6 +299,8 @@ Examples:
           commitment: {
             id: commitment.id,
             verified: commitment.verified,
+            txHash: commitment.txHash ?? null,
+            blockNumber: commitment.blockNumber ?? null,
           },
           turns: turnResults,
         }, null, 2))

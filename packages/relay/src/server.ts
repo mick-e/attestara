@@ -91,9 +91,33 @@ export async function buildServer(options: ServerOptions = {}) {
 
   // Start indexer if RPC URL configured (non-blocking)
   if (process.env.ARBITRUM_SEPOLIA_RPC_URL) {
-    import('./indexer/index.js').then(m => m.startIndexer({
-      rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
-    })).catch(err => app.log?.warn({ err }, 'Indexer failed to start'))
+    // Load deployed contract addresses for event indexing
+    const loadContractAddresses = async () => {
+      try {
+        const fs = await import('fs')
+        const path = await import('path')
+        const deploymentsPath = path.resolve(
+          import.meta.dirname ?? '.',
+          '../../contracts/deployments.arbitrum-sepolia.json',
+        )
+        if (fs.existsSync(deploymentsPath)) {
+          return JSON.parse(fs.readFileSync(deploymentsPath, 'utf-8'))
+        }
+      } catch {
+        // Fall through — indexer runs without addresses (no event filtering)
+      }
+      return {}
+    }
+
+    loadContractAddresses().then(addresses =>
+      import('./indexer/index.js').then(m => m.startIndexer({
+        rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+        contractAddresses: {
+          agentRegistry: addresses.agentRegistry,
+          commitmentContract: addresses.commitmentContract,
+        },
+      }))
+    ).catch(err => app.log?.warn({ err }, 'Indexer failed to start'))
   }
 
   return app
