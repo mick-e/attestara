@@ -1,0 +1,7 @@
+ptau/
+*/MandateBound_js/
+*/ParameterRange_js/
+*/CredentialFreshness_js/
+*/IdentityBinding_js/
+*/*.r1cs
+*/*.sym

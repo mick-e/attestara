@@ -10,25 +10,23 @@ template IdentityBinding() {
     signal input public_key;
     signal input did_document_hash;
 
+    // Public output — the binding hash that the verifier checks
+    signal output binding;
+
     // Step 1: Derive public key from private key using Poseidon hash
-    // public_key = Poseidon(private_key)
+    // Proves: the prover knows the private key that hashes to public_key
     component keyDerivation = Poseidon(1);
     keyDerivation.inputs[0] <== private_key;
 
     // Step 2: Verify derived public key matches the claimed public key
     public_key === keyDerivation.out;
 
-    // Step 3: Verify the public key is bound to the DID document hash
-    // binding = Poseidon(public_key, did_document_hash) — must be deterministic
-    // We verify that the binding is well-formed by constraining it exists
-    // (the public_key is already proven to match the private_key above,
-    //  and did_document_hash is a public input, so the binding is implicit:
-    //  the prover demonstrates knowledge of private_key that maps to public_key,
-    //  and both public_key and did_document_hash are public, establishing the link)
-    //
-    // To make the binding cryptographically explicit, we compute and constrain
-    // a binding hash, ensuring the circuit enforces the relationship.
-    signal binding;
+    // Step 3: Compute binding hash and expose as public output
+    // binding = Poseidon(public_key, did_document_hash)
+    // The verifier checks this output matches the expected binding for
+    // the agent's registered DID. Without this constraint, did_document_hash
+    // would be a dangling input — the verifier could not confirm the
+    // identity is bound to a specific DID document.
     component bindingHash = Poseidon(2);
     bindingHash.inputs[0] <== public_key;
     bindingHash.inputs[1] <== did_document_hash;

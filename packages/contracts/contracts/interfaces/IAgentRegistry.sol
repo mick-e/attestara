@@ -27,4 +27,5 @@ interface IAgentRegistry {
     function resolveAgentById(bytes32 agentId) external view returns (AgentRecord memory);
     function deactivateAgent(bytes32 agentId) external;
     function isRegistered(string calldata did) external view returns (bool);
+    function isRegisteredAdmin(address addr) external view returns (bool);
 }

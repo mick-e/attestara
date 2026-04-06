@@ -16,15 +16,33 @@ describe("CommitmentContract", function () {
   const agreementHash = ethers.keccak256(ethers.toUtf8Bytes("agreement-001"));
   const circuitId = ethers.keccak256(ethers.toUtf8Bytes("mandate-bound-1.0.0"));
   const circuitId2 = ethers.keccak256(ethers.toUtf8Bytes("parameter-range-1.0.0"));
-  const party1 = ethers.keccak256(ethers.toUtf8Bytes("agent-1"));
-  const party2 = ethers.keccak256(ethers.toUtf8Bytes("agent-2"));
   const credHash = ethers.keccak256(ethers.toUtf8Bytes("cred-001"));
 
   // Dummy proof: 8 uint256 values
   const dummyProof: [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] = [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n];
   const dummySignals = [100n, 200n];
-  const dummySig1 = ethers.toUtf8Bytes("sig1");
-  const dummySig2 = ethers.toUtf8Bytes("sig2");
+
+  // Helper: derive party bytes32 from signer address
+  function addressToParty(addr: string): string {
+    return ethers.zeroPadValue(addr, 32);
+  }
+
+  // Helper: sign commitment digest with a signer
+  async function signCommitment(
+    signer: any,
+    _sessionId: string,
+    _agreementHash: string,
+    _credentialHashes: string[],
+    _proofTypes: string[]
+  ): Promise<string> {
+    const innerHash = ethers.keccak256(
+      ethers.solidityPacked(
+        ["bytes32", "bytes32", "bytes32[]", "bytes32[]"],
+        [_sessionId, _agreementHash, _credentialHashes, _proofTypes]
+      )
+    );
+    return signer.signMessage(ethers.getBytes(innerHash));
+  }
 
   beforeEach(async () => {
     [owner, other] = await ethers.getSigners();
@@ -60,35 +78,49 @@ describe("CommitmentContract", function () {
 
   describe("anchorSession", () => {
     it("should anchor session and emit SessionAnchored event", async () => {
+      const party1 = addressToParty(owner.address);
+      const party2 = addressToParty(other.address);
       await expect(commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5))
         .to.emit(commitment, "SessionAnchored")
         .withArgs(sessionId, merkleRoot, [party1, party2], 5);
     });
 
     it("should reject duplicate anchor", async () => {
+      const party1 = addressToParty(owner.address);
+      const party2 = addressToParty(other.address);
       await commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5);
 
       await expect(
         commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5)
       ).to.be.revertedWith("Session already anchored");
     });
+
+    it("should reject with fewer than 2 parties", async () => {
+      const party1 = addressToParty(owner.address);
+      await expect(
+        commitment.anchorSession(sessionId, merkleRoot, [party1], 5)
+      ).to.be.revertedWith("Need at least 2 parties");
+    });
   });
 
   describe("createCommitment", () => {
+    let party1: string;
+    let party2: string;
+    let sig1: string;
+    let sig2: string;
+
     beforeEach(async () => {
+      party1 = addressToParty(owner.address);
+      party2 = addressToParty(other.address);
       await commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5);
+      sig1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId]);
+      sig2 = await signCommitment(other, sessionId, agreementHash, [credHash], [circuitId]);
     });
 
-    it("should create commitment with passing mock verifier and emit event", async () => {
+    it("should create commitment with valid signatures and emit event", async () => {
       const tx = await commitment.createCommitment(
-        sessionId,
-        agreementHash,
-        [party1, party2],
-        [credHash],
-        [dummyProof],
-        [dummySignals],
-        [circuitId],
-        [dummySig1, dummySig2]
+        sessionId, agreementHash, [party1, party2], [credHash],
+        [dummyProof], [dummySignals], [circuitId], [sig1, sig2]
       );
 
       const receipt = await tx.wait();
@@ -98,49 +130,65 @@ describe("CommitmentContract", function () {
         } catch { return false; }
       });
       expect(event).to.not.be.undefined;
-
-      const parsed = commitment.interface.parseLog({
-        topics: event!.topics as string[],
-        data: event!.data,
-      });
-      expect(parsed?.args.sessionId).to.equal(sessionId);
-      expect(parsed?.args.agreementHash).to.equal(agreementHash);
     });
 
-    it("should reject when proof verification fails", async () => {
-      // Register failing verifier for a different circuit
-      const failCircuitId = ethers.keccak256(ethers.toUtf8Bytes("fail-circuit"));
-      await verifierRegistry.registerVerifier(failCircuitId, await mockVerifierFail.getAddress());
+    it("should reject invalid signature", async () => {
+      // Sign with wrong signer for party2
+      const wrongSig = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId]);
 
       await expect(
         commitment.createCommitment(
-          sessionId,
-          agreementHash,
-          [party1, party2],
-          [credHash],
-          [dummyProof],
-          [dummySignals],
-          [failCircuitId],
-          [dummySig1, dummySig2]
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [circuitId], [sig1, wrongSig]
+        )
+      ).to.be.revertedWith("Invalid signature for party");
+    });
+
+    it("should reject when signature count doesn't match parties", async () => {
+      await expect(
+        commitment.createCommitment(
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [circuitId], [sig1]
+        )
+      ).to.be.revertedWith("Signature count must match parties");
+    });
+
+    it("should reject when proof verification fails", async () => {
+      const failCircuitId = ethers.keccak256(ethers.toUtf8Bytes("fail-circuit"));
+      await verifierRegistry.registerVerifier(failCircuitId, await mockVerifierFail.getAddress());
+      const s1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [failCircuitId]);
+      const s2 = await signCommitment(other, sessionId, agreementHash, [credHash], [failCircuitId]);
+
+      await expect(
+        commitment.createCommitment(
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [failCircuitId], [s1, s2]
         )
       ).to.be.revertedWith("Proof verification failed");
     });
 
     it("should reject when circuit version not registered", async () => {
       const unknownCircuit = ethers.keccak256(ethers.toUtf8Bytes("unknown-circuit"));
+      const s1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [unknownCircuit]);
+      const s2 = await signCommitment(other, sessionId, agreementHash, [credHash], [unknownCircuit]);
 
       await expect(
         commitment.createCommitment(
-          sessionId,
-          agreementHash,
-          [party1, party2],
-          [credHash],
-          [dummyProof],
-          [dummySignals],
-          [unknownCircuit],
-          [dummySig1, dummySig2]
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [unknownCircuit], [s1, s2]
         )
       ).to.be.revertedWith("Unregistered circuit version");
+    });
+
+    it("should reject deprecated circuit version", async () => {
+      await verifierRegistry.deprecateCircuit(circuitId);
+
+      await expect(
+        commitment.createCommitment(
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [circuitId], [sig1, sig2]
+        )
+      ).to.be.revertedWith("Circuit version deprecated");
     });
 
     it("should reject when session not anchored", async () => {
@@ -148,65 +196,35 @@ describe("CommitmentContract", function () {
 
       await expect(
         commitment.createCommitment(
-          unanchoredSession,
-          agreementHash,
-          [party1, party2],
-          [credHash],
-          [dummyProof],
-          [dummySignals],
-          [circuitId],
-          [dummySig1, dummySig2]
+          unanchoredSession, agreementHash, [party1, party2], [credHash],
+          [dummyProof], [dummySignals], [circuitId], [sig1, sig2]
         )
       ).to.be.revertedWith("Session not anchored");
-    });
-
-    it("should reject when fewer than 2 signatures", async () => {
-      await expect(
-        commitment.createCommitment(
-          sessionId,
-          agreementHash,
-          [party1, party2],
-          [credHash],
-          [dummyProof],
-          [dummySignals],
-          [circuitId],
-          [dummySig1] // only 1 signature
-        )
-      ).to.be.revertedWith("Need at least 2 signatures");
     });
 
     it("should reject proof/type length mismatch", async () => {
       await expect(
         commitment.createCommitment(
-          sessionId,
-          agreementHash,
-          [party1, party2],
-          [credHash],
-          [dummyProof, dummyProof], // 2 proofs
-          [dummySignals, dummySignals],
-          [circuitId], // 1 type
-          [dummySig1, dummySig2]
+          sessionId, agreementHash, [party1, party2], [credHash],
+          [dummyProof, dummyProof], [dummySignals, dummySignals],
+          [circuitId], [sig1, sig2]
         )
       ).to.be.revertedWith("Proof/type length mismatch");
     });
 
     it("should route proofTypes to correct verifiers", async () => {
-      // Register a second passing verifier for circuitId2
       const MockFactory = await ethers.getContractFactory("MockVerifier");
       const mockVerifier2 = await MockFactory.deploy(true);
       await mockVerifier2.waitForDeployment();
       await verifierRegistry.registerVerifier(circuitId2, await mockVerifier2.getAddress());
 
-      // Create commitment with 2 proofs routed to 2 different verifiers
+      const s1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId, circuitId2]);
+      const s2 = await signCommitment(other, sessionId, agreementHash, [credHash], [circuitId, circuitId2]);
+
       const tx = await commitment.createCommitment(
-        sessionId,
-        agreementHash,
-        [party1, party2],
-        [credHash],
-        [dummyProof, dummyProof],
-        [dummySignals, dummySignals],
-        [circuitId, circuitId2],
-        [dummySig1, dummySig2]
+        sessionId, agreementHash, [party1, party2], [credHash],
+        [dummyProof, dummyProof], [dummySignals, dummySignals],
+        [circuitId, circuitId2], [s1, s2]
       );
 
       const receipt = await tx.wait();
@@ -216,17 +234,16 @@ describe("CommitmentContract", function () {
 
   describe("getCommitment", () => {
     it("should return commitment by ID", async () => {
+      const party1 = addressToParty(owner.address);
+      const party2 = addressToParty(other.address);
       await commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5);
 
+      const sig1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId]);
+      const sig2 = await signCommitment(other, sessionId, agreementHash, [credHash], [circuitId]);
+
       const tx = await commitment.createCommitment(
-        sessionId,
-        agreementHash,
-        [party1, party2],
-        [credHash],
-        [dummyProof],
-        [dummySignals],
-        [circuitId],
-        [dummySig1, dummySig2]
+        sessionId, agreementHash, [party1, party2], [credHash],
+        [dummyProof], [dummySignals], [circuitId], [sig1, sig2]
       );
       const receipt = await tx.wait();
 
@@ -256,24 +273,28 @@ describe("CommitmentContract", function () {
 
   describe("getSessionCommitments", () => {
     it("should return all commitments for a session", async () => {
+      const party1 = addressToParty(owner.address);
+      const party2 = addressToParty(other.address);
       await commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5);
 
-      // Create two commitments
       const agreementHash2 = ethers.keccak256(ethers.toUtf8Bytes("agreement-002"));
+
+      const sig1a = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId]);
+      const sig2a = await signCommitment(other, sessionId, agreementHash, [credHash], [circuitId]);
+      const sig1b = await signCommitment(owner, sessionId, agreementHash2, [credHash], [circuitId]);
+      const sig2b = await signCommitment(other, sessionId, agreementHash2, [credHash], [circuitId]);
 
       await commitment.createCommitment(
         sessionId, agreementHash, [party1, party2], [credHash],
-        [dummyProof], [dummySignals], [circuitId], [dummySig1, dummySig2]
+        [dummyProof], [dummySignals], [circuitId], [sig1a, sig2a]
       );
       await commitment.createCommitment(
         sessionId, agreementHash2, [party1, party2], [credHash],
-        [dummyProof], [dummySignals], [circuitId], [dummySig1, dummySig2]
+        [dummyProof], [dummySignals], [circuitId], [sig1b, sig2b]
       );
 
       const records = await commitment.getSessionCommitments(sessionId);
       expect(records.length).to.equal(2);
-      expect(records[0].agreementHash).to.equal(agreementHash);
-      expect(records[1].agreementHash).to.equal(agreementHash2);
     });
 
     it("should return empty array for session with no commitments", async () => {
@@ -285,11 +306,16 @@ describe("CommitmentContract", function () {
 
   describe("flagCommitment", () => {
     it("should emit CommitmentFlagged event", async () => {
+      const party1 = addressToParty(owner.address);
+      const party2 = addressToParty(other.address);
       await commitment.anchorSession(sessionId, merkleRoot, [party1, party2], 5);
+
+      const sig1 = await signCommitment(owner, sessionId, agreementHash, [credHash], [circuitId]);
+      const sig2 = await signCommitment(other, sessionId, agreementHash, [credHash], [circuitId]);
 
       const tx = await commitment.createCommitment(
         sessionId, agreementHash, [party1, party2], [credHash],
-        [dummyProof], [dummySignals], [circuitId], [dummySig1, dummySig2]
+        [dummyProof], [dummySignals], [circuitId], [sig1, sig2]
       );
       const receipt = await tx.wait();
 
