@@ -1,9 +1,15 @@
 {
-  "agentRegistry": "0x18fDE761a217A91Be8bD3A35fA285dCc7307B808",
-  "credentialRegistry": "0xB29a580fd2c7D72Ff0e49DF595F9B63837E0Ec86",
-  "verifierRegistry": "0x7B1969CBB1001C1fEAA2259153ada679d09CE5d5",
-  "commitmentContract": "0x8f6a1496314B76464e36ee5c04ebDd270f9AF6f8",
+  "agentRegistry": "0xAC3747Cd9265c87d9D8e3a101DAFe2afc107e7F7",
+  "credentialRegistry": "0x8EFfDf448037100f6E4AEda75B319C943092Efa9",
+  "verifierRegistry": "0x2Cc25B759C40A44bC863e35c1Dae097a9f6c8848",
+  "commitmentContract": "0xc9E12435F45252A0ed2f46578f8a9b1b0db8f6Fd",
+  "circuitIds": {
+    "mandate-bound-1.0.0": "0x0e5049906bceb5126f44afa6965618c6ce293b16483011497c7eebbb5f46dfa5",
+    "parameter-range-1.0.0": "0x27c2ef24232d4e62dc995243e9b1e8e6de203077693d93e58556e8f20923e883",
+    "credential-freshness-1.0.0": "0x25bc476ed0d79d8360f9cebbf26d6c56a5b37fb061577c558ba187308ca05fd1",
+    "identity-binding-1.0.0": "0x266bd9932c62f79566194cb8cb9fc878b64301a4ee2d2bca3a4f6f0aa108b919"
+  },
   "deployer": "0x3067aC6fFf45BCA7aA14639543AD9d8fbffcc2d5",
   "network": "arbitrum-sepolia",
-  "timestamp": "2026-03-30T16:24:46.712Z"
+  "timestamp": "2026-04-06T12:47:30.599Z"
 }
