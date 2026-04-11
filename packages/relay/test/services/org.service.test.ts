@@ -211,7 +211,7 @@ describe('OrgService', () => {
     it('should store invite data retrievable by ID', async () => {
       const org = await service.createOrg('Test')
       const inviteId = await service.createInvite(org.id, 'inv@example.com', 'admin')
-      const invite = service.getInvite(inviteId)
+      const invite = await service.getInvite(inviteId)
       expect(invite).toEqual({ orgId: org.id, email: 'inv@example.com', role: 'admin' })
     })
   })

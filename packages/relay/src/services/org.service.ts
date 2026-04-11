@@ -137,25 +137,30 @@ export class OrgService {
   }
 
   async createInvite(orgId: string, email: string, role: string): Promise<string> {
-    // Invites are ephemeral — keep in memory for now (no Prisma model)
-    const inviteId = randomUUID()
-    this._invites.set(inviteId, { orgId, email, role })
-    return inviteId
+    const invite = await getPrisma().invite.create({
+      data: {
+        orgId,
+        email,
+        role,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7-day expiry
+      },
+    })
+    return invite.id
   }
 
-  getInvite(inviteId: string): { orgId: string; email: string; role: string } | null {
-    return this._invites.get(inviteId) ?? null
+  async getInvite(inviteId: string): Promise<{ orgId: string; email: string; role: string } | null> {
+    const invite = await getPrisma().invite.findUnique({ where: { id: inviteId } })
+    if (!invite) return null
+    if (new Date() > invite.expiresAt) return null
+    return { orgId: invite.orgId, email: invite.email, role: invite.role }
   }
 
   async clearStores(): Promise<void> {
-    // Delete in FK-safe order
+    // Delete in FK-safe order (invites before organisations due to FK)
+    await getPrisma().invite.deleteMany()
     await getPrisma().user.deleteMany()
     await getPrisma().organisation.deleteMany()
-    this._invites.clear()
   }
-
-  // Invites stay in-memory (no Prisma model defined)
-  private _invites = new Map<string, { orgId: string; email: string; role: string }>()
 }
 
 /** Singleton instance shared across routes */
