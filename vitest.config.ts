@@ -1,6 +1,11 @@
 // vitest.config.ts (root level)
 import { defineConfig } from 'vitest/config'
 import path from 'path'
+import { config } from 'dotenv'
+
+// Load env vars for integration tests (relay needs DATABASE_URL, REDIS_URL, etc.)
+config({ path: path.resolve(__dirname, 'packages/relay/.env.test') })
+config({ path: path.resolve(__dirname, '.env') })
 
 export default defineConfig({
   resolve: {
