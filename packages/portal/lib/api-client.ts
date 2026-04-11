@@ -92,6 +92,40 @@ export interface Invite {
   status: string;
 }
 
+export interface CommitmentResponse {
+  id: string;
+  sessionId: string;
+  agreementHash: string;
+  parties: string[];
+  credentialHashes: string[];
+  proofs: Record<string, unknown>;
+  circuitVersions: string[];
+  verified: boolean;
+  txHash: string | null;
+  blockNumber: number | null;
+  createdAt: string;
+}
+
+export interface AnalyticsResponse {
+  agentCount: number;
+  credentialCount: number;
+  sessionCount: number;
+  commitmentCount: number;
+  activeSessionCount: number;
+  avgTurnsPerSession: number;
+}
+
+export interface ApiKeyResponse {
+  id: string;
+  orgId: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  expiresAt: string | null;
+  createdAt: string;
+  rawKey?: string;
+}
+
 export interface Paginated<T> {
   data: T[];
   pagination: {
@@ -308,6 +342,52 @@ export class ApiClient {
 
     invite: (orgId: string, email: string, role?: string) =>
       this.post<Invite>(`/orgs/${orgId}/invite`, { email, role }),
+  };
+
+  // ── Commitments ──────────────────────────────────────────────────────────
+
+  commitments = {
+    list: () =>
+      this.get<Paginated<CommitmentResponse>>("/commitments"),
+
+    get: (id: string) =>
+      this.get<CommitmentResponse>(`/commitments/${id}`),
+
+    verify: (id: string) =>
+      this.post<CommitmentResponse>(`/commitments/${id}/verify`),
+  };
+
+  // ── Analytics ────────────────────────────────────────────────────────────
+
+  analytics = {
+    get: (orgId: string) =>
+      this.get<AnalyticsResponse>(`/orgs/${orgId}/analytics`),
+  };
+
+  // ── API Keys ─────────────────────────────────────────────────────────────
+
+  apiKeys = {
+    list: (orgId: string) =>
+      this.get<Paginated<ApiKeyResponse>>(`/orgs/${orgId}/api-keys`),
+
+    create: (orgId: string, data: { name: string; scopes?: string[]; expiresAt?: string }) =>
+      this.post<ApiKeyResponse>(`/orgs/${orgId}/api-keys`, data),
+
+    revoke: (orgId: string, keyId: string) =>
+      this.delete(`/orgs/${orgId}/api-keys/${keyId}`),
+  };
+
+  // ── Turns ────────────────────────────────────────────────────────────────
+
+  turns = {
+    submit: (sessionId: string, data: {
+      agentId: string;
+      terms: Record<string, unknown>;
+      proofType: string;
+      proof: Record<string, unknown>;
+      publicSignals: Record<string, unknown>;
+      signature: string;
+    }) => this.post<Turn>(`/sessions/${sessionId}/turns`, data),
   };
 }
 
