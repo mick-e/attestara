@@ -7,7 +7,6 @@ import {
   createSiweMessage,
   parseSiweMessage,
   storeNonce,
-  getNonceStore,
 } from '../src/utils/siwe.js'
 import jwt from 'jsonwebtoken'
 
@@ -173,22 +172,22 @@ describe('POST /v1/auth/wallet/verify', () => {
     expect(body.code).toBe('ADDRESS_MISMATCH')
   })
 
-  it('should return 401 for expired nonce', async () => {
+  it('should return 401 for unknown (never-stored) nonce', async () => {
     const app = await createApp()
     const wallet = Wallet.createRandom()
 
-    // Request a nonce
-    const nonceRes = await app.inject({
-      method: 'POST',
-      url: '/v1/auth/wallet/nonce',
-      payload: { address: wallet.address },
+    // Build a message with a nonce that was never stored in Redis
+    const nonce = generateNonce()
+    const message = createSiweMessage({
+      domain: SIWE_DOMAIN,
+      address: wallet.address,
+      statement: SIWE_STATEMENT,
+      uri: SIWE_URI,
+      version: '1',
+      chainId: 1,
+      nonce,
+      issuedAt: new Date().toISOString(),
     })
-    const { nonce, message } = JSON.parse(nonceRes.payload)
-
-    // Manually expire the nonce by modifying the store
-    const store = getNonceStore()
-    const entry = store.get(nonce)!
-    store.set(nonce, { ...entry, expiresAt: Date.now() - 1000 })
 
     const signature = await wallet.signMessage(message)
 
@@ -201,16 +200,16 @@ describe('POST /v1/auth/wallet/verify', () => {
     expect(res.statusCode).toBe(401)
     const body = JSON.parse(res.payload)
     expect(body.code).toBe('SIWE_VALIDATION_FAILED')
-    expect(body.message).toContain('expired')
+    expect(body.message).toContain('Invalid or expired nonce')
   })
 
   it('should return 401 for wrong domain', async () => {
     const app = await createApp()
     const wallet = Wallet.createRandom()
 
-    // Create a nonce manually
+    // Create a nonce manually and store it in Redis
     const nonce = generateNonce()
-    storeNonce(nonce, wallet.address)
+    await storeNonce(nonce, wallet.address)
 
     // Build a message with a wrong domain
     const message = createSiweMessage({

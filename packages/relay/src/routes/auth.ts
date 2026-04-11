@@ -59,7 +59,7 @@ const walletAuthSchema = z.object({
 // Exported for tests
 export async function clearAuthStores() {
   await orgService.clearStores()
-  clearNonceStore()
+  await clearNonceStore()
 }
 
 export function getAuthStores() {
@@ -220,7 +220,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { address } = parsed.data
     const checksumAddress = getAddress(address)
     const nonce = generateNonce()
-    storeNonce(nonce, checksumAddress)
+    await storeNonce(nonce, checksumAddress)
 
     // Build the SIWE message for the client to sign
     const issuedAt = new Date().toISOString()
@@ -252,7 +252,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { message, signature } = parsed.data
 
     // Validate the SIWE message structure, domain, statement, nonce
-    const validation = validateSiweMessage(message, {
+    const validation = await validateSiweMessage(message, {
       expectedDomain: SIWE_DOMAIN,
       expectedStatement: SIWE_STATEMENT,
     })
@@ -330,7 +330,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { message, signature } = parsed.data
 
     // Validate the SIWE message structure, domain, statement, nonce
-    const validation = validateSiweMessage(message, {
+    const validation = await validateSiweMessage(message, {
       expectedDomain: SIWE_DOMAIN,
       expectedStatement: SIWE_STATEMENT,
     })

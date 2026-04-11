@@ -18,6 +18,6 @@ export async function clearAllStores(): Promise<void> {
   await db.apiKey.deleteMany()
   await db.user.deleteMany()
   await db.organisation.deleteMany()
-  // Clear in-memory nonce store
-  clearNonceStore()
+  // Clear Redis nonce store
+  await clearNonceStore()
 }

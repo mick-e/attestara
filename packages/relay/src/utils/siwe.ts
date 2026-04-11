@@ -1,18 +1,9 @@
 import { randomBytes } from 'crypto'
 import { verifyMessage, getAddress } from 'ethers'
+import { getRedis } from './redis.js'
 
-/**
- * In-memory nonce store with TTL support.
- * In production, replace with Redis.
- */
-interface NonceEntry {
-  address: string
-  expiresAt: number
-}
-
-const nonceStore = new Map<string, NonceEntry>()
-
-const NONCE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const NONCE_PREFIX = 'siwe:nonce:'
+const NONCE_TTL_SECONDS = 300
 
 /**
  * Generate a cryptographically random nonce (32 bytes hex).
@@ -22,39 +13,37 @@ export function generateNonce(): string {
 }
 
 /**
- * Store a nonce for a given wallet address with a 5-minute TTL.
+ * Store a nonce for a given wallet address with a 300s TTL in Redis.
  */
-export function storeNonce(nonce: string, address: string): void {
-  nonceStore.set(nonce, {
-    address: address.toLowerCase(),
-    expiresAt: Date.now() + NONCE_TTL_MS,
-  })
+export async function storeNonce(nonce: string, address: string): Promise<void> {
+  const redis = getRedis()
+  await redis.setex(`${NONCE_PREFIX}${nonce}`, NONCE_TTL_SECONDS, address.toLowerCase())
 }
 
 /**
- * Consume a nonce — returns the associated address if valid, null if expired or missing.
- * Nonces are single-use: consumed on retrieval.
+ * Consume a nonce — returns the associated address if valid, null if missing.
+ * Nonces are single-use: deleted from Redis on retrieval.
  */
-export function consumeNonce(nonce: string): string | null {
-  const entry = nonceStore.get(nonce)
-  if (!entry) return null
-  nonceStore.delete(nonce)
-  if (Date.now() > entry.expiresAt) return null
-  return entry.address
+export async function consumeNonce(nonce: string): Promise<string | null> {
+  const redis = getRedis()
+  const key = `${NONCE_PREFIX}${nonce}`
+  const address = await redis.get(key)
+  if (!address) return null
+  await redis.del(key)
+  return address
 }
 
 /**
- * Clear the nonce store (for testing).
+ * Clear all SIWE nonces from Redis (for testing).
  */
-export function clearNonceStore(): void {
-  nonceStore.clear()
-}
-
-/**
- * Expose the nonce store for testing (e.g., to manually expire entries).
- */
-export function getNonceStore(): Map<string, NonceEntry> {
-  return nonceStore
+export async function clearNonceStore(): Promise<void> {
+  const redis = getRedis()
+  let cursor = '0'
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${NONCE_PREFIX}*`, 'COUNT', 100)
+    cursor = nextCursor
+    if (keys.length > 0) await redis.del(...keys)
+  } while (cursor !== '0')
 }
 
 export interface SiweMessageParams {
@@ -171,10 +160,10 @@ export interface ValidateSiweOptions {
  *
  * Returns the parsed params on success, or an error string on failure.
  */
-export function validateSiweMessage(
+export async function validateSiweMessage(
   message: string,
   options: ValidateSiweOptions,
-): { ok: true; params: SiweMessageParams } | { ok: false; error: string } {
+): Promise<{ ok: true; params: SiweMessageParams } | { ok: false; error: string }> {
   const params = parseSiweMessage(message)
   if (!params) {
     return { ok: false, error: 'Invalid SIWE message format' }
@@ -189,7 +178,7 @@ export function validateSiweMessage(
   }
 
   // Check nonce validity
-  const nonceAddress = consumeNonce(params.nonce)
+  const nonceAddress = await consumeNonce(params.nonce)
   if (!nonceAddress) {
     return { ok: false, error: 'Invalid or expired nonce' }
   }
