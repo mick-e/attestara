@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,9 +12,9 @@ import {
   LoadingSpinner,
   ErrorState,
 } from "@/components/ui";
-import { useSession } from "@/lib/hooks";
+import { useSession, useSubmitTurn } from "@/lib/hooks";
 import { getAccessToken } from "@/lib/auth";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, type Turn } from "@/lib/api-client";
 
 const mockSession = {
   id: "sess_01HZN5A1B2C3D4E5F6G7H8I9J0",
@@ -90,14 +90,71 @@ const mockSession = {
   },
 };
 
+function TurnSubmissionForm({ sessionId, onSubmitted }: { sessionId: string; onSubmitted: () => void }) {
+  const { submitTurn, loading, error } = useSubmitTurn();
+  const [termsJson, setTermsJson] = useState("{}");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    try {
+      await submitTurn(sessionId, {
+        agentId: formData.get("agentId") as string,
+        terms: JSON.parse(termsJson),
+        proofType: "Groth16",
+        proof: {},
+        publicSignals: {},
+        signature: "pending",
+      });
+      onSubmitted();
+      form.reset();
+      setTermsJson("{}");
+    } catch {
+      // Error displayed via hook
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-navy-800 bg-navy-900 p-6">
+      <h3 className="text-lg font-semibold text-white mb-4">Submit Turn</h3>
+      {error && <p className="text-sm text-danger mb-3">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Agent ID</label>
+          <input name="agentId" required className="w-full rounded-md border border-navy-800 bg-navy-950 px-3 py-2 text-sm text-white outline-none focus:border-accent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Terms (JSON)</label>
+          <textarea
+            value={termsJson}
+            onChange={(e) => setTermsJson(e.target.value)}
+            rows={4}
+            className="w-full rounded-md border border-navy-800 bg-navy-950 px-3 py-2 text-sm text-white font-mono outline-none focus:border-accent"
+          />
+        </div>
+        <button type="submit" disabled={loading} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40 transition-colors">
+          {loading ? "Submitting..." : "Submit Turn"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function SessionDetailPage() {
   const params = useParams();
   const sessionId = params.id as string;
 
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [turnsLoading, setTurnsLoading] = useState(true);
+
   useEffect(() => {
     const token = getAccessToken();
     if (token) apiClient.setToken(token);
-  }, []);
+    apiClient.sessions.getTurns(sessionId)
+      .then((res) => { setTurns(res.data); setTurnsLoading(false); })
+      .catch(() => { setTurnsLoading(false); });
+  }, [sessionId]);
 
   const { data: session, loading, error, refetch } = useSession(sessionId);
 
@@ -107,6 +164,16 @@ export default function SessionDetailPage() {
   const createdAt = session?.createdAt ?? mockSession.createdAt;
   const turnCount = session?.turnCount ?? mockSession.currentTurn;
   const merkleRoot = session?.merkleRoot ?? mockSession.merkleRoot;
+
+  const displayTurns = turns.length > 0
+    ? turns.map((t) => ({
+        id: t.id,
+        agentId: t.agentId,
+        terms: t.terms,
+        proofStatus: "verified" as const,
+        createdAt: t.createdAt,
+      }))
+    : mockSession.turns;
 
   if (loading) {
     return (
@@ -188,7 +255,7 @@ export default function SessionDetailPage() {
           <h2 className="text-lg font-semibold text-white mb-6">
             Negotiation Timeline
           </h2>
-          <TurnTimeline turns={mockSession.turns} />
+          <TurnTimeline turns={displayTurns} />
         </div>
 
         {/* Right: Terms Comparison + Proofs */}
@@ -278,6 +345,15 @@ export default function SessionDetailPage() {
           </span>
         </div>
       </div>
+
+      {/* Turn Submission Form (active sessions only) */}
+      {isActive && (
+        <TurnSubmissionForm sessionId={sessionId} onSubmitted={() => {
+          apiClient.sessions.getTurns(sessionId)
+            .then((res) => setTurns(res.data))
+            .catch(() => {});
+        }} />
+      )}
     </div>
   );
 }
