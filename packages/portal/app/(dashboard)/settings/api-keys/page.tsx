@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { DataTable, Modal } from "@/components/ui";
+import { DataTable, Modal, LoadingSpinner, EmptyState } from "@/components/ui";
+import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
 
-interface ApiKey {
+interface ApiKeyRow {
   id: string;
   name: string;
   prefix: string;
@@ -13,7 +16,7 @@ interface ApiKey {
   createdAt: string;
 }
 
-const mockApiKeys: ApiKey[] = [
+const mockApiKeys: ApiKeyRow[] = [
   {
     id: "key_01",
     name: "Production Backend",
@@ -40,69 +43,47 @@ const mockApiKeys: ApiKey[] = [
   },
 ];
 
-const columns = [
-  {
-    key: "name" as const,
-    label: "Name",
-    sortable: true,
-    render: (v: unknown) => (
-      <span className="text-sm font-medium text-white">{String(v)}</span>
-    ),
-  },
-  {
-    key: "prefix" as const,
-    label: "Key",
-    render: (v: unknown) => (
-      <span className="font-mono text-xs text-gray-400">{String(v)}</span>
-    ),
-  },
-  {
-    key: "scopes" as const,
-    label: "Scopes",
-    render: (v: unknown) => (
-      <span className="text-xs text-gray-400">{String(v)}</span>
-    ),
-  },
-  {
-    key: "lastUsed" as const,
-    label: "Last Used",
-    render: (v: unknown) => (
-      <span className="text-xs text-gray-500">{String(v)}</span>
-    ),
-  },
-  {
-    key: "createdAt" as const,
-    label: "Created",
-    sortable: true,
-    render: (v: unknown) => (
-      <span className="text-xs text-gray-500">{String(v)}</span>
-    ),
-  },
-  {
-    key: "id" as const,
-    label: "Actions",
-    render: () => (
-      <button className="text-xs text-danger hover:text-danger/80 transition-colors">
-        Revoke
-      </button>
-    ),
-  },
-];
-
 export default function ApiKeysPage() {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
 
-  function handleGenerate() {
-    // Simulate key generation
-    const key =
-      "ac_" +
-      Array.from({ length: 48 }, () =>
-        Math.floor(Math.random() * 36).toString(36)
-      ).join("");
-    setGeneratedKey(key);
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: apiKeys, loading, refetch } = useApiKeys();
+  const { createKey } = useCreateApiKey();
+  const { revokeKey } = useRevokeApiKey();
+
+  const displayKeys: ApiKeyRow[] = apiKeys
+    ? apiKeys.map((k) => ({
+        id: k.id,
+        name: k.name,
+        prefix: k.prefix,
+        scopes: k.scopes.join(", ") || "all",
+        lastUsed: "-",
+        createdAt: k.createdAt.split("T")[0],
+      }))
+    : mockApiKeys;
+
+  async function handleGenerate() {
+    if (!keyName.trim()) return;
+    try {
+      const key = await createKey(keyName, selectedScopes);
+      setGeneratedKey(key.rawKey ?? "");
+      refetch();
+    } catch {
+      // Error handled by hook
+    }
+  }
+
+  async function handleRevoke(keyId: string) {
+    await revokeKey(keyId);
+    refetch();
   }
 
   function handleCopy() {
@@ -114,9 +95,62 @@ export default function ApiKeysPage() {
   function handleClose() {
     setGenerateOpen(false);
     setKeyName("");
+    setSelectedScopes([]);
     setGeneratedKey("");
     setCopied(false);
   }
+
+  const columns = [
+    {
+      key: "name" as const,
+      label: "Name",
+      sortable: true,
+      render: (v: unknown) => (
+        <span className="text-sm font-medium text-white">{String(v)}</span>
+      ),
+    },
+    {
+      key: "prefix" as const,
+      label: "Key",
+      render: (v: unknown) => (
+        <span className="font-mono text-xs text-gray-400">{String(v)}</span>
+      ),
+    },
+    {
+      key: "scopes" as const,
+      label: "Scopes",
+      render: (v: unknown) => (
+        <span className="text-xs text-gray-400">{String(v)}</span>
+      ),
+    },
+    {
+      key: "lastUsed" as const,
+      label: "Last Used",
+      render: (v: unknown) => (
+        <span className="text-xs text-gray-500">{String(v)}</span>
+      ),
+    },
+    {
+      key: "createdAt" as const,
+      label: "Created",
+      sortable: true,
+      render: (v: unknown) => (
+        <span className="text-xs text-gray-500">{String(v)}</span>
+      ),
+    },
+    {
+      key: "id" as const,
+      label: "Actions",
+      render: (v: unknown) => (
+        <button
+          onClick={() => handleRevoke(String(v))}
+          className="text-xs text-danger hover:text-danger/80 transition-colors"
+        >
+          Revoke
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -157,11 +191,23 @@ export default function ApiKeysPage() {
         </button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={mockApiKeys as unknown as Record<string, unknown>[]}
-        searchable={false}
-      />
+      {loading ? (
+        <div className="py-12">
+          <LoadingSpinner label="Loading API keys..." />
+        </div>
+      ) : displayKeys.length === 0 ? (
+        <EmptyState
+          title="No API keys"
+          description="Generate your first API key to get started."
+          action={{ label: "Generate API Key", onClick: () => setGenerateOpen(true) }}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={displayKeys as unknown as Record<string, unknown>[]}
+          searchable={false}
+        />
+      )}
 
       <div className="rounded-lg border border-navy-800 bg-navy-950 p-4">
         <p className="text-xs text-gray-500">
