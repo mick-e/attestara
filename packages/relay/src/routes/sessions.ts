@@ -17,7 +17,7 @@ export function getSessionStores() {
 
 const createSessionSchema = z.object({
   initiatorAgentId: z.string().min(1),
-  counterpartyAgentId: z.string().min(1),
+  counterpartyAgentId: z.string().min(1).nullable().optional(),
   initiatorOrgId: z.string().min(1),
   counterpartyOrgId: z.string().min(1),
   sessionType: z.enum(['intra_org', 'cross_org']).default('intra_org'),

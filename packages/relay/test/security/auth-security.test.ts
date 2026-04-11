@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken'
 import { Wallet } from 'ethers'
 import { buildServer } from '../../src/server.js'
 import { generateAccessToken, generateRefreshToken } from '../../src/middleware/auth.js'
-import { generateNonce, storeNonce, createSiweMessage, getNonceStore } from '../../src/utils/siwe.js'
+import { generateNonce, storeNonce, createSiweMessage } from '../../src/utils/siwe.js'
+import { getRedis } from '../../src/utils/redis.js'
 import { clearAllStores } from '../helpers/db-cleanup.js'
 
 const JWT_SECRET = 'test-secret-at-least-32-chars-long!!'
@@ -367,10 +368,9 @@ describe('Authentication Security', () => {
       })
       const { nonce, message } = JSON.parse(nonceRes.payload)
 
-      // Manually expire the nonce
-      const store = getNonceStore()
-      const entry = store.get(nonce)!
-      store.set(nonce, { ...entry, expiresAt: Date.now() - 1000 })
+      // Manually expire the nonce by deleting it from Redis
+      const redis = getRedis()
+      await redis.del(`siwe:nonce:${nonce}`)
 
       const signature = await wallet.signMessage(message)
 

@@ -87,7 +87,7 @@ model Session {
   id                  String   @id @default(uuid())
   initiatorAgentId    String   @map("initiator_agent_id")
   initiatorOrgId      String   @map("initiator_org_id")
-  counterpartyAgentId String   @map("counterparty_agent_id")
+  counterpartyAgentId String?  @map("counterparty_agent_id")
   counterpartyOrgId   String   @map("counterparty_org_id")
   sessionType         String   @default("intra_org") @map("session_type")
   inviteTokenHash     String?  @map("invite_token_hash")
@@ -101,7 +101,7 @@ model Session {
 
   initiatorAgent    Agent        @relation("initiator_agent", fields: [initiatorAgentId], references: [id])
   initiatorOrg      Organisation @relation("initiator_org", fields: [initiatorOrgId], references: [id])
-  counterpartyAgent Agent        @relation("counterparty_agent", fields: [counterpartyAgentId], references: [id])
+  counterpartyAgent Agent?       @relation("counterparty_agent", fields: [counterpartyAgentId], references: [id])
   counterpartyOrg   Organisation @relation("counterparty_org", fields: [counterpartyOrgId], references: [id])
   turns             Turn[]
   commitment        Commitment?

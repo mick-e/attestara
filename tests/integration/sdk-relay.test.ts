@@ -346,7 +346,7 @@ describe('SDK ↔ Relay Integration', () => {
       },
       body: JSON.stringify({
         initiatorAgentId: agentA.id,
-        counterpartyAgentId: 'agent-b-placeholder',
+        counterpartyAgentId: null,
         initiatorOrgId: userA.orgId,
         counterpartyOrgId: userB.orgId,
         sessionType: 'cross_org',

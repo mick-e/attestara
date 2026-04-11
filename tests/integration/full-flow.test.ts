@@ -348,14 +348,14 @@ describe('Full Protocol Flow', () => {
     // Create two different sessions
     const sess1Res = await post<Session>(baseUrl, '/v1/sessions', {
       initiatorAgentId: agentA.id,
-      counterpartyAgentId: 'other-agent',
+      counterpartyAgentId: null,
       initiatorOrgId: userA.orgId,
       counterpartyOrgId: userB.orgId,
       sessionType: 'cross_org',
     }, tokenA)
     const sess2Res = await post<Session>(baseUrl, '/v1/sessions', {
       initiatorAgentId: agentA.id,
-      counterpartyAgentId: 'other-agent-2',
+      counterpartyAgentId: null,
       initiatorOrgId: userA.orgId,
       counterpartyOrgId: userB.orgId,
       sessionType: 'cross_org',

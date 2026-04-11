@@ -156,7 +156,15 @@ export class OrgService {
   }
 
   async clearStores(): Promise<void> {
-    // Delete in FK-safe order (invites before organisations due to FK)
+    // Delete in FK-safe order (all child tables before organisations)
+    await getPrisma().webhookDelivery.deleteMany()
+    await getPrisma().webhook.deleteMany()
+    await getPrisma().commitment.deleteMany()
+    await getPrisma().turn.deleteMany()
+    await getPrisma().session.deleteMany()
+    await getPrisma().credential.deleteMany()
+    await getPrisma().agent.deleteMany()
+    await getPrisma().apiKey.deleteMany()
     await getPrisma().invite.deleteMany()
     await getPrisma().user.deleteMany()
     await getPrisma().organisation.deleteMany()

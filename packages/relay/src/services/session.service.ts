@@ -6,7 +6,7 @@ export interface StoredSession {
   id: string
   initiatorAgentId: string
   initiatorOrgId: string
-  counterpartyAgentId: string
+  counterpartyAgentId: string | null
   counterpartyOrgId: string
   sessionType: string
   inviteTokenHash: string | null
@@ -34,7 +34,7 @@ export interface StoredTurn {
 
 export interface CreateSessionData {
   initiatorAgentId: string
-  counterpartyAgentId: string
+  counterpartyAgentId?: string | null
   initiatorOrgId: string
   counterpartyOrgId: string
   sessionType: string
@@ -54,7 +54,7 @@ function toStoredSession(row: {
   id: string
   initiatorAgentId: string
   initiatorOrgId: string
-  counterpartyAgentId: string
+  counterpartyAgentId: string | null
   counterpartyOrgId: string
   sessionType: string
   inviteTokenHash: string | null
@@ -126,7 +126,7 @@ export class SessionService {
       data: {
         initiatorAgentId: data.initiatorAgentId,
         initiatorOrgId: data.initiatorOrgId,
-        counterpartyAgentId: data.counterpartyAgentId,
+        counterpartyAgentId: data.counterpartyAgentId ?? null,
         counterpartyOrgId: data.counterpartyOrgId,
         sessionType: data.sessionType,
         inviteTokenHash,
