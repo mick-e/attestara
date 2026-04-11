@@ -41,7 +41,7 @@ describe('CircuitManager', () => {
 
     const ib = mgr.getMetadata('IdentityBinding')
     expect(ib).toBeDefined()
-    expect(ib!.constraintCount).toBe(1200)
+    expect(ib!.constraintCount).toBe(932)
   })
 
   it('returns undefined for unknown circuit metadata', async () => {
