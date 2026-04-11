@@ -361,29 +361,167 @@ export function useRevokeCredential() {
   return { revokeCredential, loading, error };
 }
 
-// ─── Commitments (read-only — sessions with anchorTxHash) ───────────────────
-// The relay API doesn't have a dedicated commitments endpoint yet.
-// We derive commitments from completed sessions. The hooks return the same
-// shape so pages can consume them uniformly.
+// ─── Commitments ────────────────────────────────────────────────────────────
 
 export interface Commitment {
   id: string;
   sessionId: string;
   agreementHash: string;
-  partyA: string;
-  partyB: string;
+  parties: string[];
+  credentialHashes: string[];
+  proofs: Record<string, unknown>;
+  circuitVersions: string[];
   verified: boolean;
   txHash: string | null;
+  blockNumber: number | null;
   createdAt: string;
 }
 
 export function useCommitments(): FetchState<Commitment[]> {
-  // Placeholder — returns null so the page falls back to mock data
-  return { data: null, loading: false, error: null, refetch: () => {} };
+  const result = useFetch<Paginated<Commitment>>(
+    () => apiClient.commitments.list(),
+    [],
+  );
+  return {
+    data: result.data?.data ?? null,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
+  };
 }
 
 export function useCommitment(id: string): FetchState<Commitment> {
-  return { data: null, loading: false, error: null, refetch: () => {} };
+  return useFetch<Commitment>(
+    id ? () => apiClient.commitments.get(id) : null,
+    [id],
+  );
+}
+
+// ─── Analytics ──────────────────────────────────────────────────────────────
+
+export interface OrgAnalytics {
+  agentCount: number;
+  credentialCount: number;
+  sessionCount: number;
+  commitmentCount: number;
+  activeSessionCount: number;
+  avgTurnsPerSession: number;
+}
+
+export function useAnalytics(): FetchState<OrgAnalytics> {
+  const orgId = getOrgIdFromToken();
+  return useFetch<OrgAnalytics>(
+    orgId ? () => apiClient.analytics.get(orgId) : null,
+    [orgId],
+  );
+}
+
+// ─── API Keys ───────────────────────────────────────────────────────────────
+
+export interface ApiKey {
+  id: string;
+  orgId: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  expiresAt: string | null;
+  createdAt: string;
+  rawKey?: string;
+}
+
+export function useApiKeys(): FetchState<ApiKey[]> {
+  const orgId = getOrgIdFromToken();
+  const result = useFetch<Paginated<ApiKey>>(
+    orgId ? () => apiClient.apiKeys.list(orgId) : null,
+    [orgId],
+  );
+  return {
+    data: result.data?.data ?? null,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+export function useCreateApiKey() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createKey = useCallback(
+    async (name: string, scopes: string[] = []) => {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) throw new Error("Not authenticated");
+      setLoading(true);
+      setError(null);
+      try {
+        const key = await apiClient.apiKeys.create(orgId, { name, scopes });
+        return key;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to create API key";
+        setError(msg);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return { createKey, loading, error };
+}
+
+export function useRevokeApiKey() {
+  const [loading, setLoading] = useState(false);
+
+  const revokeKey = useCallback(async (keyId: string) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) throw new Error("Not authenticated");
+    setLoading(true);
+    try {
+      await apiClient.apiKeys.revoke(orgId, keyId);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { revokeKey, loading };
+}
+
+// ─── Turn Submission ────────────────────────────────────────────────────────
+
+export function useSubmitTurn() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submitTurn = useCallback(
+    async (
+      sessionId: string,
+      data: {
+        agentId: string;
+        terms: Record<string, unknown>;
+        proofType: string;
+        proof: Record<string, unknown>;
+        publicSignals: Record<string, unknown>;
+        signature: string;
+      },
+    ) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const turn = await apiClient.turns.submit(sessionId, data);
+        return turn;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to submit turn";
+        setError(msg);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return { submitTurn, loading, error };
 }
 
 // ─── Orgs ───────────────────────────────────────────────────────────────────
