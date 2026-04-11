@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { DataTable, ChainLink, EmptyState } from "@/components/ui";
+import { DataTable, ChainLink, EmptyState, LoadingSpinner } from "@/components/ui";
 import { useCommitments } from "@/lib/hooks";
 import { getAccessToken } from "@/lib/auth";
 import { apiClient } from "@/lib/api-client";
@@ -152,7 +152,7 @@ export default function CommitmentsPage() {
     if (token) apiClient.setToken(token);
   }, []);
 
-  const { data: commitments } = useCommitments();
+  const { data: commitments, loading } = useCommitments();
 
   // Use API data if available, fallback to mock
   const displayCommitments = commitments
@@ -177,7 +177,11 @@ export default function CommitmentsPage() {
         </p>
       </div>
 
-      {displayCommitments.length === 0 ? (
+      {loading ? (
+        <div className="py-12">
+          <LoadingSpinner label="Loading commitments..." />
+        </div>
+      ) : displayCommitments.length === 0 ? (
         <EmptyState
           title="No commitments yet"
           description="Commitments are created when negotiation sessions reach agreement."

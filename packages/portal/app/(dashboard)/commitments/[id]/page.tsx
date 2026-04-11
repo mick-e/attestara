@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { StatusBadge, ChainLink, ProofBadge } from "@/components/ui";
+import { StatusBadge, ChainLink, ProofBadge, LoadingSpinner, ErrorState } from "@/components/ui";
+import { useCommitment } from "@/lib/hooks";
 
 const mockCommitment = {
   id: "cmt_01HZN6A1B2C3D4E5F6G7H8I9J0",
@@ -107,9 +108,43 @@ const mockCommitment = {
 };
 
 export default function CommitmentDetailPage() {
-  const params = useParams();
-  const commitmentId = params.id as string;
+  const { id } = useParams<{ id: string }>();
+  const { data: commitment, loading, error } = useCommitment(id);
   const [expandedProof, setExpandedProof] = useState<number | null>(null);
+
+  if (loading)
+    return (
+      <div className="py-12">
+        <LoadingSpinner label="Loading commitment..." />
+      </div>
+    );
+  if (error) return <ErrorState message={error} />;
+
+  const display = commitment ?? mockCommitment;
+
+  // Determine if we're using API data (has flat parties array) or mock (has partyA/partyB objects)
+  const isApiData = commitment !== null;
+
+  // On-chain info: API uses top-level txHash/blockNumber, mock uses onChain object
+  const txHash = isApiData
+    ? (commitment.txHash ?? "")
+    : mockCommitment.onChain.txHash;
+  const blockNumber = isApiData
+    ? (commitment.blockNumber ?? null)
+    : mockCommitment.onChain.blockNumber;
+  const chainId = isApiData ? 421614 : mockCommitment.onChain.chainId;
+
+  // Proofs: API returns Record<string, unknown>, mock has rich array
+  const apiProofs = isApiData
+    ? Object.entries(commitment.proofs).map(([circuit, data]) => ({
+        circuit,
+        version: "v1.x.x",
+        status: "on-chain" as const,
+        timeMs: 0,
+        proofData: data as Record<string, unknown>,
+      }))
+    : null;
+  const displayProofs = apiProofs ?? mockCommitment.proofs;
 
   return (
     <div className="space-y-6">
@@ -122,7 +157,7 @@ export default function CommitmentDetailPage() {
           Commitments
         </Link>
         <span>/</span>
-        <span className="text-white">{commitmentId.slice(0, 16)}...</span>
+        <span className="text-white">{display.id.slice(0, 16)}...</span>
       </div>
 
       {/* Header */}
@@ -131,16 +166,14 @@ export default function CommitmentDetailPage() {
           <h1 className="text-2xl font-semibold text-white">
             Commitment Detail
           </h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {commitmentId}
-          </p>
+          <p className="mt-1 text-sm text-gray-400">{display.id}</p>
         </div>
         <div className="flex gap-3">
           <button className="rounded-lg border border-accent/30 px-4 py-2 text-sm text-accent hover:bg-accent/10 transition-colors">
             Re-verify
           </button>
           <Link
-            href={`/sessions/${mockCommitment.sessionId}`}
+            href={`/sessions/${display.sessionId}`}
             className="rounded-lg border border-navy-800 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
           >
             Session Replay
@@ -157,10 +190,10 @@ export default function CommitmentDetailPage() {
             </p>
             <span
               className={`inline-flex items-center gap-1.5 text-sm ${
-                mockCommitment.verified ? "text-verified" : "text-warning"
+                display.verified ? "text-verified" : "text-warning"
               }`}
             >
-              {mockCommitment.verified ? "\u2713 Verified" : "\u25CB Pending"}
+              {display.verified ? "\u2713 Verified" : "\u25CB Pending"}
             </span>
           </div>
           <div>
@@ -168,10 +201,10 @@ export default function CommitmentDetailPage() {
               Session
             </p>
             <Link
-              href={`/sessions/${mockCommitment.sessionId}`}
+              href={`/sessions/${display.sessionId}`}
               className="text-sm text-accent hover:text-accent-hover underline"
             >
-              {mockCommitment.sessionId.slice(0, 16)}...
+              {display.sessionId.slice(0, 16)}...
             </Link>
           </div>
           <div>
@@ -179,7 +212,7 @@ export default function CommitmentDetailPage() {
               Created
             </p>
             <p className="text-sm text-white">
-              {new Date(mockCommitment.createdAt).toLocaleString()}
+              {new Date(display.createdAt).toLocaleString()}
             </p>
           </div>
           <div className="md:col-span-2">
@@ -187,7 +220,7 @@ export default function CommitmentDetailPage() {
               Agreement Hash
             </p>
             <p className="font-mono text-sm text-gray-300 break-all">
-              {mockCommitment.agreementHash}
+              {display.agreementHash}
             </p>
           </div>
         </div>
@@ -195,28 +228,52 @@ export default function CommitmentDetailPage() {
 
       {/* Parties */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[mockCommitment.partyA, mockCommitment.partyB].map((party, i) => (
-          <div
-            key={i}
-            className="rounded-lg border border-navy-800 bg-navy-900 p-6"
-          >
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">
-              Party {i === 0 ? "A" : "B"}
-            </p>
-            <Link
-              href={`/agents/${party.id}`}
-              className="text-sm font-medium text-accent hover:text-accent-hover underline"
+        {isApiData ? (
+          // API data: flat parties array of strings
+          commitment.parties.map((partyName, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-navy-800 bg-navy-900 p-6"
             >
-              {party.name}
-            </Link>
-            <div className="mt-3">
-              <p className="text-xs text-gray-500 mb-1">Credential Hash</p>
-              <p className="font-mono text-xs text-gray-400 break-all">
-                {party.credentialHash}
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">
+                Party {i === 0 ? "A" : "B"}
               </p>
+              <span className="text-sm font-medium text-white">{partyName}</span>
+              {commitment.credentialHashes[i] && (
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-1">Credential Hash</p>
+                  <p className="font-mono text-xs text-gray-400 break-all">
+                    {commitment.credentialHashes[i]}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          // Mock data: partyA/partyB objects with id/name/credentialHash
+          [mockCommitment.partyA, mockCommitment.partyB].map((party, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-navy-800 bg-navy-900 p-6"
+            >
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">
+                Party {i === 0 ? "A" : "B"}
+              </p>
+              <Link
+                href={`/agents/${party.id}`}
+                className="text-sm font-medium text-accent hover:text-accent-hover underline"
+              >
+                {party.name}
+              </Link>
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 mb-1">Credential Hash</p>
+                <p className="font-mono text-xs text-gray-400 break-all">
+                  {party.credentialHash}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Proof Viewer */}
@@ -225,7 +282,7 @@ export default function CommitmentDetailPage() {
           <h2 className="text-lg font-semibold text-white">Proofs</h2>
         </div>
         <div className="divide-y divide-navy-800">
-          {mockCommitment.proofs.map((proof, i) => (
+          {displayProofs.map((proof, i) => (
             <div key={i} className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -234,9 +291,7 @@ export default function CommitmentDetailPage() {
                     circuit={proof.circuit}
                     timeMs={proof.timeMs}
                   />
-                  <span className="text-xs text-gray-500">
-                    {proof.version}
-                  </span>
+                  <span className="text-xs text-gray-500">{proof.version}</span>
                 </div>
                 <button
                   onClick={() =>
@@ -269,17 +324,14 @@ export default function CommitmentDetailPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Transaction
             </p>
-            <ChainLink
-              txHash={mockCommitment.onChain.txHash}
-              chainId={mockCommitment.onChain.chainId}
-            />
+            <ChainLink txHash={txHash} chainId={chainId} />
           </div>
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">
               Block Number
             </p>
             <p className="text-sm text-white font-mono">
-              {mockCommitment.onChain.blockNumber.toLocaleString()}
+              {blockNumber !== null ? blockNumber.toLocaleString() : "—"}
             </p>
           </div>
           <div>
@@ -287,7 +339,7 @@ export default function CommitmentDetailPage() {
               Chain ID
             </p>
             <p className="text-sm text-white font-mono">
-              {mockCommitment.onChain.chainId}{" "}
+              {chainId}{" "}
               <span className="text-gray-500">(Arbitrum Sepolia)</span>
             </p>
           </div>
