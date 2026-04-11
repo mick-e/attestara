@@ -1,6 +1,12 @@
 "use client";
 
-import { StatCard } from "@/components/ui";
+import { useEffect } from "react";
+import { useAnalytics } from "@/lib/hooks";
+import { getAccessToken } from "@/lib/auth";
+import { apiClient } from "@/lib/api-client";
+import { LoadingSpinner, StatCard } from "@/components/ui";
+
+// Time-series data requires a dedicated analytics endpoint — using placeholder data
 
 // Mock session volume data (last 14 days)
 const sessionVolumeData = [
@@ -47,30 +53,6 @@ const proofLatencyData = [
   { circuit: "TimeConstraint", avgMs: 340, count: 156 },
 ];
 
-// Summary stats
-const summaryStats = [
-  {
-    label: "Total Sessions",
-    value: 847,
-    trend: { value: 23, positive: true },
-  },
-  {
-    label: "Completed",
-    value: 712,
-    trend: { value: 18, positive: true },
-  },
-  {
-    label: "Rejected",
-    value: 98,
-    trend: { value: 5, positive: false },
-  },
-  {
-    label: "Success Rate",
-    value: "84.1%",
-    trend: { value: 3.2, positive: true },
-  },
-];
-
 const gasStats = [
   { label: "Total Gas (ETH)", value: "15.41" },
   { label: "Avg Gas/Session", value: "220K" },
@@ -79,7 +61,30 @@ const gasStats = [
 ];
 
 export default function AnalyticsPage() {
+  useEffect(() => {
+    const token = getAccessToken();
+    if (token) apiClient.setToken(token);
+  }, []);
+
+  const { data: analytics, loading } = useAnalytics();
+
+  const summaryStats = analytics
+    ? [
+        { label: "Total Sessions", value: analytics.sessionCount.toLocaleString(), change: "" },
+        { label: "Completed", value: String(analytics.commitmentCount), change: "" },
+        { label: "Active Now", value: String(analytics.activeSessionCount), change: "" },
+        { label: "Avg Turns/Session", value: analytics.avgTurnsPerSession.toFixed(1), change: "" },
+      ]
+    : [
+        { label: "Total Sessions", value: "0", change: "" },
+        { label: "Completed", value: "0", change: "" },
+        { label: "Active Now", value: "0", change: "" },
+        { label: "Avg Turns/Session", value: "0.0", change: "" },
+      ];
+
   const maxLatency = Math.max(...proofLatencyData.map((d) => d.avgMs));
+
+  if (loading) return <div className="py-12"><LoadingSpinner label="Loading analytics..." /></div>;
 
   return (
     <div className="space-y-8">
@@ -93,7 +98,7 @@ export default function AnalyticsPage() {
       {/* Success Rate Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summaryStats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
+          <StatCard key={stat.label} label={stat.label} value={stat.value} />
         ))}
       </div>
 
