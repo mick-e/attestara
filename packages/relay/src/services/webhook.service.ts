@@ -1,28 +1,49 @@
-import { randomBytes, createHash, createHmac } from 'crypto'
+import { randomBytes, createHash, createHmac, createCipheriv, createDecipheriv, timingSafeEqual } from 'crypto'
 import { getPrisma } from '../utils/prisma.js'
 
-const ORG_MASTER_KEY_SECRET = process.env.ORG_MASTER_KEY_SECRET ?? 'test-master-key-at-least-32-chars!!'
+let masterKeySecret: string = ''
 
-/** Reversible encoding: XOR-based with key derived from master secret + a nonce prefix */
-function encryptSecret(raw: string): string {
-  // Derive a 32-byte key from master secret
-  const key = createHash('sha256').update(ORG_MASTER_KEY_SECRET).digest()
-  const rawBuf = Buffer.from(raw, 'utf8')
-  const encrypted = Buffer.alloc(rawBuf.length)
-  for (let i = 0; i < rawBuf.length; i++) {
-    encrypted[i] = rawBuf[i] ^ key[i % key.length]
-  }
-  return encrypted.toString('base64')
+export function initWebhookConfig(secret: string) {
+  masterKeySecret = secret
 }
 
+/** Derive a 256-bit key from the master secret via SHA-256 */
+function deriveKey(): Buffer {
+  return createHash('sha256').update(masterKeySecret).digest()
+}
+
+/** Encrypt using AES-256-GCM. Output format: base64(iv):base64(authTag):base64(ciphertext) */
+function encryptSecret(raw: string): string {
+  const key = deriveKey()
+  const iv = randomBytes(12) // 96-bit IV recommended for GCM
+  const cipher = createCipheriv('aes-256-gcm', key, iv)
+  const encrypted = Buffer.concat([cipher.update(raw, 'utf8'), cipher.final()])
+  const authTag = cipher.getAuthTag()
+  return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted.toString('base64')}`
+}
+
+/** Decrypt AES-256-GCM ciphertext. Authenticates integrity via the embedded auth tag. */
 function decryptSecret(encoded: string): string {
-  const key = createHash('sha256').update(ORG_MASTER_KEY_SECRET).digest()
-  const encryptedBuf = Buffer.from(encoded, 'base64')
-  const decrypted = Buffer.alloc(encryptedBuf.length)
-  for (let i = 0; i < encryptedBuf.length; i++) {
-    decrypted[i] = encryptedBuf[i] ^ key[i % key.length]
-  }
-  return decrypted.toString('utf8')
+  const parts = encoded.split(':')
+  if (parts.length !== 3) throw new Error('Invalid encrypted format')
+  const [ivB64, tagB64, cipherB64] = parts
+  const key = deriveKey()
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'))
+  decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
+  return Buffer.concat([
+    decipher.update(Buffer.from(cipherB64, 'base64')),
+    decipher.final(),
+  ]).toString('utf8')
+}
+
+/**
+ * Verify a webhook payload signature using a timing-safe HMAC-SHA256 comparison.
+ * Both `signature` and the computed HMAC must be hex strings of identical length.
+ */
+export function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+  const expected = createHmac('sha256', secret).update(payload).digest('hex')
+  if (expected.length !== signature.length) return false
+  return timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(signature, 'utf8'))
 }
 
 export interface StoredWebhook {

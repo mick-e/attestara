@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createHmac } from 'crypto'
-import { WebhookService } from '../../src/services/webhook.service.js'
+import { WebhookService, verifyWebhookSignature } from '../../src/services/webhook.service.js'
 import { clearAllStores } from '../helpers/db-cleanup.js'
 import { getPrisma } from '../../src/utils/prisma.js'
 
@@ -192,6 +192,86 @@ describe('WebhookService', () => {
 
       expect(await service.listByOrg('org-1')).toEqual([])
       expect(await service.getDeliveryHistory(webhook.id, 'org-1')).toBeNull()
+    })
+  })
+
+  describe('AES-256-GCM secret encryption', () => {
+    it('should encrypt to different ciphertext each time (random IV)', async () => {
+      // Register two webhooks with the same URL to get two independently encrypted secrets
+      const r1 = await service.register('org-1', 'https://example.com/a', ['event'])
+      const r2 = await service.register('org-1', 'https://example.com/b', ['event'])
+
+      // Both secrets have the same format prefix but differ in value
+      expect(r1.secret).not.toBe(r2.secret)
+
+      // Signing should work correctly for both — proving each encrypted secret
+      // round-trips correctly through AES-256-GCM encrypt/decrypt
+      const payload = { data: 'test' }
+      const sig1 = await service.signPayload(r1.webhook.id, payload)
+      const sig2 = await service.signPayload(r2.webhook.id, payload)
+
+      const expected1 = createHmac('sha256', r1.secret).update(JSON.stringify(payload)).digest('hex')
+      const expected2 = createHmac('sha256', r2.secret).update(JSON.stringify(payload)).digest('hex')
+
+      expect(sig1).toBe(expected1)
+      expect(sig2).toBe(expected2)
+      // Different secrets → different signatures over the same payload
+      expect(sig1).not.toBe(sig2)
+    })
+
+    it('should correctly round-trip the raw secret through encryption/decryption (signPayload)', async () => {
+      const { webhook, secret } = await service.register('org-1', 'https://example.com', ['event'])
+      const payload = { action: 'agent.created', id: 'abc-123' }
+
+      const sig = await service.signPayload(webhook.id, payload)
+
+      expect(sig).not.toBeNull()
+      const expected = createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex')
+      expect(sig).toBe(expected)
+    })
+  })
+
+  describe('verifyWebhookSignature', () => {
+    it('should return true for a valid signature', () => {
+      const payload = JSON.stringify({ event: 'agent.created' })
+      const secret = 'whsec_testsecret'
+      const signature = createHmac('sha256', secret).update(payload).digest('hex')
+
+      expect(verifyWebhookSignature(payload, signature, secret)).toBe(true)
+    })
+
+    it('should return false for a tampered signature', () => {
+      const payload = JSON.stringify({ event: 'agent.created' })
+      const secret = 'whsec_testsecret'
+      // Flip the last character to produce an invalid signature
+      const signature = createHmac('sha256', secret).update(payload).digest('hex')
+      const tampered = signature.slice(0, -1) + (signature.endsWith('0') ? '1' : '0')
+
+      expect(verifyWebhookSignature(payload, tampered, secret)).toBe(false)
+    })
+
+    it('should return false for a completely wrong signature', () => {
+      const payload = JSON.stringify({ event: 'agent.created' })
+      const secret = 'whsec_testsecret'
+      const wrongSignature = createHmac('sha256', 'wrong-secret').update(payload).digest('hex')
+
+      expect(verifyWebhookSignature(payload, wrongSignature, secret)).toBe(false)
+    })
+
+    it('should return false when signature length differs', () => {
+      const payload = 'hello'
+      const secret = 'secret'
+
+      expect(verifyWebhookSignature(payload, 'tooshort', secret)).toBe(false)
+    })
+
+    it('should return false for a tampered payload', () => {
+      const payload = JSON.stringify({ event: 'agent.created' })
+      const secret = 'whsec_testsecret'
+      const signature = createHmac('sha256', secret).update(payload).digest('hex')
+      const tamperedPayload = JSON.stringify({ event: 'agent.deleted' })
+
+      expect(verifyWebhookSignature(tamperedPayload, signature, secret)).toBe(false)
     })
   })
 })
