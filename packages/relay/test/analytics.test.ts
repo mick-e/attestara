@@ -20,7 +20,7 @@ async function createAgent(app: any, token: string, orgId: string, did: string) 
     method: 'POST',
     url: `/v1/orgs/${orgId}/agents`,
     headers: { authorization: `Bearer ${token}` },
-    payload: { did, name: 'Agent', publicKey: '0xpubkey' },
+    payload: { did, name: 'Agent', publicKey: '0xabcdef' },
   })
   return JSON.parse(res.payload)
 }

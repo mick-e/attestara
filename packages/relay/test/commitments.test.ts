@@ -28,7 +28,7 @@ async function createSession(app: any, token: string, orgId: string) {
     payload: {
       did: `did:ethr:0x${randomUUID().replace(/-/g, '').slice(0, 40)}`,
       name: 'Agent A',
-      publicKey: '0xpubkey',
+      publicKey: '0xabcdef',
     },
   })
   const agentRes2 = await app.inject({
@@ -38,7 +38,7 @@ async function createSession(app: any, token: string, orgId: string) {
     payload: {
       did: `did:ethr:0x${randomUUID().replace(/-/g, '').slice(0, 40)}`,
       name: 'Agent B',
-      publicKey: '0xpubkey2',
+      publicKey: '0xabcdef2',
     },
   })
   const agent1 = JSON.parse(agentRes1.payload)

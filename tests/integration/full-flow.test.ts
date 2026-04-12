@@ -137,7 +137,7 @@ describe('Full Protocol Flow', () => {
     const agentARes = await post<Agent>(baseUrl, `/v1/orgs/${userA.orgId}/agents`, {
       did: 'did:key:z6MkAlpha001',
       name: 'Alpha Agent',
-      publicKey: '0xPublicKeyAlpha',
+      publicKey: '0xaAbBcCdDeEfF',
     }, tokenA)
     expect(agentARes.status).toBe(201)
     const agentA = agentARes.data
@@ -145,7 +145,7 @@ describe('Full Protocol Flow', () => {
     const agentBRes = await post<Agent>(baseUrl, `/v1/orgs/${userB.orgId}/agents`, {
       did: 'did:key:z6MkBeta001',
       name: 'Beta Agent',
-      publicKey: '0xPublicKeyBeta',
+      publicKey: '0xaAbBcCdDeEfF',
     }, tokenB)
     expect(agentBRes.status).toBe(201)
     const agentB = agentBRes.data
@@ -291,12 +291,12 @@ describe('Full Protocol Flow', () => {
     const agentARes = await post<Agent>(baseUrl, `/v1/orgs/${user.orgId}/agents`, {
       did: 'did:key:z6MkDupA',
       name: 'Agent A',
-      publicKey: '0xA',
+      publicKey: '0xABCDEF',
     }, token)
     const agentBRes = await post<Agent>(baseUrl, `/v1/orgs/${user.orgId}/agents`, {
       did: 'did:key:z6MkDupB',
       name: 'Agent B',
-      publicKey: '0xB',
+      publicKey: '0xABCDEF',
     }, token)
     const agentA = agentARes.data
     const agentB = agentBRes.data
@@ -341,7 +341,7 @@ describe('Full Protocol Flow', () => {
     const agentARes = await post<Agent>(baseUrl, `/v1/orgs/${userA.orgId}/agents`, {
       did: 'did:key:z6MkWrongA',
       name: 'WA',
-      publicKey: '0xW',
+      publicKey: '0xABCDEF',
     }, tokenA)
     const agentA = agentARes.data
 

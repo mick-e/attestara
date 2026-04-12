@@ -21,7 +21,7 @@ async function createAgent(app: any, token: string, orgId: string) {
     method: 'POST',
     url: `/v1/orgs/${orgId}/agents`,
     headers: { authorization: `Bearer ${token}` },
-    payload: { did: `did:ethr:0x${randomUUID().replace(/-/g, '').slice(0, 40)}`, name: 'Agent', publicKey: '0xpub' },
+    payload: { did: `did:ethr:0x${randomUUID().replace(/-/g, '').slice(0, 40)}`, name: 'Agent', publicKey: '0xabcdef' },
   })
   return JSON.parse(res.payload)
 }

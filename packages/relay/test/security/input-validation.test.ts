@@ -26,7 +26,7 @@ async function createAgent(app: any, token: string, orgId: string) {
     method: 'POST',
     url: `/v1/orgs/${orgId}/agents`,
     headers: { authorization: `Bearer ${token}` },
-    payload: { did, name: 'Agent', publicKey: '0xpubkey' },
+    payload: { did, name: 'Agent', publicKey: '0xabcdef' },
   })
   return JSON.parse(res.payload)
 }
@@ -104,7 +104,7 @@ describe('Input Validation Security', () => {
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { did: 'did:ethr:0xXSS', name: xssName, publicKey: '0xkey' },
+        payload: { did: 'did:ethr:0xXSS', name: xssName, publicKey: '0xabcdef' },
       })
       // XSS name should be accepted (stored as plain text)
       expect(res.statusCode).toBe(201)
@@ -229,14 +229,14 @@ describe('Input Validation Security', () => {
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { did, name: 'Agent 1', publicKey: '0xkey1' },
+        payload: { did, name: 'Agent 1', publicKey: '0xabc1' },
       })
 
       const res = await app.inject({
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { did, name: 'Agent 2', publicKey: '0xkey2' },
+        payload: { did, name: 'Agent 2', publicKey: '0xabc2' },
       })
       expect(res.statusCode).toBe(409)
     })
@@ -249,7 +249,7 @@ describe('Input Validation Security', () => {
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { did: '', name: 'Agent', publicKey: '0xkey' },
+        payload: { did: '', name: 'Agent', publicKey: '0xabcdef' },
       })
       expect(res.statusCode).toBe(400)
       const body = JSON.parse(res.payload)
@@ -264,7 +264,7 @@ describe('Input Validation Security', () => {
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { name: 'Agent', publicKey: '0xkey' },
+        payload: { name: 'Agent', publicKey: '0xabcdef' },
       })
       expect(res.statusCode).toBe(400)
     })

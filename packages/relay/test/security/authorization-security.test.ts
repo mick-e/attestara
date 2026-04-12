@@ -29,7 +29,7 @@ async function createAgent(app: any, token: string, orgId: string) {
     method: 'POST',
     url: `/v1/orgs/${orgId}/agents`,
     headers: { authorization: `Bearer ${token}` },
-    payload: { did, name: 'Agent', publicKey: '0xpubkey' },
+    payload: { did, name: 'Agent', publicKey: '0xabcdef' },
   })
   return JSON.parse(res.payload)
 }
@@ -70,7 +70,7 @@ describe('Authorization Security', () => {
         method: 'POST',
         url: `/v1/orgs/${orgB.user.orgId}/agents`,
         headers: { authorization: `Bearer ${orgA.accessToken}` },
-        payload: { did: 'did:ethr:0xAAA', name: 'Injected', publicKey: '0xkey' },
+        payload: { did: 'did:ethr:0xAAA', name: 'Injected', publicKey: '0xabcdef' },
       })
       expect(res.statusCode).toBe(403)
     })

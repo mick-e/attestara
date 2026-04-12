@@ -11,21 +11,21 @@ export async function clearAgentStores() {
 }
 
 const createAgentSchema = z.object({
-  did: z.string().min(1),
-  name: z.string().min(1).max(100),
-  publicKey: z.string().min(1),
-  metadata: z.record(z.unknown()).optional(),
+  did: z.string().regex(/^did:[a-z]+:.+$/, 'Invalid DID format (expected did:method:identifier)'),
+  name: z.string().min(1).max(255),
+  publicKey: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Public key must be hex-encoded with 0x prefix').optional().default('0x00'),
+  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 })
 
 const updateAgentSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  name: z.string().min(1).max(255).optional(),
+  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   status: z.enum(['active', 'inactive']).optional(),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const agentRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/orgs/:orgId/agents
   app.post('/orgs/:orgId/agents', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],

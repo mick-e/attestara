@@ -20,7 +20,7 @@ async function createAgent(app: any, token: string, orgId: string, did = 'did:et
     method: 'POST',
     url: `/v1/orgs/${orgId}/agents`,
     headers: { authorization: `Bearer ${token}` },
-    payload: { did, name: 'Agent 1', publicKey: '0xpubkey123' },
+    payload: { did, name: 'Agent 1', publicKey: '0xabcdef' },
   })
   return JSON.parse(res.payload)
 }
@@ -50,7 +50,7 @@ describe('Agent routes', () => {
         method: 'POST',
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
-        payload: { did: 'did:ethr:0xDUP', name: 'Agent 2', publicKey: '0xkey' },
+        payload: { did: 'did:ethr:0xDUP', name: 'Agent 2', publicKey: '0xabcdef' },
       })
       expect(res.statusCode).toBe(409)
     })
@@ -63,6 +63,31 @@ describe('Agent routes', () => {
         url: `/v1/orgs/${reg.user.orgId}/agents`,
         headers: { authorization: `Bearer ${reg.accessToken}` },
         payload: { name: 'Agent 1' },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('should reject invalid DID format', async () => {
+      const app = await createApp()
+      const reg = await registerAndGetToken(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/orgs/${reg.user.orgId}/agents`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: { did: 'not-a-did', name: 'Bad Agent', publicKey: '0x00' },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(JSON.parse(res.payload).code).toBe('VALIDATION_ERROR')
+    })
+
+    it('should reject non-hex public key', async () => {
+      const app = await createApp()
+      const reg = await registerAndGetToken(app)
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/orgs/${reg.user.orgId}/agents`,
+        headers: { authorization: `Bearer ${reg.accessToken}` },
+        payload: { did: 'did:ethr:0xValid', name: 'Bad Key Agent', publicKey: 'not-hex' },
       })
       expect(res.statusCode).toBe(400)
     })
