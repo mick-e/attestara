@@ -230,4 +230,21 @@ describe("AgentRegistry", function () {
       expect(await registry.isRegistered("did:attestara:unknown")).to.be.false;
     });
   });
+
+  describe("Admin Access Control", () => {
+    it("should return false for addresses that have not registered agents", async () => {
+      const [, nonAdmin] = await ethers.getSigners()
+      expect(await registry.isRegisteredAdmin(nonAdmin.address)).to.equal(false)
+    })
+
+    it("should return true for addresses that have registered an agent", async () => {
+      const [deployer] = await ethers.getSigners()
+      await registry.registerAgent('did:ethr:0xAdminTest', 'metadata', '0x00')
+      expect(await registry.isRegisteredAdmin(deployer.address)).to.equal(true)
+    })
+
+    it("should return false for address(0)", async () => {
+      expect(await registry.isRegisteredAdmin(ethers.ZeroAddress)).to.equal(false)
+    })
+  });
 });

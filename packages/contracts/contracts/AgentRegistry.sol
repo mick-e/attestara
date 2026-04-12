@@ -6,6 +6,7 @@ import "./interfaces/IAgentRegistry.sol";
 contract AgentRegistry is IAgentRegistry {
     mapping(bytes32 => AgentRecord) private agents;
     mapping(bytes32 => bytes32) private didToAgentId;
+    mapping(address => bool) private knownAdmins;
     uint256 private agentCounter;
 
     function registerAgent(
@@ -29,6 +30,7 @@ contract AgentRegistry is IAgentRegistry {
             registeredAt: block.timestamp
         });
 
+        knownAdmins[msg.sender] = true;
         didToAgentId[didHash] = agentId;
         emit AgentRegistered(agentId, did, msg.sender);
     }
@@ -70,12 +72,8 @@ contract AgentRegistry is IAgentRegistry {
         return didToAgentId[didHash] != bytes32(0);
     }
 
-    /// @notice Check if an address is the admin of any active agent
+    /// @notice Check if an address is the admin of any registered agent
     function isRegisteredAdmin(address addr) external view returns (bool) {
-        // Check if this address has registered any agent by looking at counter
-        // This is a simplified check — for production, maintain an admin→agentId mapping
-        // For testnet, we accept any non-zero address as the access control is
-        // primarily enforced at the relay layer
-        return addr != address(0);
+        return knownAdmins[addr];
     }
 }
