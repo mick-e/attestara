@@ -10,6 +10,24 @@ import {
 } from '../src/utils/siwe.js'
 import jwt from 'jsonwebtoken'
 
+/**
+ * Helper: register a user with an optional walletAddress, return the registered user data.
+ */
+async function registerWithWallet(app: any, wallet: Wallet, email?: string) {
+  const userEmail = email ?? `${wallet.address.toLowerCase().slice(2, 10)}@example.com`
+  const res = await app.inject({
+    method: 'POST',
+    url: '/v1/auth/register',
+    payload: {
+      email: userEmail,
+      password: 'password123',
+      orgName: `Org for ${wallet.address.slice(0, 8)}`,
+      walletAddress: wallet.address,
+    },
+  })
+  return { res, body: JSON.parse(res.payload), email: userEmail }
+}
+
 const JWT_SECRET = 'test-secret-at-least-32-chars-long!!'
 const SIWE_DOMAIN = 'attestara.ai'
 const SIWE_URI = 'https://attestara.ai'
@@ -125,11 +143,36 @@ describe('POST /v1/auth/wallet/verify', () => {
     await clearAllStores()
   })
 
-  it('should create user and return tokens for valid signature', async () => {
+  it('wallet auth returns 202 for unlinked wallet', async () => {
     const app = await createApp()
     const wallet = Wallet.createRandom()
     const { message, signature } = await getNonceAndSign(app, wallet)
 
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/wallet/verify',
+      payload: { message, signature },
+    })
+
+    expect(res.statusCode).toBe(202)
+    const body = JSON.parse(res.payload)
+    expect(body.code).toBe('WALLET_NOT_LINKED')
+    expect(body.message).toContain('Register first')
+    expect(body.walletAddress).toBe(wallet.address)
+    expect(body.requestId).toBeDefined()
+  })
+
+  it('can register with walletAddress then sign in with wallet', async () => {
+    const app = await createApp()
+    const wallet = Wallet.createRandom()
+
+    // Register with wallet address
+    const { res: regRes, body: regBody } = await registerWithWallet(app, wallet)
+    expect(regRes.statusCode).toBe(201)
+    expect(regBody.user.id).toBeDefined()
+
+    // Now wallet auth should succeed
+    const { message, signature } = await getNonceAndSign(app, wallet)
     const res = await app.inject({
       method: 'POST',
       url: '/v1/auth/wallet/verify',
@@ -144,6 +187,8 @@ describe('POST /v1/auth/wallet/verify', () => {
     expect(body.user.walletAddress).toBe(wallet.address)
     expect(body.user.orgId).toBeDefined()
     expect(body.user.role).toBe('owner')
+    // Same user as registered
+    expect(body.user.id).toBe(regBody.user.id)
   })
 
   it('should return 401 for invalid signature', async () => {
@@ -241,6 +286,9 @@ describe('POST /v1/auth/wallet/verify', () => {
     const app = await createApp()
     const wallet = Wallet.createRandom()
 
+    // Register with wallet address first
+    await registerWithWallet(app, wallet)
+
     // First auth
     const first = await getNonceAndSign(app, wallet)
     const res1 = await app.inject({
@@ -269,6 +317,10 @@ describe('POST /v1/auth/wallet/verify', () => {
   it('should return JWT tokens with correct claims', async () => {
     const app = await createApp()
     const wallet = Wallet.createRandom()
+
+    // Register with wallet address first
+    await registerWithWallet(app, wallet)
+
     const { message, signature } = await getNonceAndSign(app, wallet)
 
     const res = await app.inject({
@@ -277,6 +329,7 @@ describe('POST /v1/auth/wallet/verify', () => {
       payload: { message, signature },
     })
 
+    expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.payload)
 
     // Decode access token

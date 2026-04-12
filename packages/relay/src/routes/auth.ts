@@ -73,12 +73,13 @@ export function getAuthStores() {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
 const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? 'attestara.ai'
 const SIWE_URI = process.env.SIWE_URI ?? 'https://attestara.ai'
 const SIWE_STATEMENT = 'Sign in to Attestara'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/auth/register
   app.post('/register', async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body)
@@ -285,22 +286,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    // Upsert user by wallet address
+    // Look up user by wallet address — do NOT auto-create
     const address = recoveredAddress
-    let user = await orgService.getUserByWallet(address)
+    const user = await orgService.getUserByWallet(address)
 
     if (!user) {
-      // Auto-create org + user for wallet auth
-      const org = await orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
-      // Override slug for wallet orgs
-      const orgData = (await orgService.getOrg(org.id))!
-      ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
-
-      user = await orgService.createUser(org.id, {
-        email: `${address.toLowerCase()}@wallet.attestara.ai`,
-        passwordHash: '',
+      return reply.status(202).send({
+        code: 'WALLET_NOT_LINKED',
+        message: 'No account linked to this wallet. Register first with walletAddress field, then sign in with wallet.',
         walletAddress: address,
-        role: 'owner',
+        requestId: request.id,
       })
     }
 
@@ -363,20 +358,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    // Upsert user by wallet address
+    // Look up user by wallet address — do NOT auto-create
     const address = recoveredAddress
-    let user = await orgService.getUserByWallet(address)
+    const user = await orgService.getUserByWallet(address)
 
     if (!user) {
-      const org = await orgService.createOrg(`Wallet ${address.slice(0, 8)}`)
-      const orgData = (await orgService.getOrg(org.id))!
-      ;(orgData as any).slug = `wallet-${address.slice(2, 10).toLowerCase()}`
-
-      user = await orgService.createUser(org.id, {
-        email: `${address.toLowerCase()}@wallet.attestara.ai`,
-        passwordHash: '',
+      return reply.status(202).send({
+        code: 'WALLET_NOT_LINKED',
+        message: 'No account linked to this wallet. Register first with walletAddress field, then sign in with wallet.',
         walletAddress: address,
-        role: 'owner',
+        requestId: request.id,
       })
     }
 

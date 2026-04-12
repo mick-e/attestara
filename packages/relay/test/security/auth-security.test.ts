@@ -246,6 +246,14 @@ describe('Authentication Security', () => {
       const app = await createApp()
       const wallet = Wallet.createRandom()
 
+      // Register with wallet address so first verify succeeds with 200
+      const email = `${wallet.address.toLowerCase().slice(2, 10)}@example.com`
+      await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email, password: 'password123', orgName: `Org ${wallet.address.slice(0, 8)}`, walletAddress: wallet.address },
+      })
+
       // Get nonce
       const nonceRes = await app.inject({
         method: 'POST',

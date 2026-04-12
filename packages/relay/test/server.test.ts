@@ -158,6 +158,16 @@ describe('Auth routes', () => {
   })
 
   describe('POST /v1/auth/wallet', () => {
+    async function registerWallet(app: any, wallet: Wallet) {
+      const email = `${wallet.address.toLowerCase().slice(2, 10)}@example.com`
+      const regRes = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: { email, password: 'password123', orgName: `Org ${wallet.address.slice(0, 8)}`, walletAddress: wallet.address },
+      })
+      return JSON.parse(regRes.payload)
+    }
+
     async function walletAuthFlow(app: any, wallet: Wallet) {
       // Step 1: Get nonce
       const nonceRes = await app.inject({
@@ -175,9 +185,19 @@ describe('Auth routes', () => {
       })
     }
 
-    it('should authenticate with wallet address', async () => {
+    it('should return 202 for unlinked wallet', async () => {
       const app = await createApp()
       const wallet = Wallet.createRandom()
+      const res = await walletAuthFlow(app, wallet)
+      expect(res.statusCode).toBe(202)
+      const body = JSON.parse(res.payload)
+      expect(body.code).toBe('WALLET_NOT_LINKED')
+    })
+
+    it('should authenticate with wallet address after registration', async () => {
+      const app = await createApp()
+      const wallet = Wallet.createRandom()
+      await registerWallet(app, wallet)
       const res = await walletAuthFlow(app, wallet)
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.payload)
@@ -188,6 +208,7 @@ describe('Auth routes', () => {
     it('should return same user for repeated wallet auth', async () => {
       const app = await createApp()
       const wallet = Wallet.createRandom()
+      await registerWallet(app, wallet)
       const r1 = await walletAuthFlow(app, wallet)
       const r2 = await walletAuthFlow(app, wallet)
       const b1 = JSON.parse(r1.payload)
