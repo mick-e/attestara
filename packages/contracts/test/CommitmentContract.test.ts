@@ -74,6 +74,9 @@ describe("CommitmentContract", function () {
       await verifierRegistry.getAddress()
     );
     await commitment.waitForDeployment();
+
+    // Register an agent so the caller (owner) is recognized as a registered admin
+    await agentRegistry.registerAgent('did:ethr:0xTestAgent', 'test metadata', '0x00');
   });
 
   describe("anchorSession", () => {
