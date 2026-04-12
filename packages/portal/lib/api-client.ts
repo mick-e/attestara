@@ -153,9 +153,21 @@ export class ApiError extends Error {
 export class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
+  private csrfToken: string | null = null;
 
   constructor(baseUrl = RELAY_URL) {
     this.baseUrl = baseUrl;
+  }
+
+  private async ensureCsrfToken(): Promise<string> {
+    if (!this.csrfToken) {
+      const res = await fetch('/api/csrf');
+      if (res.ok) {
+        const data = await res.json();
+        this.csrfToken = data.csrfToken;
+      }
+    }
+    return this.csrfToken ?? '';
   }
 
   setToken(token: string) {
@@ -175,9 +187,10 @@ export class ApiClient {
   }
 
   async post<T>(path: string, body?: unknown): Promise<T> {
+    const csrf = typeof window !== 'undefined' ? await this.ensureCsrfToken() : '';
     const res = await fetch(`${this.baseUrl}/v1${path}`, {
       method: "POST",
-      headers: { ...this.headers(), "Content-Type": "application/json" },
+      headers: { ...this.headers(), "Content-Type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw await this.handleError(res);
@@ -185,9 +198,10 @@ export class ApiClient {
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
+    const csrf = typeof window !== 'undefined' ? await this.ensureCsrfToken() : '';
     const res = await fetch(`${this.baseUrl}/v1${path}`, {
       method: "PATCH",
-      headers: { ...this.headers(), "Content-Type": "application/json" },
+      headers: { ...this.headers(), "Content-Type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw await this.handleError(res);
@@ -195,9 +209,10 @@ export class ApiClient {
   }
 
   async delete(path: string): Promise<void> {
+    const csrf = typeof window !== 'undefined' ? await this.ensureCsrfToken() : '';
     const res = await fetch(`${this.baseUrl}/v1${path}`, {
       method: "DELETE",
-      headers: this.headers(),
+      headers: { ...this.headers(), ...(csrf ? { "x-csrf-token": csrf } : {}) },
     });
     if (!res.ok) throw await this.handleError(res);
   }

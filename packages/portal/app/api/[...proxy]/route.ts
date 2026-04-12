@@ -4,6 +4,19 @@ import { NextRequest, NextResponse } from 'next/server'
 const RELAY_URL = process.env.RELAY_URL || 'http://localhost:3001'
 
 async function proxyRequest(request: NextRequest, params: { proxy: string[] }) {
+  // CSRF check for state-changing requests
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method)) {
+    const cookieStore = await cookies()
+    const csrfCookie = cookieStore.get('csrf_token')?.value
+    const csrfHeader = request.headers.get('x-csrf-token')
+    if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      return NextResponse.json(
+        { code: 'CSRF_INVALID', message: 'Invalid or missing CSRF token' },
+        { status: 403 },
+      )
+    }
+  }
+
   const path = params.proxy.join('/')
   const url = `${RELAY_URL}/v1/${path}`
 
