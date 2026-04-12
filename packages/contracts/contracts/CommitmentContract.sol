@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "./interfaces/ICommitmentContract.sol";
 import "./interfaces/IAgentRegistry.sol";
 import "./interfaces/IVerifierRegistry.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IGroth16Verifier {
     function verifyProof(
@@ -14,7 +15,7 @@ interface IGroth16Verifier {
     ) external view returns (bool);
 }
 
-contract CommitmentContract is ICommitmentContract {
+contract CommitmentContract is ICommitmentContract, ReentrancyGuard {
     IAgentRegistry public agentRegistry;
     IVerifierRegistry public verifierRegistry;
 
@@ -63,7 +64,7 @@ contract CommitmentContract is ICommitmentContract {
         uint256[][] calldata publicSignals,
         bytes32[] calldata proofTypes,
         bytes[] calldata signatures
-    ) external returns (bytes32 commitmentId) {
+    ) external nonReentrant returns (bytes32 commitmentId) {
         require(sessionAnchored[sessionId], "Session not anchored");
         require(proofs.length == proofTypes.length, "Proof/type length mismatch");
         require(proofs.length == publicSignals.length, "Proof/signals length mismatch");
