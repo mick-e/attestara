@@ -185,7 +185,7 @@ describe('E2E: Webhook Lifecycle', () => {
 
       // Trigger delivery directly via the service (simulating an event)
       const payload = { sessionId: 'sess-001', status: 'active' }
-      const delivery = webhookService.deliver(wh.id, 'session.created', payload)
+      const delivery = await webhookService.deliver(wh.id, 'session.created', payload)
 
       expect(delivery).not.toBeNull()
       expect(delivery!.webhookId).toBe(wh.id)
@@ -194,8 +194,8 @@ describe('E2E: Webhook Lifecycle', () => {
       expect(delivery!.attempts).toBe(1)
     })
 
-    it('delivery to unknown webhook ID returns null', () => {
-      const delivery = webhookService.deliver('nonexistent-webhook', 'session.created', {})
+    it('delivery to unknown webhook ID returns null', async () => {
+      const delivery = await webhookService.deliver('nonexistent-webhook', 'session.created', {})
       expect(delivery).toBeNull()
     })
   })
@@ -208,8 +208,8 @@ describe('E2E: Webhook Lifecycle', () => {
       const wh = await createWebhook(baseUrl, orgId, accessToken, 'https://example.com/hook', ['session.created'])
 
       // Trigger two deliveries
-      webhookService.deliver(wh.id, 'session.created', { sessionId: 's1' })
-      webhookService.deliver(wh.id, 'session.created', { sessionId: 's2' })
+      await webhookService.deliver(wh.id, 'session.created', { sessionId: 's1' })
+      await webhookService.deliver(wh.id, 'session.created', { sessionId: 's2' })
 
       const res = await fetch(`${baseUrl}/v1/orgs/${orgId}/webhooks/${wh.id}/deliveries`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -317,7 +317,7 @@ describe('E2E: Webhook Lifecycle', () => {
       const payload = { sessionId: 'sess-123', event: 'session.created', timestamp: '2026-01-01T00:00:00Z' }
 
       // Sign via service
-      const signature = webhookService.signPayload(wh.id, payload)
+      const signature = await webhookService.signPayload(wh.id, payload)
       expect(signature).not.toBeNull()
 
       // Verify locally using the known secret
@@ -332,14 +332,14 @@ describe('E2E: Webhook Lifecycle', () => {
       const { accessToken, orgId } = await registerAndGetToken(baseUrl, 'p@example.com')
       const wh = await createWebhook(baseUrl, orgId, accessToken, 'https://example.com/hook', ['session.created'])
 
-      const sig1 = webhookService.signPayload(wh.id, { event: 'a' })
-      const sig2 = webhookService.signPayload(wh.id, { event: 'b' })
+      const sig1 = await webhookService.signPayload(wh.id, { event: 'a' })
+      const sig2 = await webhookService.signPayload(wh.id, { event: 'b' })
 
       expect(sig1).not.toBe(sig2)
     })
 
-    it('signPayload returns null for unknown webhook', () => {
-      const sig = webhookService.signPayload('nonexistent-webhook', { event: 'a' })
+    it('signPayload returns null for unknown webhook', async () => {
+      const sig = await webhookService.signPayload('nonexistent-webhook', { event: 'a' })
       expect(sig).toBeNull()
     })
 
@@ -350,8 +350,8 @@ describe('E2E: Webhook Lifecycle', () => {
       const wh2 = await createWebhook(baseUrl, orgId, accessToken, 'https://hook2.example.com/b', ['turn.added'])
 
       const payload = { sessionId: 'sess-xyz' }
-      const sig1 = webhookService.signPayload(wh1.id, payload)
-      const sig2 = webhookService.signPayload(wh2.id, payload)
+      const sig1 = await webhookService.signPayload(wh1.id, payload)
+      const sig2 = await webhookService.signPayload(wh2.id, payload)
 
       // Different secrets → different signatures for the same payload
       expect(sig1).not.toBe(sig2)

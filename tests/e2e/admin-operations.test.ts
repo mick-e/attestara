@@ -43,9 +43,9 @@ async function registerAndGetToken(
  */
 async function createAdminToken(): Promise<{ accessToken: string; orgId: string }> {
   const authService = new AuthService()
-  const org = orgService.createOrg('Admin Org')
+  const org = await orgService.createOrg('Admin Org')
   const hash = await authService.hashPassword('adminpass99')
-  const user = orgService.createUser(org.id, {
+  const user = await orgService.createUser(org.id, {
     email: 'admin@attestara.internal',
     passwordHash: hash,
     walletAddress: null,

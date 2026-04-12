@@ -269,7 +269,7 @@ describe('E2E: Cross-Org Security Boundaries', () => {
         baseUrl,
         orgA.accessToken,
         agentA.id,
-        'agent-b-placeholder',
+        null as any,
         orgA.orgId,
         orgB.orgId,
         'cross_org',

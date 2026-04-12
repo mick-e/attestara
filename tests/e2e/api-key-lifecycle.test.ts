@@ -185,7 +185,7 @@ describe('E2E: API Key Lifecycle', () => {
 
       // Validate directly via service (as the auth middleware would)
       const keyHash = hashApiKey(rawKey)
-      const found = apiKeyService.validateByHash(keyHash)
+      const found = await apiKeyService.validateByHash(keyHash)
 
       expect(found).not.toBeNull()
       expect(found!.id).toBe(created.id)
@@ -195,9 +195,9 @@ describe('E2E: API Key Lifecycle', () => {
       expect(found!.lastUsedAt).not.toBeNull() // updated on validation
     })
 
-    it('unknown key hash should return null', () => {
+    it('unknown key hash should return null', async () => {
       const fakeHash = hashApiKey('ac_' + '0'.repeat(64))
-      const found = apiKeyService.validateByHash(fakeHash)
+      const found = await apiKeyService.validateByHash(fakeHash)
       expect(found).toBeNull()
     })
 
@@ -252,7 +252,7 @@ describe('E2E: API Key Lifecycle', () => {
 
       // Verify it validates before revocation
       const keyHash = hashApiKey(created.rawKey)
-      expect(apiKeyService.validateByHash(keyHash)).not.toBeNull()
+      expect(await apiKeyService.validateByHash(keyHash)).not.toBeNull()
 
       // Revoke it
       await fetch(`${baseUrl}/v1/orgs/${orgId}/api-keys/${created.id}`, {
@@ -261,7 +261,7 @@ describe('E2E: API Key Lifecycle', () => {
       })
 
       // After revocation it should not validate
-      expect(apiKeyService.validateByHash(keyHash)).toBeNull()
+      expect(await apiKeyService.validateByHash(keyHash)).toBeNull()
     })
 
     it('should return 404 when revoking non-existent key', async () => {
@@ -312,7 +312,7 @@ describe('E2E: API Key Lifecycle', () => {
 
       const keyHash = hashApiKey(created.rawKey)
       // validateByHash checks expiry and returns null for expired keys
-      const result = apiKeyService.validateByHash(keyHash)
+      const result = await apiKeyService.validateByHash(keyHash)
       expect(result).toBeNull()
     })
 
