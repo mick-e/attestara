@@ -153,12 +153,23 @@ export class SessionService {
     return row ? toStoredSession(row) : null
   }
 
-  async listByOrg(orgId: string): Promise<StoredSession[]> {
+  async listByOrg(
+    orgId: string,
+    opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
+  ): Promise<StoredSession[]> {
     const rows = await getPrisma().session.findMany({
       where: { OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }] },
-      orderBy: { createdAt: 'desc' },
+      skip: opts?.skip,
+      take: opts?.take,
+      orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredSession)
+  }
+
+  async countByOrg(orgId: string): Promise<number> {
+    return getPrisma().session.count({
+      where: { OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }] },
+    })
   }
 
   async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {

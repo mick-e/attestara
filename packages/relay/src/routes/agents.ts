@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
+import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { agentService } from '../services/agent.service.js'
 
 export { agentService as agentServiceInstance }
@@ -58,12 +59,22 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgAgents = await agentService.listByOrg(orgId)
+    const queryParsed = paginationQuery.safeParse(request.query)
+    if (!queryParsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: queryParsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
 
-    return reply.status(200).send({
-      data: orgAgents,
-      pagination: { total: orgAgents.length, page: 1, pageSize: 50, totalPages: 1 },
-    })
+    const opts = buildPaginationOpts(queryParsed.data)
+    const [orgAgents, total] = await Promise.all([
+      agentService.listByOrg(orgId, opts),
+      agentService.countByOrg(orgId),
+    ])
+
+    return reply.status(200).send(buildPaginationResponse(orgAgents, total, queryParsed.data))
   })
 
   // GET /v1/orgs/:orgId/agents/:agentId

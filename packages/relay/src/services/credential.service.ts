@@ -76,9 +76,21 @@ export class CredentialService {
     }
   }
 
-  async listByOrg(orgId: string): Promise<StoredCredential[]> {
-    const rows = await getPrisma().credential.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } })
+  async listByOrg(
+    orgId: string,
+    opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
+  ): Promise<StoredCredential[]> {
+    const rows = await getPrisma().credential.findMany({
+      where: { orgId },
+      skip: opts?.skip,
+      take: opts?.take,
+      orderBy: opts?.orderBy ?? { createdAt: 'desc' },
+    })
     return rows.map(toStoredCredential)
+  }
+
+  async countByOrg(orgId: string): Promise<number> {
+    return getPrisma().credential.count({ where: { orgId } })
   }
 
   async getById(id: string, orgId: string): Promise<StoredCredential | null> {

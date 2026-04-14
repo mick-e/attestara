@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
+import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { sessionService } from '../services/session.service.js'
 
 export async function clearSessionStores() {
@@ -68,12 +69,22 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = (request as any).auth as AuthContext
-    const orgSessions = await sessionService.listByOrg(auth.orgId)
+    const queryParsed = paginationQuery.safeParse(request.query)
+    if (!queryParsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: queryParsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
 
-    return reply.status(200).send({
-      data: orgSessions,
-      pagination: { total: orgSessions.length, page: 1, pageSize: 50, totalPages: 1 },
-    })
+    const opts = buildPaginationOpts(queryParsed.data)
+    const [orgSessions, total] = await Promise.all([
+      sessionService.listByOrg(auth.orgId, opts),
+      sessionService.countByOrg(auth.orgId),
+    ])
+
+    return reply.status(200).send(buildPaginationResponse(orgSessions, total, queryParsed.data))
   })
 
   // GET /v1/sessions/:sessionId

@@ -73,9 +73,21 @@ export class AgentService {
     }
   }
 
-  async listByOrg(orgId: string): Promise<StoredAgent[]> {
-    const rows = await getPrisma().agent.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } })
+  async listByOrg(
+    orgId: string,
+    opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
+  ): Promise<StoredAgent[]> {
+    const rows = await getPrisma().agent.findMany({
+      where: { orgId },
+      skip: opts?.skip,
+      take: opts?.take,
+      orderBy: opts?.orderBy ?? { createdAt: 'desc' },
+    })
     return rows.map(toStoredAgent)
+  }
+
+  async countByOrg(orgId: string): Promise<number> {
+    return getPrisma().agent.count({ where: { orgId } })
   }
 
   async getById(agentId: string, orgId: string): Promise<StoredAgent | null> {

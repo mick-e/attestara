@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
+import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { credentialService } from '../services/credential.service.js'
 
 export async function clearCredentialStores() {
@@ -62,12 +63,22 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
-    const orgCreds = await credentialService.listByOrg(orgId)
+    const queryParsed = paginationQuery.safeParse(request.query)
+    if (!queryParsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: queryParsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
 
-    return reply.status(200).send({
-      data: orgCreds,
-      pagination: { total: orgCreds.length, page: 1, pageSize: 50, totalPages: 1 },
-    })
+    const opts = buildPaginationOpts(queryParsed.data)
+    const [orgCreds, total] = await Promise.all([
+      credentialService.listByOrg(orgId, opts),
+      credentialService.countByOrg(orgId),
+    ])
+
+    return reply.status(200).send(buildPaginationResponse(orgCreds, total, queryParsed.data))
   })
 
   // GET /v1/orgs/:orgId/credentials/:id

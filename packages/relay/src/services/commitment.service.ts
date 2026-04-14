@@ -83,7 +83,10 @@ export class CommitmentService {
     return row ? toStoredCommitment(row) : null
   }
 
-  async listByOrg(orgId: string): Promise<StoredCommitment[]> {
+  async listByOrg(
+    orgId: string,
+    opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
+  ): Promise<StoredCommitment[]> {
     const rows = await getPrisma().commitment.findMany({
       where: {
         session: {
@@ -93,9 +96,24 @@ export class CommitmentService {
           ],
         },
       },
-      orderBy: { createdAt: 'desc' },
+      skip: opts?.skip,
+      take: opts?.take,
+      orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredCommitment)
+  }
+
+  async countByOrg(orgId: string): Promise<number> {
+    return getPrisma().commitment.count({
+      where: {
+        session: {
+          OR: [
+            { initiatorOrgId: orgId },
+            { counterpartyOrgId: orgId },
+          ],
+        },
+      },
+    })
   }
 
   async verify(id: string): Promise<StoredCommitment | null> {
