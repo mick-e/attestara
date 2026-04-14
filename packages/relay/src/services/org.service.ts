@@ -166,6 +166,7 @@ export class OrgService {
     await getPrisma().agent.deleteMany()
     await getPrisma().apiKey.deleteMany()
     await getPrisma().invite.deleteMany()
+    await getPrisma().refreshToken.deleteMany()
     await getPrisma().user.deleteMany()
     await getPrisma().organisation.deleteMany()
   }

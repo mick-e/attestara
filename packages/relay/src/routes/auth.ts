@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { createHash, randomUUID } from 'crypto'
 import { z } from 'zod'
 import { getAddress } from 'ethers'
 import {
@@ -16,7 +17,12 @@ import {
 } from '../utils/siwe.js'
 import { AuthService } from '../services/auth.service.js'
 import { orgService } from '../services/org.service.js'
+import { getPrisma } from '../utils/prisma.js'
 import type { StoredUser, StoredOrg } from '../services/org.service.js'
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
 
 // Re-export types for backward compatibility
 export type { StoredUser, StoredOrg }
@@ -80,6 +86,13 @@ const SIWE_STATEMENT = 'Sign in to Attestara'
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
+  // Stricter rate limit for auth endpoints: 10 requests per 15 minutes per IP
+  await app.register(import('@fastify/rate-limit'), {
+    max: 10,
+    timeWindow: '15 minutes',
+    keyGenerator: (request) => request.ip,
+  })
+
   // POST /v1/auth/register
   app.post('/register', async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body)
@@ -118,6 +131,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const tokenPayload = { sub: user.id, orgId: org.id, email, role: user.role }
     const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
     const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
+
+    // Store refresh token hash for rotation tracking
+    const family = randomUUID()
+    await getPrisma().refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(refreshToken),
+        family,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    })
 
     return reply.status(201).send({
       accessToken,
@@ -160,6 +184,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
     const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
 
+    // Store refresh token hash for rotation tracking
+    const family = randomUUID()
+    await getPrisma().refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(refreshToken),
+        family,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    })
+
     return reply.status(200).send({
       accessToken,
       refreshToken,
@@ -179,8 +214,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
+    const { refreshToken: incomingToken } = parsed.data
+
+    // Verify JWT first
+    let payload: ReturnType<typeof verifyToken>
     try {
-      const payload = verifyToken(parsed.data.refreshToken, JWT_SECRET)
+      payload = verifyToken(incomingToken, JWT_SECRET)
       if (payload.type !== 'refresh') {
         return reply.status(401).send({
           code: 'INVALID_TOKEN',
@@ -188,16 +227,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           requestId: request.id,
         })
       }
-
-      const tokenPayload = { sub: payload.sub, orgId: payload.orgId, email: payload.email, role: payload.role }
-      const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
-      const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
-
-      return reply.status(200).send({
-        accessToken,
-        refreshToken,
-        expiresIn: 900,
-      })
     } catch {
       return reply.status(401).send({
         code: 'INVALID_TOKEN',
@@ -205,6 +234,56 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.id,
       })
     }
+
+    // Look up by hash
+    const tokenHash = hashToken(incomingToken)
+    const stored = await getPrisma().refreshToken.findUnique({ where: { tokenHash } })
+
+    if (!stored) {
+      return reply.status(401).send({
+        code: 'INVALID_TOKEN',
+        message: 'Refresh token not found',
+        requestId: request.id,
+      })
+    }
+
+    if (stored.revoked) {
+      // TOKEN REUSE DETECTED — revoke entire family
+      await getPrisma().refreshToken.updateMany({
+        where: { family: stored.family },
+        data: { revoked: true },
+      })
+      return reply.status(401).send({
+        code: 'TOKEN_REUSE',
+        message: 'Token reuse detected, all sessions revoked',
+        requestId: request.id,
+      })
+    }
+
+    // Rotate: revoke old, issue new
+    await getPrisma().refreshToken.update({
+      where: { id: stored.id },
+      data: { revoked: true },
+    })
+
+    const newPayload = { sub: payload.sub, orgId: payload.orgId, email: payload.email, role: payload.role }
+    const newAccessToken = generateAccessToken(newPayload, JWT_SECRET)
+    const newRefreshToken = generateRefreshToken(newPayload, JWT_SECRET)
+
+    await getPrisma().refreshToken.create({
+      data: {
+        userId: payload.sub,
+        tokenHash: hashToken(newRefreshToken),
+        family: stored.family,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    })
+
+    return reply.status(200).send({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      expiresIn: 900,
+    })
   })
 
   // POST /v1/auth/wallet/nonce — Generate a nonce for SIWE
@@ -303,6 +382,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
     const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
 
+    // Store refresh token hash for rotation tracking
+    const family = randomUUID()
+    await getPrisma().refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(refreshToken),
+        family,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    })
+
     return reply.status(200).send({
       accessToken,
       refreshToken,
@@ -374,6 +464,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const tokenPayload = { sub: user.id, orgId: user.orgId, email: user.email, role: user.role }
     const accessToken = generateAccessToken(tokenPayload, JWT_SECRET)
     const refreshToken = generateRefreshToken(tokenPayload, JWT_SECRET)
+
+    // Store refresh token hash for rotation tracking
+    const familyId = randomUUID()
+    await getPrisma().refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(refreshToken),
+        family: familyId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    })
 
     return reply.status(200).send({
       accessToken,

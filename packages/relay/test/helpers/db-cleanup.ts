@@ -16,6 +16,7 @@ export async function clearAllStores(): Promise<void> {
   await db.credential.deleteMany()
   await db.agent.deleteMany()
   await db.apiKey.deleteMany()
+  await db.refreshToken.deleteMany()
   await db.user.deleteMany()
   await db.invite.deleteMany()
   await db.organisation.deleteMany()
