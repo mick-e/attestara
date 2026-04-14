@@ -2,8 +2,6 @@ import type { FastifyPluginAsync } from 'fastify'
 import { requireAuth } from '../middleware/auth.js'
 import { getPrisma } from '../utils/prisma.js'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 function requireAdmin() {
   return async (request: any, reply: any) => {
     const auth = request.auth
@@ -18,6 +16,8 @@ function requireAdmin() {
 }
 
 export const adminRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // GET /v1/admin/stats
   app.get('/admin/stats', {
     preHandler: [requireAuth(JWT_SECRET), requireAdmin()],

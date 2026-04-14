@@ -13,9 +13,9 @@ const createApiKeySchema = z.object({
   expiresAt: z.string().datetime().optional(),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/orgs/:orgId/api-keys
   app.post('/orgs/:orgId/api-keys', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],

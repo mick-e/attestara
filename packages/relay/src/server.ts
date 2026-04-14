@@ -2,6 +2,8 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
+import { loadConfig } from './config.js'
+import { initWebhookConfig } from './services/webhook.service.js'
 import { authRoutes } from './routes/auth.js'
 import { orgRoutes } from './routes/orgs.js'
 import { agentRoutes } from './routes/agents.js'
@@ -39,9 +41,16 @@ export async function buildServer(options: ServerOptions = {}) {
     genReqId: () => crypto.randomUUID(),
   })
 
+  // Load and validate config (fails fast if env vars missing)
+  const config = loadConfig()
+  app.decorate('config', config)
+
+  // Initialize services that need config
+  initWebhookConfig(config.ORG_MASTER_KEY_SECRET)
+
   // Security plugins
   await app.register(cors, {
-    origin: options.corsOrigin ?? 'http://localhost:3000',
+    origin: options.corsOrigin ?? config.CORS_ORIGIN,
   })
 
   await app.register(helmet, {

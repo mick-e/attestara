@@ -20,9 +20,9 @@ const createCredentialSchema = z.object({
   expiry: z.string().datetime(),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const credentialRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/orgs/:orgId/credentials
   app.post('/orgs/:orgId/credentials', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],

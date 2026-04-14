@@ -5,9 +5,9 @@ import { credentialService } from '../services/credential.service.js'
 import { sessionService } from '../services/session.service.js'
 import { commitmentService } from '../services/commitment.service.js'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const analyticsRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // GET /v1/orgs/:orgId/analytics
   app.get('/orgs/:orgId/analytics', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],

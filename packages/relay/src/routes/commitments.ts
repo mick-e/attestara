@@ -15,9 +15,9 @@ const createCommitmentSchema = z.object({
   circuitVersions: z.array(z.string()),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const commitmentRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/sessions/:sessionId/commitment
   app.post('/sessions/:sessionId/commitment', {
     preHandler: [requireAuth(JWT_SECRET)],

@@ -16,7 +16,6 @@ import * as sessionChannel from './session-channel.js'
 import * as orgFeed from './org-feed.js'
 import { setOnline, setOffline, cleanupPresence } from './presence.js'
 
-const JWT_SECRET = process.env['JWT_SECRET'] ?? 'dev-secret-change-in-production'
 
 export interface SubscribeMessage {
   type: 'subscribe'
@@ -42,6 +41,8 @@ export function broadcast(channel: string, event: string, data: unknown): void {
 }
 
 export const websocketPlugin: FastifyPluginAsync = async (fastify) => {
+  const JWT_SECRET = fastify.config.JWT_SECRET
+
   await fastify.register(fastifyWebsocket)
 
   fastify.get('/ws', { websocket: true }, (socket, request) => {

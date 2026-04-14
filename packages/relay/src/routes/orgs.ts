@@ -31,9 +31,9 @@ const inviteSchema = z.object({
   role: z.string().default('member'),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const orgRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/orgs
   app.post('/orgs', {
     preHandler: [requireAuth(JWT_SECRET)],

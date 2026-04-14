@@ -12,9 +12,9 @@ const registerWebhookSchema = z.object({
   events: z.array(z.string().min(1)).min(1),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const webhookRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/orgs/:orgId/webhooks
   app.post('/orgs/:orgId/webhooks', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],

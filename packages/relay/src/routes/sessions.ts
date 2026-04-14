@@ -37,9 +37,9 @@ const createTurnSchema = z.object({
   signature: z.string().min(1),
 })
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret-at-least-32-chars-long!!'
-
 export const sessionRoutes: FastifyPluginAsync = async (app) => {
+  const JWT_SECRET = app.config.JWT_SECRET
+
   // POST /v1/sessions
   app.post('/sessions', {
     preHandler: [requireAuth(JWT_SECRET)],
