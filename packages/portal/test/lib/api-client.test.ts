@@ -23,6 +23,14 @@ describe("ApiClient", () => {
     });
   }
 
+  function mockCsrf() {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ csrfToken: "test-csrf-token" }),
+    });
+  }
+
   it("should make GET requests to the correct URL", async () => {
     mockResponse({ id: "123" });
     const result = await client.get("/agents");
@@ -34,6 +42,7 @@ describe("ApiClient", () => {
   });
 
   it("should make POST requests with JSON body", async () => {
+    mockCsrf();
     mockResponse({ id: "new-agent" });
     const body = { name: "Test Agent" };
     await client.post("/agents", body);
@@ -41,13 +50,14 @@ describe("ApiClient", () => {
       "http://localhost:3001/v1/agents",
       expect.objectContaining({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: expect.objectContaining({ "Content-Type": "application/json" }),
         body: JSON.stringify(body),
       }),
     );
   });
 
   it("should make POST requests without body", async () => {
+    mockCsrf();
     mockResponse({ ok: true });
     await client.post("/agents/activate");
     expect(mockFetch).toHaveBeenCalledWith(
@@ -60,6 +70,7 @@ describe("ApiClient", () => {
   });
 
   it("should make PATCH requests with JSON body", async () => {
+    mockCsrf();
     mockResponse({ updated: true });
     const body = { name: "Updated" };
     await client.patch("/agents/123", body);
@@ -76,6 +87,7 @@ describe("ApiClient", () => {
   });
 
   it("should make DELETE requests", async () => {
+    mockCsrf();
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 204,
