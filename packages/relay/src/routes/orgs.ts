@@ -65,14 +65,17 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
+    const org = await orgService.getOrg(orgId)
 
-    // In a real implementation, fetch from DB
-    return reply.status(200).send({
-      id: orgId,
-      name: 'Organisation',
-      slug: 'org-slug',
-      plan: 'starter',
-    })
+    if (!org) {
+      return reply.status(404).send({
+        code: 'ORG_NOT_FOUND',
+        message: 'Organisation not found',
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(200).send(org)
   })
 
   // PATCH /v1/orgs/:orgId
