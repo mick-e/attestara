@@ -103,7 +103,10 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Session Volume Chart */}
-      <div className="rounded-lg border border-navy-800 bg-navy-900 p-6">
+      <div className="relative rounded-lg border border-navy-800 bg-navy-900 p-6">
+        <span className="absolute top-2 right-2 z-10 rounded-full bg-navy-800 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-navy-400">
+          Preview data
+        </span>
         <h3 className="text-sm font-medium text-gray-400 mb-4">
           Session Volume (Last 14 Days)
         </h3>
@@ -135,7 +138,10 @@ export default function AnalyticsPage() {
       {/* Proof Latency + Gas Cost */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Proof Latency by Circuit */}
-        <div className="rounded-lg border border-navy-800 bg-navy-900 p-6">
+        <div className="relative rounded-lg border border-navy-800 bg-navy-900 p-6">
+          <span className="absolute top-2 right-2 z-10 rounded-full bg-navy-800 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-navy-400">
+            Preview data
+          </span>
           <h3 className="text-sm font-medium text-gray-400 mb-4">
             Avg Proof Latency by Circuit
           </h3>
@@ -163,7 +169,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Gas Cost Chart */}
-        <div className="rounded-lg border border-navy-800 bg-navy-900 p-6">
+        <div className="relative rounded-lg border border-navy-800 bg-navy-900 p-6">
+          <span className="absolute top-2 right-2 z-10 rounded-full bg-navy-800 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-navy-400">
+            Preview data
+          </span>
           <h3 className="text-sm font-medium text-gray-400 mb-4">
             Gas Cost (ETH) — Last 14 Days
           </h3>
