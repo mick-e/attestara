@@ -68,7 +68,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   app.get('/sessions', {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
-    const auth = (request as any).auth as AuthContext
+    const auth = request.auth!
     const queryParsed = paginationQuery.safeParse(request.query)
     if (!queryParsed.success) {
       return reply.status(400).send({
@@ -92,7 +92,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
-    const auth = (request as any).auth as AuthContext
+    const auth = request.auth!
     const session = await sessionService.getSessionWithOrgCheck(sessionId, auth.orgId)
 
     if (!session) {
@@ -120,7 +120,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
-    const auth = (request as any).auth as AuthContext
+    const auth = request.auth!
     const session = await sessionService.getSession(sessionId)
 
     if (!session) {

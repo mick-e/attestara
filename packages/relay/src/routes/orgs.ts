@@ -47,7 +47,7 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const auth = (request as any).auth as AuthContext
+    const auth = request.auth!
     const org = await orgService.createOrg(parsed.data.name, parsed.data.plan)
 
     // Track membership

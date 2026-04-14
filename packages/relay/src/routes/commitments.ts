@@ -57,7 +57,7 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
   app.get('/commitments', {
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
-    const auth = (request as any).auth as AuthContext
+    const auth = request.auth!
     const queryParsed = paginationQuery.safeParse(request.query)
     if (!queryParsed.success) {
       return reply.status(400).send({

@@ -25,9 +25,10 @@ export interface AuthContext {
 export function generateAccessToken(
   payload: Omit<JWTPayload, 'type'>,
   secret: string,
-  expiresIn = '15m',
+  expiresIn: string | number = '15m',
 ): string {
-  return jwt.sign({ ...payload, type: 'access' }, secret, { expiresIn: expiresIn as any })
+  const options: jwt.SignOptions = { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
+  return jwt.sign({ ...payload, type: 'access' }, secret, options)
 }
 
 /**
@@ -36,9 +37,10 @@ export function generateAccessToken(
 export function generateRefreshToken(
   payload: Omit<JWTPayload, 'type'>,
   secret: string,
-  expiresIn = '7d',
+  expiresIn: string | number = '7d',
 ): string {
-  return jwt.sign({ ...payload, type: 'refresh' }, secret, { expiresIn: expiresIn as any })
+  const options: jwt.SignOptions = { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
+  return jwt.sign({ ...payload, type: 'refresh' }, secret, options)
 }
 
 /**
@@ -103,12 +105,12 @@ export function requireAuth(jwtSecret: string) {
             requestId: request.id,
           })
         }
-        ;(request as any).auth = {
+        request.auth = {
           userId: payload.sub,
           orgId: payload.orgId,
           email: payload.email,
           role: payload.role,
-        } as AuthContext
+        }
         return
       } catch {
         return reply.status(401).send({
@@ -123,7 +125,7 @@ export function requireAuth(jwtSecret: string) {
     const apiKey = extractApiKey(request)
     if (apiKey) {
       // API key validation requires database lookup — store hash for route to resolve
-      ;(request as any).apiKeyHash = hashApiKey(apiKey)
+      request.apiKeyHash = hashApiKey(apiKey)
       return
     }
 
@@ -141,7 +143,7 @@ export function requireAuth(jwtSecret: string) {
  */
 export function requireOrgAccess() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    const auth = (request as any).auth as AuthContext | undefined
+    const auth = request.auth
     if (!auth) {
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
