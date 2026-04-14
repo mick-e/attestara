@@ -81,6 +81,56 @@ export async function buildServer(options: ServerOptions = {}) {
     timeWindow: options.rateLimit?.timeWindow ?? '1 minute',
   })
 
+  // OpenAPI / Swagger documentation
+  await app.register(import('@fastify/swagger'), {
+    openapi: {
+      openapi: '3.0.0',
+      info: {
+        title: 'Attestara Relay API',
+        description: 'Cryptographic trust protocol for autonomous AI agent commerce. Provides REST endpoints for agents, credentials, sessions, commitments, webhooks, and analytics.',
+        version: '0.1.0',
+      },
+      servers: [
+        { url: 'http://localhost:3001', description: 'Development' },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+          apiKeyAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'Authorization',
+            description: 'Use format: `ApiKey ac_xxxxxx...`',
+          },
+        },
+      },
+      tags: [
+        { name: 'Auth', description: 'Authentication and session management' },
+        { name: 'Orgs', description: 'Organization management' },
+        { name: 'Agents', description: 'Agent provisioning and management' },
+        { name: 'Credentials', description: 'W3C Verifiable Credentials' },
+        { name: 'Sessions', description: 'Negotiation sessions' },
+        { name: 'Commitments', description: 'On-chain settlement' },
+        { name: 'ApiKeys', description: 'API key management' },
+        { name: 'Webhooks', description: 'Event webhook delivery' },
+        { name: 'Analytics', description: 'Organization analytics' },
+        { name: 'Admin', description: 'Admin-only operations' },
+      ],
+    },
+  })
+
+  await app.register(import('@fastify/swagger-ui'), {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+    },
+  })
+
   // Global error handler
   app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
     const statusCode = error.statusCode ?? 500
