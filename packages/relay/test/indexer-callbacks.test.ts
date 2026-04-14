@@ -65,9 +65,9 @@ describe('buildPrismaCallbacks', () => {
 
     it('catches and logs errors without throwing', async () => {
       mockUpdateManyAgent.mockRejectedValue(new Error('DB down'))
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const mockLogger = { warn: vi.fn(), info: vi.fn() } as any
 
-      const callbacks = buildPrismaCallbacks()
+      const callbacks = buildPrismaCallbacks(mockLogger)
       await expect(
         callbacks.onAgentRegistered!({
           agentId: '0xfail',
@@ -78,8 +78,7 @@ describe('buildPrismaCallbacks', () => {
         }),
       ).resolves.not.toThrow()
 
-      expect(warnSpy).toHaveBeenCalled()
-      warnSpy.mockRestore()
+      expect(mockLogger.warn).toHaveBeenCalled()
     })
   })
 
@@ -120,9 +119,9 @@ describe('buildPrismaCallbacks', () => {
 
     it('catches and logs errors without throwing', async () => {
       mockUpdateManyCommitment.mockRejectedValue(new Error('DB down'))
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const mockLogger = { warn: vi.fn(), info: vi.fn() } as any
 
-      const callbacks = buildPrismaCallbacks()
+      const callbacks = buildPrismaCallbacks(mockLogger)
       await expect(
         callbacks.onCommitmentCreated!({
           commitmentId: '0xfail',
@@ -133,8 +132,7 @@ describe('buildPrismaCallbacks', () => {
         }),
       ).resolves.not.toThrow()
 
-      expect(warnSpy).toHaveBeenCalled()
-      warnSpy.mockRestore()
+      expect(mockLogger.warn).toHaveBeenCalled()
     })
   })
 })

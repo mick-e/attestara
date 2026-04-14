@@ -23,10 +23,12 @@ export interface ServerOptions {
 }
 
 export async function buildServer(options: ServerOptions = {}) {
+  const isProduction = process.env.NODE_ENV === 'production'
+
   const app = Fastify({
     logger: options.logger !== false
       ? {
-          level: 'info',
+          level: isProduction ? 'info' : 'debug',
           serializers: {
             req(request) {
               return {
@@ -35,7 +37,24 @@ export async function buildServer(options: ServerOptions = {}) {
                 requestId: request.id,
               }
             },
+            res(reply) {
+              return {
+                statusCode: reply.statusCode,
+              }
+            },
           },
+          ...(isProduction
+            ? {}
+            : {
+                transport: {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    translateTime: 'HH:MM:ss',
+                    ignore: 'pid,hostname',
+                  },
+                },
+              }),
         }
       : false,
     genReqId: () => crypto.randomUUID(),
@@ -119,13 +138,17 @@ export async function buildServer(options: ServerOptions = {}) {
     }
 
     loadContractAddresses().then(addresses =>
-      import('./indexer/index.js').then(m => m.startIndexer({
-        rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
-        contractAddresses: {
-          agentRegistry: addresses.agentRegistry,
-          commitmentContract: addresses.commitmentContract,
-        },
-      }))
+      import('./indexer/index.js').then(async m => {
+        const { buildPrismaCallbacks } = await import('./indexer/callbacks.js')
+        return m.startIndexer({
+          rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+          contractAddresses: {
+            agentRegistry: addresses.agentRegistry,
+            commitmentContract: addresses.commitmentContract,
+          },
+          callbacks: buildPrismaCallbacks(app.log),
+        })
+      })
     ).catch(err => app.log?.warn({ err }, 'Indexer failed to start'))
   }
 
