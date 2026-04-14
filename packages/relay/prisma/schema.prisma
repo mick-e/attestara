@@ -40,6 +40,7 @@ model User {
   org           Organisation   @relation(fields: [orgId], references: [id])
   refreshTokens RefreshToken[]
 
+  @@index([orgId])
   @@map("users")
 }
 
@@ -76,6 +77,7 @@ model Agent {
   initiatedSessions    Session[]    @relation("initiator_agent")
   counterpartySessions Session[]    @relation("counterparty_agent")
 
+  @@index([orgId])
   @@map("agents")
 }
 
@@ -97,6 +99,9 @@ model Credential {
   org   Organisation @relation(fields: [orgId], references: [id])
   agent Agent        @relation(fields: [agentId], references: [id])
 
+  @@index([orgId])
+  @@index([agentId])
+  @@index([expiry])
   @@map("credentials")
 }
 
@@ -147,6 +152,8 @@ model Turn {
   agent   Agent   @relation(fields: [agentId], references: [id])
 
   @@unique([sessionId, sequenceNumber])
+  @@index([sessionId])
+  @@index([agentId])
   @@map("turns")
 }
 
@@ -181,6 +188,8 @@ model ApiKey {
 
   org Organisation @relation(fields: [orgId], references: [id])
 
+  @@index([orgId])
+  @@index([expiresAt])
   @@map("api_keys")
 }
 
@@ -196,6 +205,8 @@ model Webhook {
   org        Organisation      @relation(fields: [orgId], references: [id])
   deliveries WebhookDelivery[]
 
+  @@index([orgId])
+  @@index([active])
   @@map("webhooks")
 }
 
@@ -212,6 +223,7 @@ model WebhookDelivery {
 
   webhook Webhook @relation(fields: [webhookId], references: [id])
 
+  @@index([webhookId])
   @@map("webhook_deliveries")
 }
 
@@ -225,5 +237,6 @@ model Invite {
 
   org Organisation @relation(fields: [orgId], references: [id])
 
+  @@index([orgId])
   @@map("invites")
 }
