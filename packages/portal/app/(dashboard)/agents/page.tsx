@@ -125,17 +125,28 @@ export default function AgentsPage() {
   // Use API data if available, mock data as fallback
   const displayAgents = agents ?? mockAgents;
 
+  function generateDid(): string {
+    const hex = Array.from({ length: 40 }, () =>
+      Math.floor(Math.random() * 16).toString(16)
+    ).join("");
+    return `did:ethr:arb-sepolia:0x${hex}`;
+  }
+
+  function generatePublicKey(): string {
+    const hex = Array.from({ length: 64 }, () =>
+      Math.floor(Math.random() * 16).toString(16)
+    ).join("");
+    return `0x${hex}`;
+  }
+
   async function handleProvision() {
     if (!agentName.trim()) return;
     try {
-      // Generate a placeholder DID and key for provisioning
-      const randomHex = Array.from({ length: 32 }, () =>
-        Math.floor(Math.random() * 16).toString(16),
-      ).join("");
       await createAgent({
+        did: generateDid(),
         name: agentName,
-        did: `did:key:z6Mk${randomHex}`,
-        publicKey: `0x${randomHex}`,
+        publicKey: generatePublicKey(),
+        metadata: {},
       });
       setModalOpen(false);
       setAgentName("");
