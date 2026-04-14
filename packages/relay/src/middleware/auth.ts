@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto'
+import { createHash, randomBytes, randomUUID } from 'crypto'
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import jwt from 'jsonwebtoken'
 
@@ -27,7 +27,10 @@ export function generateAccessToken(
   secret: string,
   expiresIn: string | number = '15m',
 ): string {
-  const options: jwt.SignOptions = { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
+  const options: jwt.SignOptions = {
+    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    jwtid: randomUUID(),
+  }
   return jwt.sign({ ...payload, type: 'access' }, secret, options)
 }
 
@@ -39,7 +42,10 @@ export function generateRefreshToken(
   secret: string,
   expiresIn: string | number = '7d',
 ): string {
-  const options: jwt.SignOptions = { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
+  const options: jwt.SignOptions = {
+    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    jwtid: randomUUID(),
+  }
   return jwt.sign({ ...payload, type: 'refresh' }, secret, options)
 }
 

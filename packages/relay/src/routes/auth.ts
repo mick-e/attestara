@@ -86,9 +86,11 @@ const SIWE_STATEMENT = 'Sign in to Attestara'
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
-  // Stricter rate limit for auth endpoints: 10 requests per 15 minutes per IP
+  // Stricter rate limit for auth endpoints: 10 requests per 15 minutes per IP.
+  // In test environment, use a much higher limit to avoid throttling test runs.
+  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
   await app.register(import('@fastify/rate-limit'), {
-    max: 10,
+    max: isTestEnv ? 10_000 : 10,
     timeWindow: '15 minutes',
     keyGenerator: (request) => request.ip,
   })
