@@ -78,6 +78,29 @@ export const websocketPlugin: FastifyPluginAsync = async (fastify) => {
       orgId: payload.orgId,
     }))
 
+    // ── Heartbeat ────────────────────────────────────────────────────────────
+    const HEARTBEAT_INTERVAL = 30_000
+    let pongReceived = true
+
+    const heartbeat = setInterval(() => {
+      if (!pongReceived) {
+        // No pong received since last ping — close the connection
+        socket.close(1001, 'Heartbeat timeout')
+        clearInterval(heartbeat)
+        return
+      }
+      pongReceived = false
+      if (socket.readyState === socket.OPEN) {
+        if (typeof socket.ping === 'function') {
+          socket.ping()
+        }
+      }
+    }, HEARTBEAT_INTERVAL)
+
+    socket.on('pong', () => {
+      pongReceived = true
+    })
+
     // Handle incoming messages
     socket.on('message', (rawMessage: Buffer | string) => {
       let msg: unknown
@@ -121,6 +144,7 @@ export const websocketPlugin: FastifyPluginAsync = async (fastify) => {
 
     // Cleanup on disconnect
     socket.on('close', () => {
+      clearInterval(heartbeat)
       sessionChannel.cleanup(socket)
       orgFeed.cleanup(socket)
       cleanupPresence(socket)
