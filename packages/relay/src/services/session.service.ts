@@ -208,7 +208,8 @@ export class SessionService {
     }
 
     const row = await getPrisma().session.findUnique({ where: { id: sessionId } })
-    return toStoredSession(row!)
+    if (!row) return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
+    return toStoredSession(row)
   }
 
   async generateInviteToken(sessionId: string): Promise<{ inviteToken: string; sessionId: string } | { error: string; code: string }> {

@@ -36,7 +36,7 @@ describe('Session invite token single-use enforcement', () => {
     await clearAllStores()
   })
 
-  it('should return 409 INVITE_ALREADY_CONSUMED on a second accept of the same invite token', async () => {
+  async function setupPendingInvite() {
     const app = await createApp()
     const org1 = await registerUser(app, `single-use-init-${randomUUID().slice(0, 6)}@example.com`)
     const org2 = await registerUser(app, `single-use-cp-${randomUUID().slice(0, 6)}@example.com`)
@@ -60,26 +60,41 @@ describe('Session invite token single-use enforcement', () => {
     const session = JSON.parse(createRes.payload)
     expect(session.inviteToken).toBeDefined()
 
-    // First accept -> 200 OK
-    const firstAccept = await app.inject({
-      method: 'POST',
+    return {
+      app,
       url: `/v1/sessions/${session.id}/accept`,
       headers: { authorization: `Bearer ${org2.accessToken}` },
-      payload: { inviteToken: session.inviteToken },
-    })
+      inviteToken: session.inviteToken as string,
+    }
+  }
+
+  it('should return 409 INVITE_ALREADY_CONSUMED on a second accept of the same invite token', async () => {
+    const { app, url, headers, inviteToken } = await setupPendingInvite()
+
+    // First accept -> 200 OK
+    const firstAccept = await app.inject({ method: 'POST', url, headers, payload: { inviteToken } })
     expect(firstAccept.statusCode).toBe(200)
     const firstBody = JSON.parse(firstAccept.payload)
     expect(firstBody.status).toBe('active')
 
     // Second accept with the same token -> 409 Conflict, INVITE_ALREADY_CONSUMED
-    const secondAccept = await app.inject({
-      method: 'POST',
-      url: `/v1/sessions/${session.id}/accept`,
-      headers: { authorization: `Bearer ${org2.accessToken}` },
-      payload: { inviteToken: session.inviteToken },
-    })
+    const secondAccept = await app.inject({ method: 'POST', url, headers, payload: { inviteToken } })
     expect(secondAccept.statusCode).toBe(409)
     const secondBody = JSON.parse(secondAccept.payload)
     expect(secondBody.code).toBe('INVITE_ALREADY_CONSUMED')
+  })
+
+  it('returns 200 to exactly one of two concurrent acceptances and 409 to the other', async () => {
+    const { app, url, headers, inviteToken } = await setupPendingInvite()
+
+    const [a, b] = await Promise.all([
+      app.inject({ method: 'POST', url, headers, payload: { inviteToken } }),
+      app.inject({ method: 'POST', url, headers, payload: { inviteToken } }),
+    ])
+    const codes = [a.statusCode, b.statusCode].sort()
+    expect(codes).toEqual([200, 409])
+    // Whichever lost should carry the documented error code:
+    const loser = a.statusCode === 409 ? a : b
+    expect(loser.json()).toMatchObject({ code: 'INVITE_ALREADY_CONSUMED' })
   })
 })
