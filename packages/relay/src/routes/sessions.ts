@@ -112,6 +112,14 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
+    if (sessionService.isExpired(session)) {
+      return reply.status(410).send({
+        code: 'SESSION_EXPIRED',
+        message: 'Session has expired',
+        requestId: request.id,
+      })
+    }
+
     return reply.status(200).send(session)
   })
 
@@ -135,6 +143,14 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(403).send({
         code: 'FORBIDDEN',
         message: 'Access denied to this session',
+        requestId: request.id,
+      })
+    }
+
+    if (sessionService.isExpired(session)) {
+      return reply.status(410).send({
+        code: 'SESSION_EXPIRED',
+        message: 'Session has expired',
         requestId: request.id,
       })
     }
@@ -164,7 +180,9 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     const result = await sessionService.appendTurn(sessionId, parsed.data)
 
     if ('error' in result) {
-      const statusCode = result.code === 'SESSION_NOT_FOUND' ? 404 : 400
+      let statusCode = 400
+      if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
+      if (result.code === 'SESSION_EXPIRED') statusCode = 410
       return reply.status(statusCode).send({
         code: result.code,
         message: result.error,
@@ -216,6 +234,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
       if (result.code === 'INVALID_TOKEN') statusCode = 401
       if (result.code === 'INVITE_ALREADY_CONSUMED') statusCode = 409
+      if (result.code === 'SESSION_EXPIRED') statusCode = 410
       return reply.status(statusCode).send({
         code: result.code,
         message: result.error,

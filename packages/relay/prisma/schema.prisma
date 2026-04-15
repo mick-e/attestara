@@ -119,6 +119,7 @@ model Session {
   merkleRoot          String?  @map("merkle_root")
   turnCount           Int      @default(0) @map("turn_count")
   anchorTxHash        String?  @map("anchor_tx_hash")
+  expiresAt           DateTime @default(dbgenerated("NOW() + INTERVAL '7 days'")) @map("expires_at")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 

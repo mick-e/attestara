@@ -15,9 +15,13 @@ export interface StoredSession {
   merkleRoot: string | null
   turnCount: number
   anchorTxHash: string | null
+  expiresAt: string
   createdAt: string
   updatedAt: string
 }
+
+/** Default session lifetime: 7 days. */
+export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface StoredTurn {
   id: string
@@ -63,6 +67,7 @@ function toStoredSession(row: {
   merkleRoot: string | null
   turnCount: number
   anchorTxHash: string | null
+  expiresAt: Date
   createdAt: Date
   updatedAt: Date
 }): StoredSession {
@@ -79,9 +84,18 @@ function toStoredSession(row: {
     merkleRoot: row.merkleRoot,
     turnCount: row.turnCount,
     anchorTxHash: row.anchorTxHash,
+    expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
+}
+
+/** Returns a SESSION_EXPIRED error shape if the session has passed its expiresAt; null otherwise. */
+function assertNotExpired(session: { expiresAt: Date }): { error: string; code: string } | null {
+  if (session.expiresAt.getTime() <= Date.now()) {
+    return { error: 'Session has expired', code: 'SESSION_EXPIRED' }
+  }
+  return null
 }
 
 function toStoredTurn(row: {
@@ -132,6 +146,7 @@ export class SessionService {
         inviteTokenHash,
         status: isCrossOrg ? 'pending_acceptance' : 'active',
         sessionConfig: (data.sessionConfig ?? {}) as Prisma.InputJsonValue,
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
       },
     })
 
@@ -174,6 +189,14 @@ export class SessionService {
 
   async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {
     const tokenHash = createHash('sha256').update(rawInviteToken).digest('hex')
+
+    // Pre-check expiry before attempting the acceptance update. A separate check (rather
+    // than folding into updateMany.where) preserves the existing error-code precedence.
+    const existing = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    if (existing) {
+      const expired = assertNotExpired(existing)
+      if (expired) return expired
+    }
 
     // Atomic conditional update: flips status to active and stamps inviteConsumedAt
     // only if the row currently matches all of { status=pending_acceptance, matching token, not-yet-consumed }.
@@ -239,6 +262,9 @@ export class SessionService {
       return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     }
 
+    const expired = assertNotExpired(session)
+    if (expired) return expired
+
     if (session.status !== 'active') {
       return { error: 'Session is not active', code: 'SESSION_NOT_ACTIVE' }
     }
@@ -297,6 +323,16 @@ export class SessionService {
       }
       return t
     })
+  }
+
+  /**
+   * Check whether a session has passed its expiresAt. Returns true for expired
+   * sessions, false otherwise. Route handlers call this to translate expiry
+   * into HTTP 410 Gone without duplicating the timestamp comparison.
+   */
+  isExpired(session: { expiresAt: string | Date }): boolean {
+    const ts = typeof session.expiresAt === 'string' ? Date.parse(session.expiresAt) : session.expiresAt.getTime()
+    return ts <= Date.now()
   }
 
   async clearStores(): Promise<void> {
