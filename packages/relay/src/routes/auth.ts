@@ -86,17 +86,24 @@ const SIWE_STATEMENT = 'Sign in to Attestara'
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
-  // Stricter rate limit for auth endpoints: 10 requests per 15 minutes per IP.
-  // In test environment, use a much higher limit to avoid throttling test runs.
+  // Per-endpoint rate limit tuning. In test environment (NODE_ENV=test or VITEST)
+  // we use a very high ceiling to avoid throttling test runs. Production values
+  // are enforced per-route below (register 3/hr, login & wallet/verify 5/15min).
   const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-  await app.register(import('@fastify/rate-limit'), {
-    max: isTestEnv ? 10_000 : 10,
-    timeWindow: '15 minutes',
-    keyGenerator: (request) => request.ip,
-  })
+  const registerMax = isTestEnv ? 10_000 : 3
+  const loginMax = isTestEnv ? 10_000 : 5
+  const walletVerifyMax = isTestEnv ? 10_000 : 5
 
-  // POST /v1/auth/register
-  app.post('/register', async (request, reply) => {
+  // POST /v1/auth/register — 3 requests per hour per IP
+  app.post('/register', {
+    config: {
+      rateLimit: {
+        max: registerMax,
+        timeWindow: '1 hour',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -153,8 +160,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     })
   })
 
-  // POST /v1/auth/login
-  app.post('/login', async (request, reply) => {
+  // POST /v1/auth/login — 5 requests per 15 minutes per IP
+  app.post('/login', {
+    config: {
+      rateLimit: {
+        max: loginMax,
+        timeWindow: '15 minutes',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -320,8 +335,17 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(200).send({ nonce, message })
   })
 
-  // POST /v1/auth/wallet/verify — Verify SIWE signature and issue tokens
-  app.post('/wallet/verify', async (request, reply) => {
+  // POST /v1/auth/wallet/verify — Verify SIWE signature and issue tokens.
+  // 5 requests per 15 minutes per IP (same threshold as /login).
+  app.post('/wallet/verify', {
+    config: {
+      rateLimit: {
+        max: walletVerifyMax,
+        timeWindow: '15 minutes',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = walletVerifySchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({

@@ -16,9 +16,25 @@ const createApiKeySchema = z.object({
 export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
-  // POST /v1/orgs/:orgId/api-keys
+  // Test-env bypass for api-key creation rate limit. Production: 10/hour per org.
+  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const apiKeyCreateMax = isTestEnv ? 10_000 : 10
+
+  // POST /v1/orgs/:orgId/api-keys — 10 requests per hour per org
   app.post('/orgs/:orgId/api-keys', {
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
+    config: {
+      rateLimit: {
+        max: apiKeyCreateMax,
+        timeWindow: '1 hour',
+        // Per-org key: path param :orgId is populated after route matching,
+        // before the onRequest hook that fastify-rate-limit runs on.
+        keyGenerator: (request) => {
+          const params = request.params as { orgId?: string }
+          return params.orgId ?? request.ip
+        },
+      },
+    },
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
 

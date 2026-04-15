@@ -41,6 +41,10 @@ const createTurnSchema = z.object({
 export const sessionRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
+  // Test-env bypass for invite-acceptance rate limit. Production: 20/hour per IP.
+  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const acceptMax = isTestEnv ? 10_000 : 20
+
   // POST /v1/sessions
   app.post('/sessions', {
     preHandler: [requireAuth(JWT_SECRET)],
@@ -213,9 +217,16 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(200).send(result)
   })
 
-  // POST /v1/sessions/:sessionId/accept
+  // POST /v1/sessions/:sessionId/accept — 20 requests per hour per IP
   app.post('/sessions/:sessionId/accept', {
     preHandler: [requireAuth(JWT_SECRET)],
+    config: {
+      rateLimit: {
+        max: acceptMax,
+        timeWindow: '1 hour',
+        keyGenerator: (request) => request.ip,
+      },
+    },
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
     const parsed = acceptSchema.safeParse(request.body)
