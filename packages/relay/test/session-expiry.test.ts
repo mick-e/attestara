@@ -207,6 +207,52 @@ describe('Session expiry (7-day default, 410 Gone on access after expiry)', () =
     expect(JSON.parse(res.payload).code).toBe('SESSION_EXPIRED')
   })
 
+  it('returns 410 SESSION_EXPIRED even if invite already consumed, when session is also expired', async () => {
+    const app = await createApp()
+    const org1 = await registerUser(app, `exp-dbl-init-${randomUUID().slice(0, 6)}@example.com`)
+    const org2 = await registerUser(app, `exp-dbl-cp-${randomUUID().slice(0, 6)}@example.com`)
+    const agent1 = await createAgent(app, org1.accessToken, org1.user.orgId)
+    const agent2 = await createAgent(app, org2.accessToken, org2.user.orgId)
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: { authorization: `Bearer ${org1.accessToken}` },
+      payload: {
+        initiatorAgentId: agent1.id,
+        counterpartyAgentId: agent2.id,
+        initiatorOrgId: org1.user.orgId,
+        counterpartyOrgId: org2.user.orgId,
+        sessionType: 'cross_org',
+      },
+    })
+    expect(createRes.statusCode).toBe(201)
+    const session = JSON.parse(createRes.payload)
+    const inviteToken = session.inviteToken as string
+
+    // First accept succeeds and consumes the invite (session still live).
+    const firstAccept = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${session.id}/accept`,
+      headers: { authorization: `Bearer ${org2.accessToken}` },
+      payload: { inviteToken },
+    })
+    expect(firstAccept.statusCode).toBe(200)
+
+    // Now expire the session. A second accept attempt hits both the "already consumed"
+    // and "expired" conditions simultaneously. Per the error-code precedence, expiry wins.
+    await expireSession(session.id)
+
+    const secondAccept = await app.inject({
+      method: 'POST',
+      url: `/v1/sessions/${session.id}/accept`,
+      headers: { authorization: `Bearer ${org2.accessToken}` },
+      payload: { inviteToken },
+    })
+    expect(secondAccept.statusCode).toBe(410)
+    expect(JSON.parse(secondAccept.payload).code).toBe('SESSION_EXPIRED')
+  })
+
   it('non-expired sessions work normally (control case)', async () => {
     const app = await createApp()
     const reg = await registerUser(app)

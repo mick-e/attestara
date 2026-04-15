@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { commitmentService } from '../services/commitment.service.js'
+import { sessionService } from '../services/session.service.js'
 
 export async function clearCommitmentStores() {
   await commitmentService.clearStores()
@@ -29,6 +30,24 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({
         code: 'VALIDATION_ERROR',
         message: parsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
+
+    // Guard: reject anchoring a commitment on a missing or expired session.
+    // Without this, S4's expiry invariant is defeated by the commitment route.
+    const session = await sessionService.getSession(sessionId)
+    if (!session) {
+      return reply.status(404).send({
+        code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        requestId: request.id,
+      })
+    }
+    if (sessionService.isExpired(session)) {
+      return reply.status(410).send({
+        code: 'SESSION_EXPIRED',
+        message: 'Session has expired',
         requestId: request.id,
       })
     }

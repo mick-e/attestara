@@ -190,24 +190,18 @@ export class SessionService {
   async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {
     const tokenHash = createHash('sha256').update(rawInviteToken).digest('hex')
 
-    // Pre-check expiry before attempting the acceptance update. A separate check (rather
-    // than folding into updateMany.where) preserves the existing error-code precedence.
-    const existing = await getPrisma().session.findUnique({ where: { id: sessionId } })
-    if (existing) {
-      const expired = assertNotExpired(existing)
-      if (expired) return expired
-    }
-
     // Atomic conditional update: flips status to active and stamps inviteConsumedAt
-    // only if the row currently matches all of { status=pending_acceptance, matching token, not-yet-consumed }.
-    // This closes the TOCTOU race where two concurrent accept requests could each pass
-    // a separate findUnique check before either update landed.
+    // only if the row currently matches all of { status=pending_acceptance, matching token,
+    // not-yet-consumed, not-yet-expired }. Folding expiry into the predicate closes the
+    // TOCTOU window where a separate pre-check could pass against a session that expires
+    // before the update lands, and also prevents two concurrent accepts from racing.
     const updated = await getPrisma().session.updateMany({
       where: {
         id: sessionId,
         status: 'pending_acceptance',
         inviteTokenHash: tokenHash,
         inviteConsumedAt: null,
+        expiresAt: { gt: new Date() },
       },
       data: {
         status: 'active',
@@ -216,10 +210,15 @@ export class SessionService {
     })
 
     if (updated.count === 0) {
-      // Re-fetch to produce a precise error code for the caller.
+      // Re-fetch to produce a precise error code. Ordering: SESSION_NOT_FOUND first,
+      // then SESSION_EXPIRED (expiry wins over consumed/non-active/invalid-token to
+      // preserve the semantics the old pre-check provided), then the usual ladder.
       const fresh = await getPrisma().session.findUnique({ where: { id: sessionId } })
       if (!fresh) {
         return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
+      }
+      if (fresh.expiresAt.getTime() <= Date.now()) {
+        return { error: 'Session has expired', code: 'SESSION_EXPIRED' }
       }
       if (fresh.inviteConsumedAt !== null) {
         return { error: 'Invite token already consumed', code: 'INVITE_ALREADY_CONSUMED' }
