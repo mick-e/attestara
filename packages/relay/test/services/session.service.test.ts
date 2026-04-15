@@ -237,7 +237,7 @@ describe('SessionService', () => {
       expect(result).toEqual({ error: 'Invalid invite token', code: 'INVALID_TOKEN' })
     })
 
-    it('should return error for non-pending session', async () => {
+    it('should return INVITE_ALREADY_CONSUMED on a second accept with the same token', async () => {
       const { session, inviteToken } = await service.createSession({
         initiatorAgentId: 'agent-1',
         counterpartyAgentId: 'agent-2',
@@ -249,9 +249,9 @@ describe('SessionService', () => {
       // Accept first
       await service.acceptSession(session.id, inviteToken!)
 
-      // Try again
+      // Try again — single-use enforcement trips before the status check.
       const result = await service.acceptSession(session.id, inviteToken!)
-      expect(result).toEqual({ error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' })
+      expect(result).toEqual({ error: 'Invite token already consumed', code: 'INVITE_ALREADY_CONSUMED' })
     })
 
     it('should return error for unknown session', async () => {

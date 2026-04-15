@@ -413,14 +413,15 @@ describe('Session routes', () => {
         payload: { inviteToken: session.inviteToken },
       })
 
-      // Try to accept again
+      // Try to accept again — single-use enforcement returns 409
       const res = await app.inject({
         method: 'POST',
         url: `/v1/sessions/${session.id}/accept`,
         headers: { authorization: `Bearer ${org2.accessToken}` },
         payload: { inviteToken: session.inviteToken },
       })
-      expect(res.statusCode).toBe(400)
+      expect(res.statusCode).toBe(409)
+      expect(JSON.parse(res.payload).code).toBe('INVITE_ALREADY_CONSUMED')
     })
   })
 

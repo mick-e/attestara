@@ -113,6 +113,7 @@ model Session {
   counterpartyOrgId   String   @map("counterparty_org_id")
   sessionType         String   @default("intra_org") @map("session_type")
   inviteTokenHash     String?  @map("invite_token_hash")
+  inviteConsumedAt    DateTime? @map("invite_consumed_at")
   status              String   @default("active")
   sessionConfig       Json     @default("{}") @map("session_config")
   merkleRoot          String?  @map("merkle_root")

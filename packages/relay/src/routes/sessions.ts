@@ -215,6 +215,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       let statusCode = 400
       if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
       if (result.code === 'INVALID_TOKEN') statusCode = 401
+      if (result.code === 'INVITE_ALREADY_CONSUMED') statusCode = 409
       return reply.status(statusCode).send({
         code: result.code,
         message: result.error,

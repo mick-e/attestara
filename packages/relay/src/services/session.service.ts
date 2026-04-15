@@ -173,25 +173,42 @@ export class SessionService {
   }
 
   async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {
-    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
-    if (!session) {
-      return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
-    }
-
-    if (session.status !== 'pending_acceptance') {
-      return { error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' }
-    }
-
     const tokenHash = createHash('sha256').update(rawInviteToken).digest('hex')
-    if (tokenHash !== session.inviteTokenHash) {
+
+    // Atomic conditional update: flips status to active and stamps inviteConsumedAt
+    // only if the row currently matches all of { status=pending_acceptance, matching token, not-yet-consumed }.
+    // This closes the TOCTOU race where two concurrent accept requests could each pass
+    // a separate findUnique check before either update landed.
+    const updated = await getPrisma().session.updateMany({
+      where: {
+        id: sessionId,
+        status: 'pending_acceptance',
+        inviteTokenHash: tokenHash,
+        inviteConsumedAt: null,
+      },
+      data: {
+        status: 'active',
+        inviteConsumedAt: new Date(),
+      },
+    })
+
+    if (updated.count === 0) {
+      // Re-fetch to produce a precise error code for the caller.
+      const fresh = await getPrisma().session.findUnique({ where: { id: sessionId } })
+      if (!fresh) {
+        return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
+      }
+      if (fresh.inviteConsumedAt !== null) {
+        return { error: 'Invite token already consumed', code: 'INVITE_ALREADY_CONSUMED' }
+      }
+      if (fresh.status !== 'pending_acceptance') {
+        return { error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' }
+      }
       return { error: 'Invalid invite token', code: 'INVALID_TOKEN' }
     }
 
-    const row = await getPrisma().session.update({
-      where: { id: sessionId },
-      data: { status: 'active' },
-    })
-    return toStoredSession(row)
+    const row = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    return toStoredSession(row!)
   }
 
   async generateInviteToken(sessionId: string): Promise<{ inviteToken: string; sessionId: string } | { error: string; code: string }> {
