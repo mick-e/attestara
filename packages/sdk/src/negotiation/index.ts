@@ -24,7 +24,7 @@ export interface RelaySession {
 
 interface RelayConfig {
   url: string
-  apiKey?: string
+  apiKey?: string | undefined
 }
 
 export class SessionManager {

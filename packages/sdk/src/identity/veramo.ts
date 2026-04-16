@@ -10,7 +10,7 @@ import { getResolver as ethrDidResolver } from 'ethr-did-resolver'
 import type { NetworkConfig } from '@attestara/types'
 
 export function createVeramoAgent(config: NetworkConfig) {
-  const rpcUrl = Array.isArray(config.rpcUrl) ? config.rpcUrl[0] : config.rpcUrl
+  const rpcUrl = Array.isArray(config.rpcUrl) ? (config.rpcUrl[0] ?? 'http://localhost:8545') : config.rpcUrl
 
   return createAgent({
     plugins: [

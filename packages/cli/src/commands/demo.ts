@@ -215,7 +215,7 @@ Examples:
       }
 
       // Step 5: Accept and commit
-      const lastTurn = sess.turns[sess.turns.length - 1]
+      const lastTurn = sess.turns[sess.turns.length - 1]!
       const acceptAgent = lastTurn.agentId === buyer.did ? seller.did : buyer.did
       sess.accept(acceptAgent)
 

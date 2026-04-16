@@ -35,7 +35,7 @@ function statusLabel(status: CheckResult['status']): string {
 
 async function checkNodeVersion(): Promise<CheckResult> {
   const version = process.version
-  const major = parseInt(version.slice(1).split('.')[0], 10)
+  const major = parseInt(version.slice(1).split('.')[0] ?? '0', 10)
   if (major >= 20) {
     return { name: 'Node.js version', status: 'ok', detail: version }
   }
@@ -103,7 +103,7 @@ async function checkCredentials(): Promise<CheckResult> {
 
 async function checkRelayReachable(): Promise<CheckResult> {
   const config = await loadConfig()
-  const baseUrl = config?.relay?.baseUrl ?? 'http://localhost:3001'
+  const baseUrl = config?.relay?.url ?? 'http://localhost:3001'
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 3000)
@@ -172,7 +172,7 @@ async function checkChainRpc(): Promise<CheckResult> {
       remediation: 'Set network.rpcUrl in config',
     }
   }
-  const url = Array.isArray(rpcUrl) ? rpcUrl[0] : rpcUrl
+  const url = Array.isArray(rpcUrl) ? (rpcUrl[0] ?? rpcUrl.join(',')) : rpcUrl
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)

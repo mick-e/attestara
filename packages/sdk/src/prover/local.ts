@@ -190,13 +190,17 @@ export class LocalProver implements Prover {
       curve: string
     }
 
+    const pi_b_0 = snarkProof.pi_b[0]
+    const pi_b_1 = snarkProof.pi_b[1]
+    if (!pi_b_0 || !pi_b_1) throw new Error('Invalid proof: pi_b must have at least 2 elements')
+
     const zkProof: ZKProof = {
-      pi_a: [snarkProof.pi_a[0], snarkProof.pi_a[1]],
+      pi_a: [snarkProof.pi_a[0] ?? '', snarkProof.pi_a[1] ?? ''],
       pi_b: [
-        [snarkProof.pi_b[0][0], snarkProof.pi_b[0][1]],
-        [snarkProof.pi_b[1][0], snarkProof.pi_b[1][1]],
+        [pi_b_0[0] ?? '', pi_b_0[1] ?? ''],
+        [pi_b_1[0] ?? '', pi_b_1[1] ?? ''],
       ],
-      pi_c: [snarkProof.pi_c[0], snarkProof.pi_c[1]],
+      pi_c: [snarkProof.pi_c[0] ?? '', snarkProof.pi_c[1] ?? ''],
       protocol: 'groth16',
       curve: 'bn128',
     }

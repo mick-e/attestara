@@ -20,14 +20,14 @@ export interface DIDDocument {
   id: string
   verificationMethod: VerificationMethod[]
   authentication: string[]
-  service?: ServiceEndpoint[]
+  service?: ServiceEndpoint[] | undefined
 }
 
 export interface VerificationMethod {
   id: string
   type: string
   controller: string
-  publicKeyHex?: string
+  publicKeyHex?: string | undefined
 }
 
 export interface ServiceEndpoint {

@@ -29,7 +29,7 @@ export class AttestaraClient {
     this.credentials = new CredentialManager(resolveIPFS(config))
     this.prover = new ProverManager(config.prover)
     this.negotiation = new SessionManager(config.relay)
-    const rpcUrl = Array.isArray(config.network.rpcUrl) ? config.network.rpcUrl[0] : config.network.rpcUrl
+    const rpcUrl: string | undefined = Array.isArray(config.network.rpcUrl) ? config.network.rpcUrl[0] : config.network.rpcUrl
     this.commitment = new CommitmentManager({
       rpcUrl,
       contractAddress: config.network.contracts?.commitmentContract,

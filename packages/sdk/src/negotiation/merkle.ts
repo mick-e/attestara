@@ -13,13 +13,13 @@ export class MerkleAccumulator {
     while (layer.length > 1) {
       const next: string[] = []
       for (let i = 0; i < layer.length; i += 2) {
-        const left = layer[i]
-        const right = layer[i + 1] || left
+        const left = layer[i]!
+        const right = layer[i + 1] ?? left
         next.push(this.hash(left + right))
       }
       layer = next
     }
-    return layer[0]
+    return layer[0]!
   }
 
   get leafCount(): number {

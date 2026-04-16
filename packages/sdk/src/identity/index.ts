@@ -17,30 +17,31 @@ export class DIDManager {
   }
 
   async create(name: string): Promise<CreateDIDResult> {
-    const identity = await this.agent.didManagerCreate({
+    // Veramo agent methods are guaranteed by createAgent() plugin configuration
+    const identity = await this.agent.didManagerCreate!({
       alias: name,
       provider: 'did:ethr',
       kms: 'local',
     })
-    const keys = await this.agent.didManagerGet({ did: identity.did })
+    const keys = await this.agent.didManagerGet!({ did: identity.did })
     return {
       did: identity.did,
-      publicKey: keys.keys[0]?.publicKeyHex || '',
+      publicKey: keys.keys[0]?.publicKeyHex ?? '',
       keyFile: `keys/${name}.json`,
     }
   }
 
   async resolve(did: string): Promise<{ id: string; [key: string]: unknown }> {
-    const result = await this.agent.resolveDid({ didUrl: did })
+    const result = await this.agent.resolveDid!({ didUrl: did })
     return result.didDocument as { id: string; [key: string]: unknown }
   }
 
   async rotateKey(did: string): Promise<{ publicKey: string }> {
-    const key = await this.agent.keyManagerCreate({
+    const key = await this.agent.keyManagerCreate!({
       kms: 'local',
       type: 'Secp256k1',
     })
-    await this.agent.didManagerAddKey({
+    await this.agent.didManagerAddKey!({
       did,
       key: { kid: key.kid, type: key.type, publicKeyHex: key.publicKeyHex },
     })

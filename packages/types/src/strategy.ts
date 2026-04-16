@@ -21,8 +21,8 @@ export interface LLMConfig {
   provider: 'anthropic' | 'openai'
   model: string
   systemPrompt: string
-  temperature?: number
-  maxTokens?: number
+  temperature?: number | undefined
+  maxTokens?: number | undefined
 }
 
 export interface ScriptedConfig {

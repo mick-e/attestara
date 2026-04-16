@@ -115,7 +115,7 @@ export class NegotiationSession extends EventEmitter {
       throw new Error('Cannot accept — no turns have been proposed')
     }
 
-    const lastTurn = this._turns[this._turns.length - 1]
+    const lastTurn = this._turns[this._turns.length - 1]!
     if (lastTurn.agentId === agentId) {
       throw new Error('Cannot accept your own proposal')
     }
