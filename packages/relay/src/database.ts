@@ -10,12 +10,23 @@ const globalForPrisma = globalThis as unknown as {
  * In development, the client is cached on `globalThis` to survive
  * hot-reloads without exhausting database connections.
  *
- * Connection pool size is controlled by the `connection_limit` parameter
- * in DATABASE_URL (e.g. `?connection_limit=10`).
+ * Pool size is controlled via DATABASE_POOL_SIZE env var (default 10).
+ * The value is appended to DATABASE_URL as `connection_limit` if not
+ * already present in the URL.
  */
+function buildDatabaseUrl(): string {
+  const base = process.env.DATABASE_URL ?? ''
+  const poolSize = process.env.DATABASE_POOL_SIZE ?? '10'
+  // Only append connection_limit if not already in the URL
+  if (base.includes('connection_limit')) return base
+  const separator = base.includes('?') ? '&' : '?'
+  return `${base}${separator}connection_limit=${poolSize}`
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    datasourceUrl: buildDatabaseUrl(),
     log:
       process.env.NODE_ENV === 'development'
         ? ['query', 'warn', 'error']

@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 const envSchema = z.object({
   DATABASE_URL: z.string(),
+  DATABASE_POOL_SIZE: z.coerce.number().default(10),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRY: z.string().default('15m'),
