@@ -1,3 +1,7 @@
+// OpenTelemetry must be imported before everything else so auto-instrumentation
+// can monkey-patch HTTP, Fastify, Prisma, and ioredis.
+import './telemetry.js'
+
 import { loadConfig } from './config.js'
 import { buildServer } from './server.js'
 import { wireSignalHandlers } from './shutdown.js'

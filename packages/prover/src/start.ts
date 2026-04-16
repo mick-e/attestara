@@ -1,3 +1,7 @@
+// OpenTelemetry must be imported before everything else so auto-instrumentation
+// can monkey-patch HTTP, Fastify, and ioredis.
+import './telemetry.js'
+
 import { loadProverConfig } from './config.js'
 import { buildProverServer } from './server.js'
 
