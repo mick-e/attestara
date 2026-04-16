@@ -17,6 +17,7 @@ import { adminRoutes } from './routes/admin.js'
 import { billingRoutes } from './billing/x402.js'
 import { websocketPlugin } from './websocket/index.js'
 import { validateHost } from './middleware/host-validation.js'
+import { metricsPlugin } from './metrics.js'
 
 export interface ServerOptions {
   corsOrigin?: string[]
@@ -185,6 +186,9 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(analyticsRoutes, { prefix: '/v1' })
   await app.register(billingRoutes, { prefix: '/v1' })
   await app.register(adminRoutes, { prefix: '/v1' })
+
+  // Prometheus metrics (GET /metrics)
+  await app.register(metricsPlugin)
 
   // WebSocket server (must come after rate-limit plugin)
   await app.register(websocketPlugin)
