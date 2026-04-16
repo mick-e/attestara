@@ -75,7 +75,7 @@ export class LocalProver implements Prover {
     if (!this.snarkjs) {
       try {
         this.snarkjs = await import('snarkjs')
-      } catch {
+      } catch (_err: unknown) {
         throw new Error(
           'snarkjs is not installed. Run: npm install snarkjs'
         )
@@ -119,12 +119,12 @@ export class LocalProver implements Prover {
     const errors: string[] = []
     try {
       await readFile(wasmPath)
-    } catch {
+    } catch (_err: unknown) {
       errors.push(`WASM file not found: ${wasmPath}`)
     }
     try {
       await readFile(zkeyPath, { flag: 'r' })
-    } catch {
+    } catch (_err: unknown) {
       errors.push(`zkey file not found: ${zkeyPath}`)
     }
     if (errors.length > 0) {

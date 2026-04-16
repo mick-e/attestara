@@ -47,8 +47,8 @@ Examples:
           config.agent.did = agent.did
           config.agent.keyFile = keyPath
           await saveConfig(config)
-        } catch {
-          // Config may not exist yet — that is fine
+        } catch (_err: unknown) {
+          // Config may not exist yet — that is fine, skip silently
         }
 
         spinner.succeed('DID created!')

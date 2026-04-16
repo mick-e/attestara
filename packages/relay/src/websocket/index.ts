@@ -89,7 +89,7 @@ export const websocketPlugin: FastifyPluginAsync = async (fastify) => {
     let payload: ReturnType<typeof verifyToken>
     try {
       payload = verifyToken(token, JWT_SECRET)
-    } catch {
+    } catch (_err: unknown) {
       socket.send(JSON.stringify({ type: 'error', code: 'INVALID_TOKEN', message: 'Invalid or expired token' }))
       socket.close()
       return
@@ -136,7 +136,7 @@ export const websocketPlugin: FastifyPluginAsync = async (fastify) => {
       let msg: unknown
       try {
         msg = JSON.parse(rawMessage.toString())
-      } catch {
+      } catch (_err: unknown) {
         socket.send(JSON.stringify({ type: 'error', code: 'INVALID_JSON', message: 'Invalid JSON' }))
         return
       }

@@ -207,8 +207,8 @@ export async function buildServer(options: ServerOptions = {}) {
         if (fs.existsSync(deploymentsPath)) {
           return JSON.parse(fs.readFileSync(deploymentsPath, 'utf-8'))
         }
-      } catch {
-        // Fall through -- indexer runs without addresses (no event filtering)
+      } catch (err: unknown) {
+        console.warn('[Relay] Could not load contract addresses, indexer will run without event filtering', err)
       }
       return {}
     }

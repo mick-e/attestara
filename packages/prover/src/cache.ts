@@ -46,7 +46,8 @@ export class RedisProverCache implements ProverCache {
       await redis.connect()
       await redis.ping()
       return new RedisProverCache(redis as unknown as CacheClient)
-    } catch {
+    } catch (err: unknown) {
+      console.warn('[ProverCache] Redis connection failed, falling back to in-memory cache', err)
       return null
     }
   }
@@ -58,7 +59,8 @@ export class RedisProverCache implements ProverCache {
       const cached = await this.redis.get(key)
       if (!cached) return null
       return JSON.parse(cached) as ProofResult
-    } catch {
+    } catch (err: unknown) {
+      console.warn('[ProverCache] Failed to read proof from cache', err)
       return null
     }
   }
@@ -68,8 +70,8 @@ export class RedisProverCache implements ProverCache {
     try {
       const key = `proof:${computeInputHash(circuitId, inputs)}`
       await this.redis.set(key, JSON.stringify(result), 'EX', ttlSeconds)
-    } catch {
-      // Cache write failure is non-critical
+    } catch (err: unknown) {
+      console.warn('[ProverCache] Failed to write proof to cache', err)
     }
   }
 
@@ -80,7 +82,8 @@ export class RedisProverCache implements ProverCache {
       const cached = await this.redis.get(key)
       if (!cached) return null
       return JSON.parse(cached) as Record<string, unknown>
-    } catch {
+    } catch (err: unknown) {
+      console.warn('[ProverCache] Failed to read verification key from cache', err)
       return null
     }
   }
@@ -90,8 +93,8 @@ export class RedisProverCache implements ProverCache {
     try {
       const key = `vkey:${circuitId}`
       await this.redis.set(key, JSON.stringify(vkey), 'EX', VKEY_TTL)
-    } catch {
-      // Cache write failure is non-critical
+    } catch (err: unknown) {
+      console.warn('[ProverCache] Failed to write verification key to cache', err)
     }
   }
 
@@ -104,8 +107,8 @@ export class RedisProverCache implements ProverCache {
       this.connected = false
       try {
         await this.redis.quit()
-      } catch {
-        // Ignore close errors
+      } catch (err: unknown) {
+        console.warn('[ProverCache] Error closing Redis connection', err)
       }
     }
   }

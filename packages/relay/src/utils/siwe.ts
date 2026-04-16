@@ -132,7 +132,7 @@ export function parseSiweMessage(message: string): SiweMessageParams | null {
       nonce: nonceMatch[1],
       issuedAt: issuedAtMatch[1],
     }
-  } catch {
+  } catch (_err: unknown) {
     return null
   }
 }

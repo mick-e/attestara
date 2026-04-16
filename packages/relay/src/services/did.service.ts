@@ -39,8 +39,8 @@ export class DIDService {
         did: result.did,
         publicKey: result.publicKey,
       }
-    } catch {
-      // Fallback: generate a deterministic did:ethr from crypto random bytes
+    } catch (err: unknown) {
+      console.warn('[DIDService] SDK-based DID creation failed, using fallback', err)
       const { randomBytes, createHash } = await import('crypto')
       const privateKey = randomBytes(32)
       const address = '0x' + createHash('sha256').update(privateKey).digest('hex').slice(0, 40)

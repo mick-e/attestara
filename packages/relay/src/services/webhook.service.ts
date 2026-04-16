@@ -175,7 +175,7 @@ export class WebhookService {
         signal: AbortSignal.timeout(10000),
       })
       return { success: response.ok, statusCode: response.status }
-    } catch {
+    } catch (_err: unknown) {
       return { success: false, statusCode: 0 }
     }
   }

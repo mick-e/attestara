@@ -55,7 +55,7 @@ export class LLMStrategy implements NegotiationStrategy {
   parseDecision(response: string): TurnDecision {
     try {
       return JSON.parse(response) as TurnDecision
-    } catch {
+    } catch (_err: unknown) {
       return { action: 'reject', reason: 'Failed to parse LLM response' }
     }
   }

@@ -73,7 +73,7 @@ export function createPubSubAdapter(
     let msg: PubSubMessage
     try {
       msg = JSON.parse(raw) as PubSubMessage
-    } catch {
+    } catch (_err: unknown) {
       return // Ignore malformed messages
     }
 

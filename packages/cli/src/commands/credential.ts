@@ -231,8 +231,8 @@ async function loadAllCredentials(): Promise<AuthorityCredential[]> {
         }
       }
       creds.push(data as AuthorityCredential)
-    } catch {
-      // Skip invalid files
+    } catch (_err: unknown) {
+      // Skip invalid credential files during enumeration
     }
   }
   return creds
@@ -267,7 +267,7 @@ async function findCredential(idOrFile: string): Promise<AuthorityCredential | n
           if (mp.parameterCeiling !== undefined && mp.parameterCeiling !== null) mp.parameterCeiling = BigInt(mp.parameterCeiling)
         }
         return data as AuthorityCredential
-      } catch {
+      } catch (_err: unknown) {
         continue
       }
     }

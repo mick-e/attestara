@@ -116,7 +116,7 @@ export class ChainCommitmentClient {
         verified: record.verified,
         createdAt: Number(record.createdAt),
       } as unknown as CommitmentRecord
-    } catch {
+    } catch (_err: unknown) {
       return null
     }
   }

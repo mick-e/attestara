@@ -82,7 +82,7 @@ Examples:
             }
             printDetail('CommitmentContract', contractAddresses.commitmentContract)
           }
-        } catch {
+        } catch (_err: unknown) {
           // Fall through — contracts optional
         }
       }

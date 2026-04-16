@@ -58,7 +58,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`
     return true
-  } catch {
+  } catch (_err: unknown) {
     return false
   }
 }

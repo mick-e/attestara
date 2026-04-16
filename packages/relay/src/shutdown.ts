@@ -81,8 +81,8 @@ export function createShutdownController(
     log('Shutdown: draining WebSocket connections')
     try {
       await drainWebSockets(app, wsTimeout)
-    } catch {
-      log('Shutdown: WebSocket drain timed out or errored')
+    } catch (err: unknown) {
+      log(`Shutdown: WebSocket drain timed out or errored: ${err}`)
     }
     completedSteps.push('drain-websockets')
 
@@ -90,8 +90,8 @@ export function createShutdownController(
     log('Shutdown: stopping indexer')
     try {
       await stopIndexer()
-    } catch {
-      log('Shutdown: indexer stop errored')
+    } catch (err: unknown) {
+      log(`Shutdown: indexer stop errored: ${err}`)
     }
     completedSteps.push('stop-indexer')
 
@@ -102,8 +102,8 @@ export function createShutdownController(
       if (pubsub) {
         await pubsub.close()
       }
-    } catch {
-      log('Shutdown: pub/sub close errored')
+    } catch (err: unknown) {
+      log(`Shutdown: pub/sub close errored: ${err}`)
     }
     completedSteps.push('close-pubsub')
 
@@ -111,8 +111,8 @@ export function createShutdownController(
     log('Shutdown: closing server (waiting for in-flight requests)')
     try {
       await app.close()
-    } catch {
-      log('Shutdown: server close errored')
+    } catch (err: unknown) {
+      log(`Shutdown: server close errored: ${err}`)
     }
     completedSteps.push('close-server')
 
@@ -120,8 +120,8 @@ export function createShutdownController(
     log('Shutdown: disconnecting database')
     try {
       await disconnectDatabase()
-    } catch {
-      log('Shutdown: database disconnect errored')
+    } catch (err: unknown) {
+      log(`Shutdown: database disconnect errored: ${err}`)
     }
     completedSteps.push('disconnect-prisma')
 
@@ -129,8 +129,8 @@ export function createShutdownController(
     log('Shutdown: disconnecting Redis')
     try {
       await closeRedis()
-    } catch {
-      log('Shutdown: Redis disconnect errored')
+    } catch (err: unknown) {
+      log(`Shutdown: Redis disconnect errored: ${err}`)
     }
     completedSteps.push('disconnect-redis')
 
@@ -187,7 +187,7 @@ async function drainWebSockets(
             remaining--
             if (remaining <= 0) resolve()
           })
-        } catch {
+        } catch (_err: unknown) {
           remaining--
           if (remaining <= 0) resolve()
         }

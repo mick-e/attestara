@@ -118,7 +118,7 @@ export function requireAuth(jwtSecret: string) {
           role: payload.role,
         }
         return
-      } catch {
+      } catch (_err: unknown) {
         return reply.status(401).send({
           code: 'INVALID_TOKEN',
           message: 'Invalid or expired token',
