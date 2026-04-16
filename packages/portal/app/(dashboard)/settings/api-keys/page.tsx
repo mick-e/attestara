@@ -3,9 +3,22 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { DataTable, Modal, LoadingSpinner, EmptyState } from "@/components/ui";
-import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "@/lib/hooks";
+import { useApiKeys, useCreateApiKey, useRevokeApiKey, getOrgIdFromToken } from "@/lib/hooks";
 import { getAccessToken } from "@/lib/auth";
 import { apiClient } from "@/lib/api-client";
+
+const AVAILABLE_SCOPES = [
+  { value: "agents:read", label: "Agents (Read)", description: "List and view agent details" },
+  { value: "agents:write", label: "Agents (Write)", description: "Create, update, and deactivate agents" },
+  { value: "sessions:read", label: "Sessions (Read)", description: "List and view negotiation sessions" },
+  { value: "sessions:write", label: "Sessions (Write)", description: "Create sessions and submit turns" },
+  { value: "credentials:read", label: "Credentials (Read)", description: "List and view credentials" },
+  { value: "credentials:write", label: "Credentials (Write)", description: "Issue and revoke credentials" },
+  { value: "commitments:read", label: "Commitments (Read)", description: "List and view commitments" },
+  { value: "commitments:write", label: "Commitments (Write)", description: "Create and verify commitments" },
+  { value: "analytics:read", label: "Analytics (Read)", description: "Access analytics and timeseries data" },
+  { value: "webhooks:manage", label: "Webhooks (Manage)", description: "Register, test, and delete webhooks" },
+];
 
 interface ApiKeyRow {
   id: string;
@@ -17,30 +30,9 @@ interface ApiKeyRow {
 }
 
 const mockApiKeys: ApiKeyRow[] = [
-  {
-    id: "key_01",
-    name: "Production Backend",
-    prefix: "ac_7f3a9b2e...c5f7",
-    scopes: "agents:read, sessions:read, commitments:read",
-    lastUsed: "2 min ago",
-    createdAt: "2026-03-01",
-  },
-  {
-    id: "key_02",
-    name: "Staging Environment",
-    prefix: "ac_4c3b2a1f...9f8e",
-    scopes: "agents:*, sessions:*, credentials:*",
-    lastUsed: "1 hr ago",
-    createdAt: "2026-02-15",
-  },
-  {
-    id: "key_03",
-    name: "CI/CD Pipeline",
-    prefix: "ac_2a1f0e9d...b1a0",
-    scopes: "agents:read",
-    lastUsed: "3 days ago",
-    createdAt: "2026-02-01",
-  },
+  { id: "key_01", name: "Production Backend", prefix: "ac_7f3a9b2e...c5f7", scopes: "agents:read, sessions:read, commitments:read", lastUsed: "2 min ago", createdAt: "2026-03-01" },
+  { id: "key_02", name: "Staging Environment", prefix: "ac_4c3b2a1f...9f8e", scopes: "agents:*, sessions:*, credentials:*", lastUsed: "1 hr ago", createdAt: "2026-02-15" },
+  { id: "key_03", name: "CI/CD Pipeline", prefix: "ac_2a1f0e9d...b1a0", scopes: "agents:read", lastUsed: "3 days ago", createdAt: "2026-02-01" },
 ];
 
 export default function ApiKeysPage() {
@@ -49,6 +41,8 @@ export default function ApiKeysPage() {
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [testingKey, setTestingKey] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{ id: string; valid: boolean; scopes: string[] } | null>(null);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -58,6 +52,7 @@ export default function ApiKeysPage() {
   const { data: apiKeys, loading, refetch } = useApiKeys();
   const { createKey } = useCreateApiKey();
   const { revokeKey } = useRevokeApiKey();
+  const orgId = getOrgIdFromToken();
 
   const displayKeys: ApiKeyRow[] = apiKeys
     ? apiKeys.map((k) => ({
@@ -86,6 +81,20 @@ export default function ApiKeysPage() {
     refetch();
   }
 
+  async function handleTest(keyId: string) {
+    if (!orgId) return;
+    setTestingKey(keyId);
+    setTestResult(null);
+    try {
+      const result = await apiClient.apiKeys.test(orgId, keyId);
+      setTestResult({ id: keyId, ...result });
+    } catch {
+      setTestResult({ id: keyId, valid: false, scopes: [] });
+    } finally {
+      setTestingKey(null);
+    }
+  }
+
   function handleCopy() {
     navigator.clipboard.writeText(generatedKey);
     setCopied(true);
@@ -98,6 +107,12 @@ export default function ApiKeysPage() {
     setSelectedScopes([]);
     setGeneratedKey("");
     setCopied(false);
+  }
+
+  function toggleScope(scope: string) {
+    setSelectedScopes((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]
+    );
   }
 
   const columns = [
@@ -141,14 +156,31 @@ export default function ApiKeysPage() {
     {
       key: "id" as const,
       label: "Actions",
-      render: (v: unknown) => (
-        <button
-          onClick={() => handleRevoke(String(v))}
-          className="text-xs text-danger hover:text-danger/80 transition-colors"
-        >
-          Revoke
-        </button>
-      ),
+      render: (v: unknown) => {
+        const keyId = String(v);
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTest(keyId)}
+              disabled={testingKey === keyId}
+              className="text-xs text-accent hover:text-accent-hover transition-colors disabled:opacity-40"
+            >
+              {testingKey === keyId ? "Testing..." : "Test"}
+            </button>
+            <button
+              onClick={() => handleRevoke(keyId)}
+              className="text-xs text-danger hover:text-danger/80 transition-colors"
+            >
+              Revoke
+            </button>
+            {testResult?.id === keyId && (
+              <span className={`text-xs ${testResult.valid ? "text-verified" : "text-danger"}`}>
+                {testResult.valid ? "Valid" : "Invalid/Expired"}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -163,21 +195,29 @@ export default function ApiKeysPage() {
 
       {/* Sub-navigation */}
       <div className="flex gap-4 border-b border-navy-800 pb-3">
-        <Link
-          href="/settings"
-          className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors"
-        >
+        <Link href="/settings" className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors">
           Organization
         </Link>
         <span className="text-sm font-medium text-accent border-b-2 border-accent pb-3 -mb-3">
           API Keys
         </span>
-        <Link
-          href="/settings/billing"
-          className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors"
-        >
+        <Link href="/settings/billing" className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors">
           Billing
         </Link>
+        <Link href="/settings/webhooks" className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors">
+          Webhooks
+        </Link>
+      </div>
+
+      {/* Rate Limit Status */}
+      <div className="rounded-lg border border-navy-800 bg-navy-900 p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-white">Rate Limit</p>
+          <p className="text-xs text-gray-500">API keys are subject to 100 requests/minute per key</p>
+        </div>
+        <span className="rounded-md bg-verified/10 border border-verified/20 px-3 py-1 text-xs font-medium text-verified">
+          Normal
+        </span>
       </div>
 
       {/* API Keys */}
@@ -192,9 +232,7 @@ export default function ApiKeysPage() {
       </div>
 
       {loading ? (
-        <div className="py-12">
-          <LoadingSpinner label="Loading API keys..." />
-        </div>
+        <div className="py-12"><LoadingSpinner label="Loading API keys..." /></div>
       ) : displayKeys.length === 0 ? (
         <EmptyState
           title="No API keys"
@@ -212,11 +250,11 @@ export default function ApiKeysPage() {
       <div className="rounded-lg border border-navy-800 bg-navy-950 p-4">
         <p className="text-xs text-gray-500">
           API keys provide programmatic access to the Attestara API. Store them
-          securely — they cannot be viewed again after creation.
+          securely -- they cannot be viewed again after creation.
         </p>
       </div>
 
-      {/* Generate Key Modal */}
+      {/* Generate Key Modal with Scope Selector */}
       <Modal
         open={generateOpen}
         onClose={handleClose}
@@ -224,18 +262,12 @@ export default function ApiKeysPage() {
         footer={
           <div className="flex justify-end gap-3">
             {generatedKey ? (
-              <button
-                onClick={handleClose}
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
-              >
+              <button onClick={handleClose} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover transition-colors">
                 Done
               </button>
             ) : (
               <>
-                <button
-                  onClick={handleClose}
-                  className="rounded-lg border border-navy-800 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-                >
+                <button onClick={handleClose} className="rounded-lg border border-navy-800 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
                   Cancel
                 </button>
                 <button
@@ -253,9 +285,7 @@ export default function ApiKeysPage() {
         {generatedKey ? (
           <div className="space-y-4">
             <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
-              <p className="text-xs text-warning">
-                Copy this key now. It will not be shown again.
-              </p>
+              <p className="text-xs text-warning">Copy this key now. It will not be shown again.</p>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -275,9 +305,7 @@ export default function ApiKeysPage() {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Key Name
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Key Name</label>
               <input
                 type="text"
                 value={keyName}
@@ -285,6 +313,27 @@ export default function ApiKeysPage() {
                 placeholder="e.g. Production Backend"
                 className="w-full rounded-md border border-navy-800 bg-navy-950 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-accent"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Scopes <span className="text-gray-500 font-normal">(leave empty for all permissions)</span>
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto rounded-md border border-navy-800 bg-navy-950 p-3">
+                {AVAILABLE_SCOPES.map((scope) => (
+                  <label key={scope.value} className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedScopes.includes(scope.value)}
+                      onChange={() => toggleScope(scope.value)}
+                      className="mt-0.5 rounded border-navy-800 bg-navy-950 text-accent focus:ring-accent"
+                    />
+                    <div>
+                      <span className="text-sm text-white">{scope.label}</span>
+                      <p className="text-xs text-gray-500">{scope.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         )}

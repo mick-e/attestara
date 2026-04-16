@@ -110,4 +110,45 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
     return reply.status(204).send()
   })
+
+  // POST /v1/orgs/:orgId/api-keys/:id/test -- verify the key is valid
+  app.post('/orgs/:orgId/api-keys/:id/test', {
+    preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
+  }, async (request, reply) => {
+    const { orgId, id } = request.params as { orgId: string; id: string }
+    const key = await apiKeyService.getById(id, orgId)
+    if (!key) {
+      return reply.status(404).send({
+        code: 'API_KEY_NOT_FOUND',
+        message: 'API key not found',
+        requestId: request.id,
+      })
+    }
+
+    const isExpired = key.expiresAt ? new Date(key.expiresAt) < new Date() : false
+    return reply.status(200).send({
+      valid: !isExpired,
+      scopes: key.scopes,
+    })
+  })
+
+  // GET /v1/orgs/:orgId/api-keys/:id/usage -- basic usage stats
+  app.get('/orgs/:orgId/api-keys/:id/usage', {
+    preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
+  }, async (request, reply) => {
+    const { orgId, id } = request.params as { orgId: string; id: string }
+    const key = await apiKeyService.getById(id, orgId)
+    if (!key) {
+      return reply.status(404).send({
+        code: 'API_KEY_NOT_FOUND',
+        message: 'API key not found',
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(200).send({
+      requests: 0, // Would be populated from Redis/metrics in production
+      lastUsed: key.lastUsedAt ?? null,
+    })
+  })
 }
