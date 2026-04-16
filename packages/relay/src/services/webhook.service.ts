@@ -1,4 +1,5 @@
 import { randomBytes, createHash, createHmac, createCipheriv, createDecipheriv, timingSafeEqual } from 'crypto'
+import type { Prisma, Webhook, WebhookDelivery as PrismaWebhookDelivery } from '@prisma/client'
 import { getPrisma } from '../utils/prisma.js'
 
 let masterKeySecret: string = ''
@@ -101,7 +102,7 @@ export class WebhookService {
   async listByOrg(orgId: string): Promise<WebhookView[]> {
     const db = getPrisma()
     const rows = await db.webhook.findMany({ where: { orgId } })
-    return rows.map((row: any) => this._toView(this._fromRow(row)))
+    return rows.map((row) => this._toView(this._fromRow(row)))
   }
 
   async deactivate(id: string, orgId: string): Promise<boolean> {
@@ -126,7 +127,7 @@ export class WebhookService {
       data: {
         webhookId,
         event,
-        payload: payload as any,
+        payload: payload as Prisma.InputJsonValue,
         status: 'pending',
         attempts: 1,
         lastAttemptedAt: now,
@@ -146,7 +147,7 @@ export class WebhookService {
       where: { webhookId },
       orderBy: { createdAt: 'asc' },
     })
-    return rows.map((row: any) => this._deliveryFromRow(row))
+    return rows.map((row) => this._deliveryFromRow(row))
   }
 
   async testWebhook(webhookId: string, orgId: string): Promise<{ success: boolean; statusCode: number } | null> {
@@ -219,7 +220,7 @@ export class WebhookService {
     return view
   }
 
-  private _fromRow(row: any): StoredWebhook {
+  private _fromRow(row: Webhook): StoredWebhook {
     // secretHash column holds the encrypted raw secret
     const rawSecretEncrypted = row.secretHash
     const secretHash = createHash('sha256').update(decryptSecret(rawSecretEncrypted)).digest('hex')
@@ -235,7 +236,7 @@ export class WebhookService {
     }
   }
 
-  private _deliveryFromRow(row: any): StoredDelivery {
+  private _deliveryFromRow(row: PrismaWebhookDelivery): StoredDelivery {
     return {
       id: row.id,
       webhookId: row.webhookId,

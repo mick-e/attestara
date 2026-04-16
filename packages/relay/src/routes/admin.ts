@@ -1,10 +1,10 @@
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import { requireAuth } from '../middleware/auth.js'
 import { getPrisma } from '../utils/prisma.js'
 import { recordAudit } from '../services/audit.service.js'
 
 function requireAdmin() {
-  return async (request: any, reply: any) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const auth = request.auth
     if (!auth || auth.role !== 'admin') {
       return reply.status(403).send({
