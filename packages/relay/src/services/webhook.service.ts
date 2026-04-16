@@ -149,6 +149,56 @@ export class WebhookService {
     return rows.map((row: any) => this._deliveryFromRow(row))
   }
 
+  async testWebhook(webhookId: string, orgId: string): Promise<{ success: boolean; statusCode: number } | null> {
+    const db = getPrisma()
+    const wh = await db.webhook.findUnique({ where: { id: webhookId } })
+    if (!wh || wh.orgId !== orgId) return null
+
+    // Send a test event to the webhook URL
+    const testPayload = {
+      event: 'webhook.test',
+      timestamp: new Date().toISOString(),
+      data: { message: 'Test delivery from Attestara' },
+    }
+
+    try {
+      const rawSecret = decryptSecret(wh.secretHash)
+      const signature = createHmac('sha256', rawSecret).update(JSON.stringify(testPayload)).digest('hex')
+      const response = await fetch(wh.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Attestara-Signature': signature,
+        },
+        body: JSON.stringify(testPayload),
+        signal: AbortSignal.timeout(10000),
+      })
+      return { success: response.ok, statusCode: response.status }
+    } catch {
+      return { success: false, statusCode: 0 }
+    }
+  }
+
+  async retryDelivery(deliveryId: string, orgId: string): Promise<StoredDelivery | null> {
+    const db = getPrisma()
+    const delivery = await db.webhookDelivery.findUnique({
+      where: { id: deliveryId },
+      include: { webhook: true },
+    })
+    if (!delivery || delivery.webhook.orgId !== orgId) return null
+
+    // Increment attempts and mark as pending for retry
+    const updated = await db.webhookDelivery.update({
+      where: { id: deliveryId },
+      data: {
+        status: 'pending',
+        attempts: delivery.attempts + 1,
+        lastAttemptedAt: new Date(),
+      },
+    })
+    return this._deliveryFromRow(updated)
+  }
+
   async signPayload(webhookId: string, payload: unknown): Promise<string | null> {
     const db = getPrisma()
     const wh = await db.webhook.findUnique({ where: { id: webhookId } })

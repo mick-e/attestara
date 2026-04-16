@@ -86,4 +86,40 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       pagination: { total: history.length, page: 1, pageSize: 50, totalPages: 1 },
     })
   })
+
+  // POST /v1/orgs/:orgId/webhooks/:id/test
+  app.post('/orgs/:orgId/webhooks/:id/test', {
+    preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
+  }, async (request, reply) => {
+    const { orgId, id } = request.params as { orgId: string; id: string }
+
+    const result = await webhookService.testWebhook(id, orgId)
+    if (result === null) {
+      return reply.status(404).send({
+        code: 'WEBHOOK_NOT_FOUND',
+        message: 'Webhook not found',
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(200).send(result)
+  })
+
+  // POST /v1/orgs/:orgId/webhooks/deliveries/:deliveryId/retry
+  app.post('/orgs/:orgId/webhooks/deliveries/:deliveryId/retry', {
+    preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
+  }, async (request, reply) => {
+    const { orgId, deliveryId } = request.params as { orgId: string; deliveryId: string }
+
+    const result = await webhookService.retryDelivery(deliveryId, orgId)
+    if (result === null) {
+      return reply.status(404).send({
+        code: 'DELIVERY_NOT_FOUND',
+        message: 'Webhook delivery not found',
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(200).send(result)
+  })
 }

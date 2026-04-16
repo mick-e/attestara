@@ -134,6 +134,12 @@ export default function SettingsPage() {
         >
           Billing
         </Link>
+        <Link
+          href="/settings/webhooks"
+          className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors"
+        >
+          Webhooks
+        </Link>
       </div>
 
       {/* Organization Info */}
