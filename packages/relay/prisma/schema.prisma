@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Organisation {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  slug      String   @unique
-  plan      String   @default("starter")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  slug      String    @unique
+  plan      String    @default("starter")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   users                User[]
   agents               Agent[]
@@ -24,23 +25,26 @@ model Organisation {
   counterpartySessions Session[]    @relation("counterparty_org")
   invites              Invite[]
 
+  @@index([deletedAt])
   @@map("organisations")
 }
 
 model User {
-  id            String   @id @default(uuid())
-  orgId         String   @map("org_id")
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  walletAddress String?  @unique @map("wallet_address")
-  role          String   @default("member")
-  emailVerified Boolean  @default(false) @map("email_verified")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id            String    @id @default(uuid())
+  orgId         String    @map("org_id")
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  walletAddress String?   @unique @map("wallet_address")
+  role          String    @default("member")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   org           Organisation   @relation(fields: [orgId], references: [id])
   refreshTokens RefreshToken[]
 
   @@index([orgId])
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -61,15 +65,16 @@ model RefreshToken {
 }
 
 model Agent {
-  id               String   @id @default(uuid())
-  orgId            String   @map("org_id")
-  did              String   @unique
+  id               String    @id @default(uuid())
+  orgId            String    @map("org_id")
+  did              String    @unique
   name             String
-  status           String   @default("active")
-  metadata         Json     @default("{}")
-  publicKey        String   @map("public_key")
-  registeredTxHash String?  @map("registered_tx_hash")
-  createdAt        DateTime @default(now()) @map("created_at")
+  status           String    @default("active")
+  metadata         Json      @default("{}")
+  publicKey        String    @map("public_key")
+  registeredTxHash String?   @map("registered_tx_hash")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  deletedAt        DateTime? @map("deleted_at")
 
   org                  Organisation @relation(fields: [orgId], references: [id])
   credentials          Credential[]
@@ -78,23 +83,25 @@ model Agent {
   counterpartySessions Session[]    @relation("counterparty_agent")
 
   @@index([orgId])
+  @@index([deletedAt])
   @@map("agents")
 }
 
 model Credential {
-  id                     String   @id @default(uuid())
-  orgId                  String   @map("org_id")
-  agentId                String   @map("agent_id")
-  credentialHash         String   @unique @map("credential_hash")
-  schemaHash             String   @map("schema_hash")
-  ipfsCid                String?  @map("ipfs_cid")
-  credentialDataCached   Json?    @map("credential_data_cached")
-  mandateParamsEncrypted Bytes?   @map("mandate_params_encrypted")
-  mandateKeyVersion      Int      @default(1) @map("mandate_key_version")
+  id                     String    @id @default(uuid())
+  orgId                  String    @map("org_id")
+  agentId                String    @map("agent_id")
+  credentialHash         String    @unique @map("credential_hash")
+  schemaHash             String    @map("schema_hash")
+  ipfsCid                String?   @map("ipfs_cid")
+  credentialDataCached   Json?     @map("credential_data_cached")
+  mandateParamsEncrypted Bytes?    @map("mandate_params_encrypted")
+  mandateKeyVersion      Int       @default(1) @map("mandate_key_version")
   expiry                 DateTime
-  revoked                Boolean  @default(false)
-  registeredTxHash       String?  @map("registered_tx_hash")
-  createdAt              DateTime @default(now()) @map("created_at")
+  revoked                Boolean   @default(false)
+  registeredTxHash       String?   @map("registered_tx_hash")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  deletedAt              DateTime? @map("deleted_at")
 
   org   Organisation @relation(fields: [orgId], references: [id])
   agent Agent        @relation(fields: [agentId], references: [id])
@@ -102,6 +109,7 @@ model Credential {
   @@index([orgId])
   @@index([agentId])
   @@index([expiry])
+  @@index([deletedAt])
   @@map("credentials")
 }
 

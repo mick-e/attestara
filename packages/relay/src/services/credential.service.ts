@@ -81,7 +81,7 @@ export class CredentialService {
     opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
   ): Promise<StoredCredential[]> {
     const rows = await getPrisma().credential.findMany({
-      where: { orgId },
+      where: { orgId, deletedAt: null },
       skip: opts?.skip,
       take: opts?.take,
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
@@ -90,16 +90,16 @@ export class CredentialService {
   }
 
   async countByOrg(orgId: string): Promise<number> {
-    return getPrisma().credential.count({ where: { orgId } })
+    return getPrisma().credential.count({ where: { orgId, deletedAt: null } })
   }
 
   async getById(id: string, orgId: string): Promise<StoredCredential | null> {
-    const row = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    const row = await getPrisma().credential.findFirst({ where: { id, orgId, deletedAt: null } })
     return row ? toStoredCredential(row) : null
   }
 
   async revoke(id: string, orgId: string): Promise<StoredCredential | null> {
-    const existing = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    const existing = await getPrisma().credential.findFirst({ where: { id, orgId, deletedAt: null } })
     if (!existing) return null
 
     const row = await getPrisma().credential.update({
