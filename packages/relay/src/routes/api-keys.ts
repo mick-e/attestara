@@ -18,7 +18,7 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
   // Test-env bypass for api-key creation rate limit. Production: 10/hour per org.
-  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const isTestEnv = app.config.NODE_ENV === 'test'
   const apiKeyCreateMax = isTestEnv ? 10_000 : 10
 
   // POST /v1/orgs/:orgId/api-keys — 10 requests per hour per org

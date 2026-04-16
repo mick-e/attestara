@@ -3,6 +3,8 @@
  * did:ethr identifiers via the Veramo framework, running server-side.
  */
 
+import { loadConfig } from '../config.js'
+
 export interface ProvisionedDID {
   did: string
   publicKey: string
@@ -25,7 +27,7 @@ export class DIDService {
       const client = new AttestaraClient({
         network: {
           chain: 'arbitrum-sepolia',
-          rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL ?? 'http://localhost:8545',
+          rpcUrl: loadConfig().ARBITRUM_SEPOLIA_RPC_URL ?? 'http://localhost:8545',
           contracts: {},
         },
         relay: { url: '' },

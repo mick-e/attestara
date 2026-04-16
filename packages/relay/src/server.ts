@@ -26,11 +26,10 @@ export interface ServerOptions {
 }
 
 export async function buildServer(options: ServerOptions = {}) {
-  const isProduction = process.env.NODE_ENV === 'production'
-
   // Load and validate config (fails fast if env vars missing).
   // Must happen before Fastify instantiation so trustProxy can be configured.
   const config = loadConfig()
+  const isProduction = config.NODE_ENV === 'production'
 
   const app = Fastify({
     logger: options.logger !== false
@@ -194,7 +193,8 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(websocketPlugin)
 
   // Start indexer if RPC URL configured (non-blocking)
-  if (process.env.ARBITRUM_SEPOLIA_RPC_URL) {
+  if (config.ARBITRUM_SEPOLIA_RPC_URL) {
+    const rpcUrl = config.ARBITRUM_SEPOLIA_RPC_URL
     // Load deployed contract addresses for event indexing
     const loadContractAddresses = async () => {
       try {
@@ -208,7 +208,7 @@ export async function buildServer(options: ServerOptions = {}) {
           return JSON.parse(fs.readFileSync(deploymentsPath, 'utf-8'))
         }
       } catch {
-        // Fall through — indexer runs without addresses (no event filtering)
+        // Fall through -- indexer runs without addresses (no event filtering)
       }
       return {}
     }
@@ -217,7 +217,7 @@ export async function buildServer(options: ServerOptions = {}) {
       import('./indexer/index.js').then(async m => {
         const { buildPrismaCallbacks } = await import('./indexer/callbacks.js')
         return m.startIndexer({
-          rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+          rpcUrl,
           contractAddresses: {
             agentRegistry: addresses.agentRegistry,
             commitmentContract: addresses.commitmentContract,

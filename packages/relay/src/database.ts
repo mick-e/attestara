@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { loadConfig } from './config.js'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -15,30 +16,34 @@ const globalForPrisma = globalThis as unknown as {
  * already present in the URL.
  */
 function buildDatabaseUrl(): string {
-  const base = process.env.DATABASE_URL ?? ''
-  const poolSize = process.env.DATABASE_POOL_SIZE ?? '10'
+  const config = loadConfig()
+  const base = config.DATABASE_URL
+  const poolSize = String(config.DATABASE_POOL_SIZE)
   // Only append connection_limit if not already in the URL
   if (base.includes('connection_limit')) return base
   const separator = base.includes('?') ? '&' : '?'
   return `${base}${separator}connection_limit=${poolSize}`
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  const config = loadConfig()
+  return new PrismaClient({
     datasourceUrl: buildDatabaseUrl(),
     log:
-      process.env.NODE_ENV === 'development'
+      config.NODE_ENV === 'development'
         ? ['query', 'warn', 'error']
         : ['warn', 'error'],
   })
+}
 
-if (process.env.NODE_ENV !== 'production') {
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (loadConfig().NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
 /**
- * Graceful shutdown — disconnect the Prisma client and drain the
+ * Graceful shutdown -- disconnect the Prisma client and drain the
  * connection pool. Call this from your server shutdown hook.
  */
 export async function disconnectDatabase(): Promise<void> {
@@ -46,7 +51,7 @@ export async function disconnectDatabase(): Promise<void> {
 }
 
 /**
- * Health check — run a lightweight query to verify the database
+ * Health check -- run a lightweight query to verify the database
  * connection is alive.
  */
 export async function checkDatabaseHealth(): Promise<boolean> {

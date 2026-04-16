@@ -15,9 +15,8 @@ export async function validateHost(
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
-  if (process.env.NODE_ENV !== 'production') return
-
   const config = loadConfig()
+  if (config.NODE_ENV !== 'production') return
   const allowed = config.ALLOWED_HOSTS
   if (allowed.length === 0) return // defensive: config refine should have caught this
 

@@ -62,6 +62,8 @@ const envSchema = z.object({
       (hosts) => process.env.NODE_ENV !== 'production' || hosts.length > 0,
       { message: 'ALLOWED_HOSTS must be set in production (comma-separated allowlist)' },
     ),
+  SIWE_DOMAIN: z.string().default('attestara.ai'),
+  SIWE_URI: z.string().default('https://attestara.ai'),
   PINATA_API_KEY: z.string().optional(),
   PINATA_API_SECRET: z.string().optional(),
   IPFS_GATEWAY_URL: z.string().default('http://localhost:8080'),

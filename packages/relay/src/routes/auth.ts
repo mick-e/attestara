@@ -80,17 +80,17 @@ export function getAuthStores() {
   }
 }
 
-const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? 'attestara.ai'
-const SIWE_URI = process.env.SIWE_URI ?? 'https://attestara.ai'
 const SIWE_STATEMENT = 'Sign in to Attestara'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
+  const SIWE_DOMAIN = app.config.SIWE_DOMAIN
+  const SIWE_URI = app.config.SIWE_URI
 
-  // Per-endpoint rate limit tuning. In test environment (NODE_ENV=test or VITEST)
+  // Per-endpoint rate limit tuning. In test environment (NODE_ENV=test)
   // we use a very high ceiling to avoid throttling test runs. Production values
   // are enforced per-route below (register 3/hr, login & wallet/verify 5/15min).
-  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const isTestEnv = app.config.NODE_ENV === 'test'
   const registerMax = isTestEnv ? 10_000 : 3
   const loginMax = isTestEnv ? 10_000 : 5
   const walletVerifyMax = isTestEnv ? 10_000 : 5
