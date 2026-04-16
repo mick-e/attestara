@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { credentialService } from '../services/credential.service.js'
+import { recordAudit } from '../services/audit.service.js'
 
 export async function clearCredentialStores() {
   await credentialService.clearStores()
@@ -113,6 +114,15 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.id,
       })
     }
+
+    void recordAudit({
+      action: 'credential.revoke',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId,
+      actorIp: request.ip,
+      resource: `Credential:${id}`,
+    })
 
     return reply.status(200).send({ message: 'Credential revoked', id })
   })

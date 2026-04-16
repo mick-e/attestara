@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { orgService } from '../services/org.service.js'
+import { recordAudit } from '../services/audit.service.js'
 
 export async function clearOrgStores() {
   await orgService.clearStores()
@@ -52,6 +53,15 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
     // Track membership
     await orgService.addMember(org.id, auth.userId)
+
+    void recordAudit({
+      action: 'org.create',
+      outcome: 'success',
+      userId: auth.userId,
+      orgId: org.id,
+      actorIp: request.ip,
+      resource: `Organisation:${org.id}`,
+    })
 
     return reply.status(201).send({
       ...org,

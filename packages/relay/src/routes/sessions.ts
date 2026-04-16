@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { sessionService } from '../services/session.service.js'
+import { recordAudit } from '../services/audit.service.js'
 
 export async function clearSessionStores() {
   await sessionService.clearStores()
@@ -59,6 +60,15 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { session, inviteToken } = await sessionService.createSession(parsed.data)
+
+    void recordAudit({
+      action: 'session.create',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId: parsed.data.initiatorOrgId,
+      actorIp: request.ip,
+      resource: `Session:${session.id}`,
+    })
 
     const response: Record<string, unknown> = { ...session }
     if (inviteToken) {

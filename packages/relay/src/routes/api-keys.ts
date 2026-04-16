@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { apiKeyService } from '../services/api-key.service.js'
+import { recordAudit } from '../services/audit.service.js'
 
 export async function clearApiKeyStores() {
   await apiKeyService.clearStores()
@@ -58,6 +59,15 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
       parsed.data.expiresAt,
     )
 
+    void recordAudit({
+      action: 'api-key.create',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId,
+      actorIp: request.ip,
+      resource: `ApiKey:${apiKey.id}`,
+    })
+
     return reply.status(201).send({ ...apiKey, rawKey })
   })
 
@@ -88,6 +98,15 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.id,
       })
     }
+
+    void recordAudit({
+      action: 'api-key.revoke',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId,
+      actorIp: request.ip,
+      resource: `ApiKey:${id}`,
+    })
 
     return reply.status(204).send()
   })

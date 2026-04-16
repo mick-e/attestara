@@ -18,6 +18,7 @@ import {
 import { AuthService } from '../services/auth.service.js'
 import { orgService } from '../services/org.service.js'
 import { getPrisma } from '../utils/prisma.js'
+import { recordAudit } from '../services/audit.service.js'
 import type { StoredUser, StoredOrg } from '../services/org.service.js'
 
 function hashToken(token: string): string {
@@ -152,6 +153,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       },
     })
 
+    void recordAudit({
+      action: 'auth.register',
+      outcome: 'success',
+      userId: user.id,
+      orgId: org.id,
+      actorIp: request.ip,
+      resource: `User:${user.id}`,
+    })
+
     return reply.status(201).send({
       accessToken,
       refreshToken,
@@ -182,6 +192,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { email, password } = parsed.data
     const user = await orgService.getUserByEmail(email)
     if (!user) {
+      await recordAudit({
+        action: 'auth.login.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'unknown_email', email },
+      })
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -190,6 +206,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!await authService.verifyPassword(password, user.passwordHash)) {
+      await recordAudit({
+        action: 'auth.login.failure',
+        outcome: 'failure',
+        userId: user.id,
+        orgId: user.orgId,
+        actorIp: request.ip,
+        metadata: { reason: 'invalid_password' },
+      })
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -210,6 +234,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         family,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
+    })
+
+    void recordAudit({
+      action: 'auth.login.success',
+      outcome: 'success',
+      userId: user.id,
+      orgId: user.orgId,
+      actorIp: request.ip,
     })
 
     return reply.status(200).send({
@@ -363,6 +395,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       expectedStatement: SIWE_STATEMENT,
     })
     if (!validation.ok) {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'siwe_validation_failed', error: validation.error },
+      })
       return reply.status(401).send({
         code: 'SIWE_VALIDATION_FAILED',
         message: validation.error,
@@ -375,6 +413,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     try {
       recoveredAddress = verifySiweSignature(message, signature)
     } catch {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'invalid_signature' },
+      })
       return reply.status(401).send({
         code: 'INVALID_SIGNATURE',
         message: 'Signature verification failed',
@@ -384,6 +428,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     const expectedAddress = getAddress(validation.params.address)
     if (recoveredAddress !== expectedAddress) {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'address_mismatch' },
+      })
       return reply.status(401).send({
         code: 'ADDRESS_MISMATCH',
         message: 'Recovered address does not match claimed address',
@@ -417,6 +467,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         family,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
+    })
+
+    void recordAudit({
+      action: 'auth.wallet.verify',
+      outcome: 'success',
+      userId: user.id,
+      orgId: user.orgId,
+      actorIp: request.ip,
+      resource: `User:${user.id}`,
     })
 
     return reply.status(200).send({

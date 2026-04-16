@@ -242,3 +242,19 @@ model Invite {
   @@index([orgId])
   @@map("invites")
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String?  @map("org_id")
+  userId    String?  @map("user_id")
+  actorIp   String?  @map("actor_ip")
+  action    String
+  resource  String?
+  outcome   String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

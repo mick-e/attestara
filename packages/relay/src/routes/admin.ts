@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { requireAuth } from '../middleware/auth.js'
 import { getPrisma } from '../utils/prisma.js'
+import { recordAudit } from '../services/audit.service.js'
 
 function requireAdmin() {
   return async (request: any, reply: any) => {
@@ -21,7 +22,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
   // GET /v1/admin/stats
   app.get('/admin/stats', {
     preHandler: [requireAuth(JWT_SECRET), requireAdmin()],
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
     const [totalOrgs, totalUsers, totalAgents, totalSessions, totalCommitments] = await Promise.all([
       getPrisma().organisation.count(),
       getPrisma().user.count(),
@@ -29,6 +30,14 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       getPrisma().session.count(),
       getPrisma().commitment.count(),
     ])
+
+    void recordAudit({
+      action: 'admin.stats',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId: request.auth!.orgId,
+      actorIp: request.ip,
+    })
 
     return reply.status(200).send({
       totalOrgs,
@@ -42,7 +51,15 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
   // POST /v1/admin/indexer/backfill
   app.post('/admin/indexer/backfill', {
     preHandler: [requireAuth(JWT_SECRET), requireAdmin()],
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    void recordAudit({
+      action: 'admin.indexer.backfill',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      orgId: request.auth!.orgId,
+      actorIp: request.ip,
+    })
+
     return reply.status(202).send({
       message: 'Backfill queued',
     })

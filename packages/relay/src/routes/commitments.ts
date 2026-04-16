@@ -4,6 +4,7 @@ import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { commitmentService } from '../services/commitment.service.js'
 import { sessionService } from '../services/session.service.js'
+import { recordAudit } from '../services/audit.service.js'
 
 export async function clearCommitmentStores() {
   await commitmentService.clearStores()
@@ -68,6 +69,15 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.id,
       })
     }
+
+    void recordAudit({
+      action: 'commitment.anchor',
+      outcome: 'success',
+      userId: request.auth!.userId,
+      actorIp: request.ip,
+      resource: `Commitment:${result.id}`,
+      metadata: { sessionId },
+    })
 
     return reply.status(201).send(result)
   })
