@@ -255,6 +255,16 @@ export class SessionService {
     return { inviteToken: rawToken, sessionId }
   }
 
+  async abandonSession(sessionId: string): Promise<StoredSession | null> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    if (!session) return null
+    const row = await getPrisma().session.update({
+      where: { id: sessionId },
+      data: { status: 'abandoned' },
+    })
+    return toStoredSession(row)
+  }
+
   async appendTurn(sessionId: string, data: AppendTurnData): Promise<StoredTurn | { error: string; code: string }> {
     const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
     if (!session) {

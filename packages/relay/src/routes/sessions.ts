@@ -43,7 +43,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
 
   // Test-env bypass for invite-acceptance rate limit. Production: 20/hour per IP.
-  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+  const isTestEnv = app.config.NODE_ENV === 'test'
   const acceptMax = isTestEnv ? 10_000 : 20
 
   // POST /v1/sessions
@@ -264,5 +264,49 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.status(200).send(result)
+  })
+
+  // POST /v1/sessions/:sessionId/abandon
+  app.post('/sessions/:sessionId/abandon', {
+    preHandler: [requireAuth(JWT_SECRET)],
+  }, async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string }
+    const auth = request.auth!
+
+    const session = await sessionService.getSession(sessionId)
+    if (!session) {
+      return reply.status(404).send({
+        code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        requestId: request.id,
+      })
+    }
+
+    if (session.initiatorOrgId !== auth.orgId && session.counterpartyOrgId !== auth.orgId) {
+      return reply.status(403).send({
+        code: 'FORBIDDEN',
+        message: 'Access denied to this session',
+        requestId: request.id,
+      })
+    }
+
+    if (session.status !== 'active' && session.status !== 'pending_acceptance') {
+      return reply.status(400).send({
+        code: 'SESSION_NOT_ACTIVE',
+        message: 'Session is not active or pending',
+        requestId: request.id,
+      })
+    }
+
+    const result = await sessionService.abandonSession(sessionId)
+    if (!result) {
+      return reply.status(500).send({
+        code: 'ABANDON_FAILED',
+        message: 'Failed to abandon session',
+        requestId: request.id,
+      })
+    }
+
+    return reply.status(200).send({ message: 'Session abandoned', sessionId })
   })
 }
