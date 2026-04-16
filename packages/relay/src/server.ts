@@ -15,6 +15,7 @@ import { webhookRoutes } from './routes/webhooks.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { adminRoutes } from './routes/admin.js'
 import { websocketPlugin } from './websocket/index.js'
+import { validateHost } from './middleware/host-validation.js'
 
 export interface ServerOptions {
   corsOrigin?: string[]
@@ -24,6 +25,10 @@ export interface ServerOptions {
 
 export async function buildServer(options: ServerOptions = {}) {
   const isProduction = process.env.NODE_ENV === 'production'
+
+  // Load and validate config (fails fast if env vars missing).
+  // Must happen before Fastify instantiation so trustProxy can be configured.
+  const config = loadConfig()
 
   const app = Fastify({
     logger: options.logger !== false
@@ -58,10 +63,9 @@ export async function buildServer(options: ServerOptions = {}) {
         }
       : false,
     genReqId: () => crypto.randomUUID(),
+    trustProxy: config.TRUSTED_PROXIES,
   })
 
-  // Load and validate config (fails fast if env vars missing)
-  const config = loadConfig()
   app.decorate('config', config)
 
   // Initialize services that need config
@@ -91,6 +95,11 @@ export async function buildServer(options: ServerOptions = {}) {
     max: options.rateLimit?.max ?? 100,
     timeWindow: options.rateLimit?.timeWindow ?? '1 minute',
   })
+
+  // Host header validation (production-only). Placed after helmet/rate-limit so we
+  // don't emit security headers or consume rate-limit budget for forged-host requests
+  // — but before routes so no handler logic runs on a rejected host.
+  app.addHook('onRequest', validateHost)
 
   // OpenAPI / Swagger documentation
   await app.register(import('@fastify/swagger'), {

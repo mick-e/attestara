@@ -37,6 +37,30 @@ const envSchema = z.object({
       }
       return origins
     }),
+  TRUSTED_PROXIES: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v) return false as const // no proxies trusted by default
+      return v
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean)
+    }),
+  ALLOWED_HOSTS: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v) return [] as string[]
+      return v
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean)
+    })
+    .refine(
+      (hosts) => process.env.NODE_ENV !== 'production' || hosts.length > 0,
+      { message: 'ALLOWED_HOSTS must be set in production (comma-separated allowlist)' },
+    ),
   PINATA_API_KEY: z.string().optional(),
   PINATA_API_SECRET: z.string().optional(),
   IPFS_GATEWAY_URL: z.string().default('http://localhost:8080'),
