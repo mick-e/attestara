@@ -15,7 +15,25 @@ import { verifyToken } from '../middleware/auth.js'
 import * as sessionChannel from './session-channel.js'
 import * as orgFeed from './org-feed.js'
 import { setOnline, setOffline, cleanupPresence } from './presence.js'
+import type { PubSubAdapter } from './pubsub.js'
 
+/** Optional Redis pub/sub adapter for horizontal scaling. */
+let pubsubAdapter: PubSubAdapter | null = null
+
+/**
+ * Register a Redis pub/sub adapter so that broadcast() publishes
+ * events across relay instances. Call before starting the server.
+ */
+export function setPubSubAdapter(adapter: PubSubAdapter | null): void {
+  pubsubAdapter = adapter
+}
+
+/**
+ * Return the currently registered pub/sub adapter (if any).
+ */
+export function getPubSubAdapter(): PubSubAdapter | null {
+  return pubsubAdapter
+}
 
 export interface SubscribeMessage {
   type: 'subscribe'
@@ -26,17 +44,29 @@ export interface SubscribeMessage {
 /**
  * Broadcast an event to all WebSocket subscribers on a channel.
  *
+ * Delivers to local connections immediately, then publishes to Redis
+ * (if a PubSubAdapter is registered) so other relay instances can
+ * fan out to their local connections.
+ *
  * channel formats:
- *   'session:<sessionId>'  → SessionChannel
- *   'org:<orgId>'          → OrgFeed
+ *   'session:<sessionId>'  -> SessionChannel
+ *   'org:<orgId>'          -> OrgFeed
  */
 export function broadcast(channel: string, event: string, data: unknown): void {
+  // Always deliver to local connections first
   if (channel.startsWith('session:')) {
     const sessionId = channel.slice('session:'.length)
     sessionChannel.broadcast(sessionId, event, data)
   } else if (channel.startsWith('org:')) {
     const orgId = channel.slice('org:'.length)
     orgFeed.broadcast(orgId, event, data)
+  }
+
+  // Publish to Redis for cross-instance fan-out (fire-and-forget)
+  if (pubsubAdapter) {
+    pubsubAdapter.publish(channel, event, data).catch(() => {
+      // Swallow errors -- local delivery already succeeded
+    })
   }
 }
 
