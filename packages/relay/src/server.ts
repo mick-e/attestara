@@ -17,7 +17,7 @@ import { adminRoutes } from './routes/admin.js'
 import { websocketPlugin } from './websocket/index.js'
 
 export interface ServerOptions {
-  corsOrigin?: string
+  corsOrigin?: string[]
   rateLimit?: { max: number; timeWindow: string }
   logger?: boolean
 }
