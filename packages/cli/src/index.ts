@@ -9,6 +9,7 @@ import { negotiateCommand } from './commands/negotiate.js'
 import { commitmentCommand } from './commands/commitment.js'
 import { demoCommand } from './commands/demo.js'
 import { printError } from './output.js'
+import { registerInteractiveFlag } from './interactive.js'
 
 const program = new Command()
   .name('attestara')
@@ -37,7 +38,10 @@ Commitments:
   $ attestara commitment verify <id>        Verify commitment
 
 All list/show commands support --json for machine-readable output.
+Use --no-interactive to disable prompts (CI-friendly).
   `)
+
+registerInteractiveFlag(program)
 
 program.addCommand(initCommand())
 program.addCommand(identityCommand())
