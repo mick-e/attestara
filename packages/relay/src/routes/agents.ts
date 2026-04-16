@@ -3,6 +3,11 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { agentService } from '../services/agent.service.js'
+import { didService } from '../services/did.service.js'
+
+const provisionDidSchema = z.object({
+  name: z.string().min(1).max(255),
+})
 
 export { agentService as agentServiceInstance }
 
@@ -137,5 +142,31 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.status(200).send({ message: 'Agent deactivated', id: agentId })
+  })
+
+  // POST /v1/agents/provision-did -- generate a real did:ethr via SDK Veramo
+  app.post('/agents/provision-did', {
+    preHandler: [requireAuth(JWT_SECRET)],
+  }, async (request, reply) => {
+    const parsed = provisionDidSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.issues.map(i => i.message).join(', '),
+        requestId: request.id,
+      })
+    }
+
+    try {
+      const result = await didService.createDid(parsed.data.name)
+      return reply.status(201).send(result)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'DID generation failed'
+      return reply.status(500).send({
+        code: 'DID_GENERATION_FAILED',
+        message,
+        requestId: request.id,
+      })
+    }
   })
 }
