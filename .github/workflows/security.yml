@@ -1,0 +1,43 @@
+name: Security Static Analysis
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  slither:
+    name: Slither (Solidity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install contract dependencies
+        working-directory: packages/contracts
+        run: npm install
+      - uses: crytic/slither-action@v0.4.0
+        with:
+          target: packages/contracts
+          slither-config: packages/contracts/slither.config.json
+          fail-on: high
+
+  semgrep:
+    name: Semgrep (TypeScript)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep
+        run: >
+          semgrep
+          --config=auto
+          --config=p/typescript
+          --config=p/nodejs
+          --config=p/owasp-top-ten
+          --error
+          --severity ERROR
+          packages/*/src

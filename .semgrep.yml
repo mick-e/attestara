@@ -1,0 +1,3 @@
+rules: []
+# Custom project rules go here. Registry packs (p/typescript, p/nodejs,
+# p/owasp-top-ten) are loaded via CLI --config flags in CI.
