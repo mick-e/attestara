@@ -14,6 +14,7 @@ import { apiKeyRoutes } from './routes/api-keys.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { adminRoutes } from './routes/admin.js'
+import { billingRoutes } from './billing/x402.js'
 import { websocketPlugin } from './websocket/index.js'
 import { validateHost } from './middleware/host-validation.js'
 
@@ -182,6 +183,7 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(apiKeyRoutes, { prefix: '/v1' })
   await app.register(webhookRoutes, { prefix: '/v1' })
   await app.register(analyticsRoutes, { prefix: '/v1' })
+  await app.register(billingRoutes, { prefix: '/v1' })
   await app.register(adminRoutes, { prefix: '/v1' })
 
   // WebSocket server (must come after rate-limit plugin)
