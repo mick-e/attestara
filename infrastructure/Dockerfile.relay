@@ -1,15 +1,52 @@
-FROM node:20-alpine
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
 RUN apk add --no-cache python3 make g++
+RUN corepack enable
+
 WORKDIR /app
+
+# Copy workspace config first for layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json ./
+COPY packages/types/package.json ./packages/types/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/relay/package.json ./packages/relay/package.json
+
+RUN pnpm install --frozen-lockfile
+
+# Copy source
 COPY packages/types ./packages/types
 COPY packages/contracts ./packages/contracts
 COPY packages/relay ./packages/relay
-RUN corepack enable && pnpm install --frozen-lockfile
+
+# Build all required packages
 RUN pnpm --filter @attestara/types build
 RUN pnpm --filter @attestara/relay db:generate
 RUN pnpm --filter @attestara/relay build
-RUN apk del python3 make g++
+
+# ── Stage 2: pruner ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS pruner
+RUN corepack enable
+
+WORKDIR /app
+COPY --from=builder /app ./
+
+# Deploy production-only dependencies into /out
+RUN pnpm --filter @attestara/relay deploy --prod /out
+
+# ── Stage 3: runtime ─────────────────────────────────────────────────────────
+FROM node:20-alpine AS runtime
+
+# Non-root user for security
+RUN addgroup -g 1001 -S attestara && \
+    adduser -S attestara -u 1001 -G attestara
+
+WORKDIR /app
+
+# Copy pruned production bundle
+COPY --from=pruner --chown=attestara:attestara /out ./
+
+USER attestara
+
 EXPOSE 3001
-WORKDIR /app/packages/relay
+
 CMD ["node", "dist/start.js"]
