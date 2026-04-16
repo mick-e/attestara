@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 // Dashboard pages render with mock data when the relay backend is unavailable.
 // These tests verify page rendering and interactive UI elements work correctly.
+// Reviewed 2026-04-15: selectors verified against current page implementations.
 
 test.describe('Agents page', () => {
   test('shows agents heading', async ({ page }) => {
