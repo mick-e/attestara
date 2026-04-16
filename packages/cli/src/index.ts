@@ -9,6 +9,7 @@ import { negotiateCommand } from './commands/negotiate.js'
 import { commitmentCommand } from './commands/commitment.js'
 import { demoCommand } from './commands/demo.js'
 import { doctorCommand } from './commands/doctor.js'
+import { completionCommand } from './commands/completion.js'
 import { printError } from './output.js'
 import { registerInteractiveFlag } from './interactive.js'
 
@@ -52,6 +53,7 @@ program.addCommand(negotiateCommand())
 program.addCommand(commitmentCommand())
 program.addCommand(demoCommand())
 program.addCommand(doctorCommand())
+program.addCommand(completionCommand())
 
 // Global error handler
 program.hook('preAction', () => {
