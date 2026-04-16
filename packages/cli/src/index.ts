@@ -8,6 +8,7 @@ import { sessionCommand } from './commands/session.js'
 import { negotiateCommand } from './commands/negotiate.js'
 import { commitmentCommand } from './commands/commitment.js'
 import { demoCommand } from './commands/demo.js'
+import { doctorCommand } from './commands/doctor.js'
 import { printError } from './output.js'
 import { registerInteractiveFlag } from './interactive.js'
 
@@ -50,6 +51,7 @@ program.addCommand(sessionCommand())
 program.addCommand(negotiateCommand())
 program.addCommand(commitmentCommand())
 program.addCommand(demoCommand())
+program.addCommand(doctorCommand())
 
 // Global error handler
 program.hook('preAction', () => {
