@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
+import { createSessionSchema, acceptSchema, createTurnSchema } from '../schemas/session.js'
 import { sessionService } from '../services/session.service.js'
 import { recordAudit } from '../services/audit.service.js'
 import {
@@ -20,34 +20,18 @@ export async function clearSessionStores() {
 }
 
 export function getSessionStores() {
+  type ServiceInternals = {
+    sessions: Map<string, unknown>
+    turns: Map<string, unknown[]>
+    inviteTokens: Map<string, string>
+  }
+  const svc = sessionService as unknown as ServiceInternals
   return {
-    sessions: (sessionService as any).sessions as Map<string, unknown>,
-    turns: (sessionService as any).turns as Map<string, unknown[]>,
-    inviteTokens: (sessionService as any).inviteTokens as Map<string, string>,
+    sessions: svc.sessions,
+    turns: svc.turns,
+    inviteTokens: svc.inviteTokens,
   }
 }
-
-const createSessionSchema = z.object({
-  initiatorAgentId: z.string().min(1),
-  counterpartyAgentId: z.string().min(1).nullable().optional(),
-  initiatorOrgId: z.string().min(1),
-  counterpartyOrgId: z.string().min(1),
-  sessionType: z.enum(['intra_org', 'cross_org']).default('intra_org'),
-  sessionConfig: z.record(z.unknown()).optional(),
-})
-
-const acceptSchema = z.object({
-  inviteToken: z.string().min(1),
-})
-
-const createTurnSchema = z.object({
-  agentId: z.string().min(1),
-  terms: z.record(z.unknown()),
-  proofType: z.string().min(1),
-  proof: z.record(z.unknown()),
-  publicSignals: z.record(z.unknown()),
-  signature: z.string().min(1),
-})
 
 export const sessionRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

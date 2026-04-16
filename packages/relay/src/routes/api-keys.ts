@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
+import { createApiKeySchema } from '../schemas/api-key.js'
 import { apiKeyService } from '../services/api-key.service.js'
 import { recordAudit } from '../services/audit.service.js'
 import {
@@ -13,12 +13,6 @@ import {
 export async function clearApiKeyStores() {
   await apiKeyService.clearStores()
 }
-
-const createApiKeySchema = z.object({
-  name: z.string().min(1),
-  scopes: z.array(z.string()).default([]),
-  expiresAt: z.string().datetime().optional(),
-})
 
 export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

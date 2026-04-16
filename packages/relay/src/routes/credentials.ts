@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
+import { createCredentialSchema } from '../schemas/credential.js'
 import { credentialService } from '../services/credential.service.js'
 import { recordAudit } from '../services/audit.service.js'
 import {
@@ -17,17 +17,8 @@ export async function clearCredentialStores() {
 }
 
 export function getCredentialStores() {
-  return { credentials: (credentialService as any).credentials as Map<string, unknown> }
+  return { credentials: (credentialService as unknown as { credentials: Map<string, unknown> }).credentials }
 }
-
-const createCredentialSchema = z.object({
-  agentId: z.string().uuid(),
-  credentialHash: z.string().min(1),
-  schemaHash: z.string().min(1),
-  ipfsCid: z.string().optional(),
-  credentialData: z.record(z.unknown()).optional(),
-  expiry: z.string().datetime(),
-})
 
 export const credentialRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

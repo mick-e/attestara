@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { createHash, randomUUID } from 'crypto'
-import { z } from 'zod'
 import { getAddress } from 'ethers'
 import {
   generateAccessToken,
@@ -40,38 +39,14 @@ export type { StoredUser, StoredOrg }
 
 const authService = new AuthService()
 
-// Zod schemas for request validation
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  orgName: z.string().min(1).max(100),
-  walletAddress: z.string().optional(),
-})
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-})
-
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1),
-})
-
-const walletNonceSchema = z.object({
-  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid Ethereum address'),
-})
-
-const walletVerifySchema = z.object({
-  message: z.string().min(1),
-  signature: z.string().min(1),
-})
-
-// Keep legacy schema for backward compat on /wallet endpoint
-const walletAuthSchema = z.object({
-  message: z.string().min(1),
-  signature: z.string().min(1),
-  address: z.string().min(1),
-})
+import {
+  registerSchema,
+  loginSchema,
+  refreshSchema,
+  walletNonceSchema,
+  walletVerifySchema,
+  walletAuthSchema,
+} from '../schemas/auth.js'
 
 // Exported for tests
 export async function clearAuthStores() {

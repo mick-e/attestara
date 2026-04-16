@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
+import { createCommitmentSchema } from '../schemas/commitment.js'
 import { commitmentService } from '../services/commitment.service.js'
 import { sessionService } from '../services/session.service.js'
 import { recordAudit } from '../services/audit.service.js'
@@ -16,14 +16,6 @@ import {
 export async function clearCommitmentStores() {
   await commitmentService.clearStores()
 }
-
-const createCommitmentSchema = z.object({
-  agreementHash: z.string().min(1),
-  parties: z.array(z.string()),
-  credentialHashes: z.array(z.string()),
-  proofs: z.record(z.unknown()),
-  circuitVersions: z.array(z.string()),
-})
 
 export const commitmentRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

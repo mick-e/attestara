@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
+import { provisionDidSchema, createAgentSchema, updateAgentSchema } from '../schemas/agent.js'
 import { agentService } from '../services/agent.service.js'
 import { didService } from '../services/did.service.js'
 import {
@@ -14,29 +14,12 @@ import {
   paginationQuerySchema,
 } from '../schemas/openapi.js'
 
-const provisionDidSchema = z.object({
-  name: z.string().min(1).max(255),
-})
-
 export { agentService as agentServiceInstance }
 
 /** @deprecated use agentService.clearStores() directly */
 export async function clearAgentStores() {
   await agentService.clearStores()
 }
-
-const createAgentSchema = z.object({
-  did: z.string().regex(/^did:[a-z]+:.+$/, 'Invalid DID format (expected did:method:identifier)'),
-  name: z.string().min(1).max(255),
-  publicKey: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Public key must be hex-encoded with 0x prefix').optional().default('0x00'),
-  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-})
-
-const updateAgentSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-  status: z.enum(['active', 'inactive']).optional(),
-})
 
 export const agentRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

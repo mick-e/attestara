@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
+import { createOrgSchema, updateOrgSchema, inviteSchema } from '../schemas/org.js'
 import { orgService } from '../services/org.service.js'
 import { recordAudit } from '../services/audit.service.js'
 import {
@@ -23,21 +23,6 @@ export function getOrgMembers() {
     },
   }
 }
-
-const createOrgSchema = z.object({
-  name: z.string().min(1).max(100),
-  plan: z.string().optional(),
-})
-
-const updateOrgSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  plan: z.string().optional(),
-})
-
-const inviteSchema = z.object({
-  email: z.string().email(),
-  role: z.string().default('member'),
-})
 
 export const orgRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

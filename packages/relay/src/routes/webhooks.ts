@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
+import { registerWebhookSchema } from '../schemas/webhook.js'
 import { webhookService } from '../services/webhook.service.js'
 import {
   webhookSchema,
@@ -12,11 +12,6 @@ import {
 export async function clearWebhookStores() {
   await webhookService.clearStores()
 }
-
-const registerWebhookSchema = z.object({
-  url: z.string().url(),
-  events: z.array(z.string().min(1)).min(1),
-})
 
 export const webhookRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET

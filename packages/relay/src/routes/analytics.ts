@@ -1,30 +1,16 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
 import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { agentService } from '../services/agent.service.js'
 import { credentialService } from '../services/credential.service.js'
 import { sessionService } from '../services/session.service.js'
 import { commitmentService } from '../services/commitment.service.js'
-import { analyticsService, type TimeseriesMetric } from '../services/analytics.service.js'
+import { analyticsService } from '../services/analytics.service.js'
+import { timeseriesQuerySchema } from '../schemas/analytics.js'
 import {
   analyticsResponse,
   timeseriesQuery,
   errorResponse,
 } from '../schemas/openapi.js'
-
-const VALID_METRICS: TimeseriesMetric[] = [
-  'sessions',
-  'proof_latency_p50',
-  'proof_latency_p95',
-  'gas_spent',
-  'commitments',
-  'credentials',
-]
-
-const timeseriesQuerySchema = z.object({
-  metric: z.enum(VALID_METRICS as [TimeseriesMetric, ...TimeseriesMetric[]]),
-  days: z.coerce.number().int().min(1).max(365).default(14),
-})
 
 export const analyticsRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
