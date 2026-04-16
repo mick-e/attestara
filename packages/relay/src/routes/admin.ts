@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import { requireAuth } from '../middleware/auth.js'
 import { getPrisma } from '../utils/prisma.js'
 import { recordAudit } from '../services/audit.service.js'
+import { adminStatsResponse, errorResponse } from '../schemas/openapi.js'
 
 function requireAdmin() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
@@ -21,6 +22,12 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/admin/stats
   app.get('/admin/stats', {
+    schema: {
+      tags: ['Admin'],
+      summary: 'Get platform statistics',
+      description: 'Returns aggregate counts of organisations, users, agents, sessions, and commitments. Admin only.',
+      response: { 200: adminStatsResponse, 403: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireAdmin()],
   }, async (request, reply) => {
     const [totalOrgs, totalUsers, totalAgents, totalSessions, totalCommitments] = await Promise.all([
@@ -50,6 +57,15 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/admin/indexer/backfill
   app.post('/admin/indexer/backfill', {
+    schema: {
+      tags: ['Admin'],
+      summary: 'Trigger indexer backfill',
+      description: 'Queues a blockchain event indexer backfill job. Admin only.',
+      response: {
+        202: { type: 'object' as const, properties: { message: { type: 'string' as const } } },
+        403: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireAdmin()],
   }, async (request, reply) => {
     void recordAudit({

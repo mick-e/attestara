@@ -3,6 +3,12 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { apiKeyService } from '../services/api-key.service.js'
 import { recordAudit } from '../services/audit.service.js'
+import {
+  apiKeySchema,
+  createApiKeyBody,
+  errorResponse,
+  paginatedResponse,
+} from '../schemas/openapi.js'
 
 export async function clearApiKeyStores() {
   await apiKeyService.clearStores()
@@ -23,6 +29,13 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/orgs/:orgId/api-keys — 10 requests per hour per org
   app.post('/orgs/:orgId/api-keys', {
+    schema: {
+      tags: ['ApiKeys'],
+      summary: 'Create an API key',
+      description: 'Creates a new API key for the organisation. The raw key is returned only once.',
+      body: createApiKeyBody,
+      response: { 201: apiKeySchema, 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
     config: {
       rateLimit: {
@@ -73,6 +86,12 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/api-keys
   app.get('/orgs/:orgId/api-keys', {
+    schema: {
+      tags: ['ApiKeys'],
+      summary: 'List API keys',
+      description: 'Returns all API keys for the organisation (raw keys are not included).',
+      response: { 200: paginatedResponse(apiKeySchema) },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -86,6 +105,12 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
   // DELETE /v1/orgs/:orgId/api-keys/:id
   app.delete('/orgs/:orgId/api-keys/:id', {
+    schema: {
+      tags: ['ApiKeys'],
+      summary: 'Revoke an API key',
+      description: 'Permanently revokes an API key. This action cannot be undone.',
+      response: { 204: { type: 'null' as const, description: 'Key revoked' }, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
@@ -113,6 +138,15 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/orgs/:orgId/api-keys/:id/test -- verify the key is valid
   app.post('/orgs/:orgId/api-keys/:id/test', {
+    schema: {
+      tags: ['ApiKeys'],
+      summary: 'Test an API key',
+      description: 'Checks whether an API key is valid and not expired.',
+      response: {
+        200: { type: 'object' as const, properties: { valid: { type: 'boolean' as const }, scopes: { type: 'array' as const, items: { type: 'string' as const } } } },
+        404: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }
@@ -134,6 +168,15 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/api-keys/:id/usage -- basic usage stats
   app.get('/orgs/:orgId/api-keys/:id/usage', {
+    schema: {
+      tags: ['ApiKeys'],
+      summary: 'Get API key usage',
+      description: 'Returns usage statistics for a specific API key.',
+      response: {
+        200: { type: 'object' as const, properties: { requests: { type: 'number' as const }, lastUsed: { type: 'string' as const, nullable: true } } },
+        404: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, id } = request.params as { orgId: string; id: string }

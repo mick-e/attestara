@@ -5,6 +5,13 @@ import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '.
 import { commitmentService } from '../services/commitment.service.js'
 import { sessionService } from '../services/session.service.js'
 import { recordAudit } from '../services/audit.service.js'
+import {
+  commitmentSchema,
+  createCommitmentBody,
+  errorResponse,
+  paginatedResponse,
+  paginationQuerySchema,
+} from '../schemas/openapi.js'
 
 export async function clearCommitmentStores() {
   await commitmentService.clearStores()
@@ -23,6 +30,13 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions/:sessionId/commitment
   app.post('/sessions/:sessionId/commitment', {
+    schema: {
+      tags: ['Commitments'],
+      summary: 'Anchor a commitment',
+      description: 'Creates an on-chain commitment anchored to a negotiation session. Rejects if the session is expired or missing.',
+      body: createCommitmentBody,
+      response: { 201: commitmentSchema, 400: errorResponse, 404: errorResponse, 409: errorResponse, 410: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
@@ -84,6 +98,13 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/commitments
   app.get('/commitments', {
+    schema: {
+      tags: ['Commitments'],
+      summary: 'List commitments',
+      description: 'Returns a paginated list of commitments for the authenticated organisation.',
+      querystring: paginationQuerySchema,
+      response: { 200: paginatedResponse(commitmentSchema), 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth!
@@ -107,6 +128,12 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/commitments/:id
   app.get('/commitments/:id', {
+    schema: {
+      tags: ['Commitments'],
+      summary: 'Get commitment by ID',
+      description: 'Returns the details of a specific commitment including on-chain anchoring info.',
+      response: { 200: commitmentSchema, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }
@@ -125,6 +152,12 @@ export const commitmentRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/commitments/:id/verify
   app.post('/commitments/:id/verify', {
+    schema: {
+      tags: ['Commitments'],
+      summary: 'Verify a commitment',
+      description: 'Verifies an on-chain commitment by checking its ZK proofs and chain state.',
+      response: { 200: commitmentSchema, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { id } = request.params as { id: string }

@@ -140,6 +140,7 @@ export async function buildServer(options: ServerOptions = {}) {
         { name: 'Webhooks', description: 'Event webhook delivery' },
         { name: 'Analytics', description: 'Organization analytics' },
         { name: 'Admin', description: 'Admin-only operations' },
+        { name: 'Billing', description: 'Credit-based billing and usage metering' },
       ],
     },
   })

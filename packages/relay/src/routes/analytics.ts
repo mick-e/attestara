@@ -6,6 +6,11 @@ import { credentialService } from '../services/credential.service.js'
 import { sessionService } from '../services/session.service.js'
 import { commitmentService } from '../services/commitment.service.js'
 import { analyticsService, type TimeseriesMetric } from '../services/analytics.service.js'
+import {
+  analyticsResponse,
+  timeseriesQuery,
+  errorResponse,
+} from '../schemas/openapi.js'
 
 const VALID_METRICS: TimeseriesMetric[] = [
   'sessions',
@@ -26,6 +31,12 @@ export const analyticsRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/analytics
   app.get('/orgs/:orgId/analytics', {
+    schema: {
+      tags: ['Analytics'],
+      summary: 'Get organisation analytics',
+      description: 'Returns aggregate counts for agents, credentials, sessions, and commitments.',
+      response: { 200: analyticsResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -52,6 +63,17 @@ export const analyticsRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/analytics/timeseries?metric=sessions&days=14
   app.get('/analytics/timeseries', {
+    schema: {
+      tags: ['Analytics'],
+      summary: 'Get timeseries analytics',
+      description: 'Returns daily timeseries data for the specified metric over the given number of days.',
+      querystring: timeseriesQuery,
+      response: {
+        200: { type: 'object' as const, properties: { metric: { type: 'string' as const }, days: { type: 'number' as const }, data: { type: 'array' as const, items: { type: 'object' as const, properties: { date: { type: 'string' as const }, value: { type: 'number' as const } } } } } },
+        400: errorResponse,
+        401: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth
@@ -79,6 +101,14 @@ export const analyticsRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/analytics/proof-latency
   app.get('/orgs/:orgId/analytics/proof-latency', {
+    schema: {
+      tags: ['Analytics'],
+      summary: 'Get proof latency by circuit',
+      description: 'Returns p50/p95 proof generation latency broken down by circuit type.',
+      response: {
+        200: { type: 'object' as const, properties: { data: { type: 'array' as const, items: { type: 'object' as const, properties: { circuit: { type: 'string' as const }, p50: { type: 'number' as const }, p95: { type: 'number' as const } } } } } },
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }

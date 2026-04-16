@@ -4,6 +4,15 @@ import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { agentService } from '../services/agent.service.js'
 import { didService } from '../services/did.service.js'
+import {
+  agentSchema,
+  createAgentBody,
+  updateAgentBody,
+  provisionDidBody,
+  errorResponse,
+  paginatedResponse,
+  paginationQuerySchema,
+} from '../schemas/openapi.js'
 
 const provisionDidSchema = z.object({
   name: z.string().min(1).max(255),
@@ -34,6 +43,13 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/orgs/:orgId/agents
   app.post('/orgs/:orgId/agents', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'Register an agent',
+      description: 'Registers a new agent under the specified organisation with a DID, name, and optional metadata.',
+      body: createAgentBody,
+      response: { 201: agentSchema, 400: errorResponse, 409: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -61,6 +77,13 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/agents
   app.get('/orgs/:orgId/agents', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'List agents for an organisation',
+      description: 'Returns a paginated list of agents belonging to the specified organisation.',
+      querystring: paginationQuerySchema,
+      response: { 200: paginatedResponse(agentSchema), 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -84,6 +107,12 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/agents/:agentId
   app.get('/orgs/:orgId/agents/:agentId', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'Get agent by ID',
+      description: 'Returns the details of a specific agent within the organisation.',
+      response: { 200: agentSchema, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
@@ -102,6 +131,13 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // PATCH /v1/orgs/:orgId/agents/:agentId
   app.patch('/orgs/:orgId/agents/:agentId', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'Update an agent',
+      description: 'Updates the name, metadata, or status of an existing agent.',
+      body: updateAgentBody,
+      response: { 200: agentSchema, 400: errorResponse, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
@@ -128,6 +164,15 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // DELETE /v1/orgs/:orgId/agents/:agentId
   app.delete('/orgs/:orgId/agents/:agentId', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'Deactivate an agent',
+      description: 'Soft-deletes an agent by setting its status to inactive.',
+      response: {
+        200: { type: 'object' as const, properties: { message: { type: 'string' as const }, id: { type: 'string' as const } } },
+        404: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId, agentId } = request.params as { orgId: string; agentId: string }
@@ -146,6 +191,17 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/agents/provision-did -- generate a real did:ethr via SDK Veramo
   app.post('/agents/provision-did', {
+    schema: {
+      tags: ['Agents'],
+      summary: 'Provision a DID for an agent',
+      description: 'Generates a new did:ethr decentralized identifier via Veramo for the named agent.',
+      body: provisionDidBody,
+      response: {
+        201: { type: 'object' as const, properties: { did: { type: 'string' as const }, publicKey: { type: 'string' as const } } },
+        400: errorResponse,
+        500: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const parsed = provisionDidSchema.safeParse(request.body)

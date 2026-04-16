@@ -1,6 +1,12 @@
 import type { FastifyRequest, FastifyReply, FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
+import {
+  topupBody,
+  billingUsageResponse,
+  billingPlanResponse,
+  errorResponse,
+} from '../schemas/openapi.js'
 
 // ── In-memory usage store (Redis replacement for dev/test) ──────────────────
 
@@ -115,6 +121,12 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/billing/usage
   app.get('/billing/usage', {
+    schema: {
+      tags: ['Billing'],
+      summary: 'Get billing usage',
+      description: 'Returns credit usage metrics for the current billing period.',
+      response: { 200: billingUsageResponse, 401: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth
@@ -141,6 +153,12 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/billing/plan
   app.get('/billing/plan', {
+    schema: {
+      tags: ['Billing'],
+      summary: 'Get billing plan',
+      description: 'Returns the current plan, credit balance, and renewal date for the organisation.',
+      response: { 200: billingPlanResponse, 401: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth
@@ -160,6 +178,17 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/billing/topup
   app.post('/billing/topup', {
+    schema: {
+      tags: ['Billing'],
+      summary: 'Top up credits',
+      description: 'Adds credits to the organisation balance.',
+      body: topupBody,
+      response: {
+        200: { type: 'object' as const, properties: { credits: { type: 'number' as const }, message: { type: 'string' as const } } },
+        400: errorResponse,
+        401: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth

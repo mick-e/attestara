@@ -4,6 +4,16 @@ import { requireAuth, type AuthContext } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { sessionService } from '../services/session.service.js'
 import { recordAudit } from '../services/audit.service.js'
+import {
+  sessionSchema,
+  createSessionBody,
+  createTurnBody,
+  acceptSessionBody,
+  turnSchema,
+  errorResponse,
+  paginatedResponse,
+  paginationQuerySchema,
+} from '../schemas/openapi.js'
 
 export async function clearSessionStores() {
   await sessionService.clearStores()
@@ -48,6 +58,13 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions
   app.post('/sessions', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Create a negotiation session',
+      description: 'Creates a new negotiation session between two agents and returns an invite token for the counterparty.',
+      body: createSessionBody,
+      response: { 201: sessionSchema, 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const parsed = createSessionSchema.safeParse(request.body)
@@ -80,6 +97,13 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/sessions
   app.get('/sessions', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'List negotiation sessions',
+      description: 'Returns a paginated list of sessions accessible to the authenticated user.',
+      querystring: paginationQuerySchema,
+      response: { 200: paginatedResponse(sessionSchema), 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const auth = request.auth!
@@ -103,6 +127,12 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/sessions/:sessionId
   app.get('/sessions/:sessionId', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Get session by ID',
+      description: 'Returns the details of a specific negotiation session. Returns 403 if the user does not belong to either party, 410 if expired.',
+      response: { 200: sessionSchema, 403: errorResponse, 404: errorResponse, 410: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
@@ -139,6 +169,12 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/sessions/:sessionId/turns
   app.get('/sessions/:sessionId/turns', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'List turns in a session',
+      description: 'Returns all negotiation turns within a session. Counterparty proof data is redacted.',
+      response: { 200: paginatedResponse(turnSchema), 403: errorResponse, 404: errorResponse, 410: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
@@ -179,6 +215,13 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions/:sessionId/turns
   app.post('/sessions/:sessionId/turns', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Submit a negotiation turn',
+      description: 'Appends a new turn (proposal) with ZK proof to the negotiation session.',
+      body: createTurnBody,
+      response: { 201: turnSchema, 400: errorResponse, 404: errorResponse, 410: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
@@ -209,6 +252,16 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions/:sessionId/invite
   app.post('/sessions/:sessionId/invite', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Generate an invite token',
+      description: 'Generates a one-time invite token for the counterparty to join the session.',
+      response: {
+        200: { type: 'object' as const, properties: { inviteToken: { type: 'string' as const }, sessionId: { type: 'string' as const } } },
+        400: errorResponse,
+        404: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }
@@ -229,6 +282,13 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions/:sessionId/accept — 20 requests per hour per IP
   app.post('/sessions/:sessionId/accept', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Accept a session invite',
+      description: 'Accepts a session invite using the one-time invite token, activating the session.',
+      body: acceptSessionBody,
+      response: { 200: sessionSchema, 400: errorResponse, 401: errorResponse, 404: errorResponse, 409: errorResponse, 410: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
     config: {
       rateLimit: {
@@ -268,6 +328,18 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/sessions/:sessionId/abandon
   app.post('/sessions/:sessionId/abandon', {
+    schema: {
+      tags: ['Sessions'],
+      summary: 'Abandon a session',
+      description: 'Terminates a session that is active or pending acceptance. Only participants may abandon.',
+      response: {
+        200: { type: 'object' as const, properties: { message: { type: 'string' as const }, sessionId: { type: 'string' as const } } },
+        400: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        500: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string }

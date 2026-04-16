@@ -3,6 +3,13 @@ import { z } from 'zod'
 import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
 import { orgService } from '../services/org.service.js'
 import { recordAudit } from '../services/audit.service.js'
+import {
+  orgSchema,
+  createOrgBody,
+  updateOrgBody,
+  inviteBody,
+  errorResponse,
+} from '../schemas/openapi.js'
 
 export async function clearOrgStores() {
   await orgService.clearStores()
@@ -37,6 +44,13 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/orgs
   app.post('/orgs', {
+    schema: {
+      tags: ['Orgs'],
+      summary: 'Create an organisation',
+      description: 'Creates a new organisation and adds the authenticated user as a member.',
+      body: createOrgBody,
+      response: { 201: orgSchema, 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET)],
   }, async (request, reply) => {
     const parsed = createOrgSchema.safeParse(request.body)
@@ -72,6 +86,12 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId
   app.get('/orgs/:orgId', {
+    schema: {
+      tags: ['Orgs'],
+      summary: 'Get organisation by ID',
+      description: 'Returns the details of a specific organisation.',
+      response: { 200: orgSchema, 404: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -90,6 +110,13 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
   // PATCH /v1/orgs/:orgId
   app.patch('/orgs/:orgId', {
+    schema: {
+      tags: ['Orgs'],
+      summary: 'Update an organisation',
+      description: 'Updates the name or plan of an existing organisation.',
+      body: updateOrgBody,
+      response: { 200: orgSchema, 400: errorResponse },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -111,6 +138,20 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /v1/orgs/:orgId/members
   app.get('/orgs/:orgId/members', {
+    schema: {
+      tags: ['Orgs'],
+      summary: 'List organisation members',
+      description: 'Returns a list of user IDs that are members of the organisation.',
+      response: {
+        200: {
+          type: 'object' as const,
+          properties: {
+            data: { type: 'array' as const, items: { type: 'object' as const, properties: { id: { type: 'string' as const }, orgId: { type: 'string' as const }, role: { type: 'string' as const } } } },
+            pagination: { type: 'object' as const, properties: { total: { type: 'number' as const }, page: { type: 'number' as const }, pageSize: { type: 'number' as const }, totalPages: { type: 'number' as const } } },
+          },
+        },
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
@@ -124,6 +165,16 @@ export const orgRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /v1/orgs/:orgId/invite
   app.post('/orgs/:orgId/invite', {
+    schema: {
+      tags: ['Orgs'],
+      summary: 'Invite a user to an organisation',
+      description: 'Sends an invitation to join the organisation to the specified email address.',
+      body: inviteBody,
+      response: {
+        201: { type: 'object' as const, properties: { id: { type: 'string' as const }, orgId: { type: 'string' as const }, email: { type: 'string' as const }, role: { type: 'string' as const }, status: { type: 'string' as const } } },
+        400: errorResponse,
+      },
+    },
     preHandler: [requireAuth(JWT_SECRET), requireOrgAccess()],
   }, async (request, reply) => {
     const { orgId } = request.params as { orgId: string }
