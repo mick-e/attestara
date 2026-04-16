@@ -115,6 +115,66 @@ export interface AnalyticsResponse {
   avgTurnsPerSession: number;
 }
 
+export interface TimeseriesPoint {
+  date: string;
+  value: number;
+}
+
+export interface TimeseriesResponse {
+  metric: string;
+  days: number;
+  data: TimeseriesPoint[];
+}
+
+export interface ProofLatencyStats {
+  circuit: string;
+  p50Ms: number;
+  p95Ms: number;
+  count: number;
+}
+
+export interface ProofLatencyResponse {
+  data: ProofLatencyStats[];
+}
+
+export interface BillingUsageResponse {
+  orgId: string;
+  periodStart: string;
+  periodEnd: string;
+  usage: { metric: string; count: number; limit: number }[];
+  totalCreditsUsed: number;
+  creditsRemaining: number;
+}
+
+export interface BillingPlanResponse {
+  orgId: string;
+  plan: string;
+  credits: number;
+  creditsUsed: number;
+  renewsAt: string;
+}
+
+export interface WebhookResponse {
+  id: string;
+  orgId: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  createdAt: string;
+}
+
+export interface WebhookDeliveryResponse {
+  id: string;
+  webhookId: string;
+  event: string;
+  payload: Record<string, unknown>;
+  status: string;
+  attempts: number;
+  lastAttemptedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
 export interface ApiKeyResponse {
   id: string;
   orgId: string;
@@ -377,6 +437,12 @@ export class ApiClient {
   analytics = {
     get: (orgId: string) =>
       this.get<AnalyticsResponse>(`/orgs/${orgId}/analytics`),
+
+    timeseries: (metric: string, days = 14) =>
+      this.get<TimeseriesResponse>(`/analytics/timeseries?metric=${metric}&days=${days}`),
+
+    proofLatency: (orgId: string) =>
+      this.get<ProofLatencyResponse>(`/orgs/${orgId}/analytics/proof-latency`),
   };
 
   // ── API Keys ─────────────────────────────────────────────────────────────
@@ -390,6 +456,56 @@ export class ApiClient {
 
     revoke: (orgId: string, keyId: string) =>
       this.delete(`/orgs/${orgId}/api-keys/${keyId}`),
+
+    test: (orgId: string, keyId: string) =>
+      this.post<{ valid: boolean; scopes: string[] }>(`/orgs/${orgId}/api-keys/${keyId}/test`),
+
+    usage: (orgId: string, keyId: string) =>
+      this.get<{ requests: number; lastUsed: string | null }>(`/orgs/${orgId}/api-keys/${keyId}/usage`),
+  };
+
+  // ── DID Provisioning ─────────────────────────────────────────────────────
+
+  did = {
+    provision: (name: string) =>
+      this.post<{ did: string; publicKey: string }>("/agents/provision-did", { name }),
+  };
+
+  // ── Billing ──────────────────────────────────────────────────────────────
+
+  billing = {
+    usage: () => this.get<BillingUsageResponse>("/billing/usage"),
+    plan: () => this.get<BillingPlanResponse>("/billing/plan"),
+    topup: (credits: number) => this.post<{ credits: number; message: string }>("/billing/topup", { credits }),
+  };
+
+  // ── Webhooks ─────────────────────────────────────────────────────────────
+
+  webhooks = {
+    list: (orgId: string) =>
+      this.get<Paginated<WebhookResponse>>(`/orgs/${orgId}/webhooks`),
+
+    create: (orgId: string, data: { url: string; events: string[] }) =>
+      this.post<WebhookResponse & { secret: string }>(`/orgs/${orgId}/webhooks`, data),
+
+    delete: (orgId: string, id: string) =>
+      this.delete(`/orgs/${orgId}/webhooks/${id}`),
+
+    test: (orgId: string, id: string) =>
+      this.post<{ success: boolean; statusCode: number }>(`/orgs/${orgId}/webhooks/${id}/test`),
+
+    deliveries: (orgId: string, id: string) =>
+      this.get<Paginated<WebhookDeliveryResponse>>(`/orgs/${orgId}/webhooks/${id}/deliveries`),
+
+    retryDelivery: (orgId: string, deliveryId: string) =>
+      this.post<WebhookDeliveryResponse>(`/orgs/${orgId}/webhooks/deliveries/${deliveryId}/retry`),
+  };
+
+  // ── Sessions (extended) ──────────────────────────────────────────────────
+
+  sessionsExt = {
+    abandon: (sessionId: string) =>
+      this.post<{ message: string }>(`/sessions/${sessionId}/abandon`),
   };
 
   // ── Turns ────────────────────────────────────────────────────────────────

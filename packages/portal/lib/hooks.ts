@@ -12,6 +12,12 @@ import {
   type OrgMember,
   type Paginated,
   type AuthResponse,
+  type TimeseriesResponse,
+  type ProofLatencyResponse,
+  type BillingUsageResponse,
+  type BillingPlanResponse,
+  type WebhookResponse,
+  type WebhookDeliveryResponse,
 } from "./api-client";
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "./auth";
 
@@ -414,6 +420,67 @@ export function useAnalytics(): FetchState<OrgAnalytics> {
     orgId ? () => apiClient.analytics.get(orgId) : null,
     [orgId],
   );
+}
+
+export function useTimeseries(metric: string, days = 14): FetchState<TimeseriesResponse> {
+  return useFetch<TimeseriesResponse>(
+    () => apiClient.analytics.timeseries(metric, days),
+    [metric, days],
+  );
+}
+
+export function useProofLatency(): FetchState<ProofLatencyResponse> {
+  const orgId = getOrgIdFromToken();
+  return useFetch<ProofLatencyResponse>(
+    orgId ? () => apiClient.analytics.proofLatency(orgId) : null,
+    [orgId],
+  );
+}
+
+// ─── Billing ───────────────────────────────────────────────────────────────
+
+export function useBillingUsage(): FetchState<BillingUsageResponse> {
+  return useFetch<BillingUsageResponse>(
+    () => apiClient.billing.usage(),
+    [],
+  );
+}
+
+export function useBillingPlan(): FetchState<BillingPlanResponse> {
+  return useFetch<BillingPlanResponse>(
+    () => apiClient.billing.plan(),
+    [],
+  );
+}
+
+// ─── Webhooks ──────────────────────────────────────────────────────────────
+
+export function useWebhooks(): FetchState<WebhookResponse[]> {
+  const orgId = getOrgIdFromToken();
+  const result = useFetch<Paginated<WebhookResponse>>(
+    orgId ? () => apiClient.webhooks.list(orgId) : null,
+    [orgId],
+  );
+  return {
+    data: result.data?.data ?? null,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+export function useWebhookDeliveries(webhookId: string): FetchState<WebhookDeliveryResponse[]> {
+  const orgId = getOrgIdFromToken();
+  const result = useFetch<Paginated<WebhookDeliveryResponse>>(
+    orgId && webhookId ? () => apiClient.webhooks.deliveries(orgId, webhookId) : null,
+    [orgId, webhookId],
+  );
+  return {
+    data: result.data?.data ?? null,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
+  };
 }
 
 // ─── API Keys ───────────────────────────────────────────────────────────────
