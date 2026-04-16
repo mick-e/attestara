@@ -27,11 +27,15 @@ export const apiKeyRoutes: FastifyPluginAsync = async (app) => {
       rateLimit: {
         max: apiKeyCreateMax,
         timeWindow: '1 hour',
-        // Per-org key: path param :orgId is populated after route matching,
-        // before the onRequest hook that fastify-rate-limit runs on.
+        // Composite orgId:ip key. Rate limiting runs on onRequest, before the
+        // JWT auth preHandler, so an unauthenticated attacker who guesses an
+        // org UUID could otherwise exhaust a victim org's bucket with 401s.
+        // Binding to IP prevents single-source cross-tenant DoS while still
+        // giving each org its own budget (per-IP within that org).
         keyGenerator: (request) => {
           const params = request.params as { orgId?: string }
-          return params.orgId ?? request.ip
+          const orgId = params.orgId ?? request.ip
+          return `${orgId}:${request.ip}`
         },
       },
     },
