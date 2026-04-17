@@ -18,13 +18,25 @@
     "clean": "turbo clean",
     "test:naming": "vitest run tests/naming-regression.test.ts",
     "generate:api-types": "tsx scripts/generate-api-client.ts",
-    "docs:build": "tsx scripts/build-api-docs.ts"
+    "docs:build": "tsx scripts/build-api-docs.ts",
+    "depcruise": "depcruise packages/relay/src packages/sdk/src packages/prover/src --config .dependency-cruiser.cjs",
+    "dupcheck": "jscpd packages/*/src"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
   },
   "devDependencies": {
     "@redocly/cli": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "dependency-cruiser": "^17.3.10",
+    "eslint": "^9",
+    "jscpd": "^4.0.9",
+    "lint-staged": "^16.4.0",
     "openapi-typescript": "^7.6.0",
-    "turbo": "^2.4.0",
+    "simple-git-hooks": "^2.13.1",
     "tsx": "^4.0.0",
+    "turbo": "^2.4.0",
     "typescript": "^5.7.0",
     "vitest": "^3.1.1"
   },
