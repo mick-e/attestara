@@ -2,9 +2,9 @@ export interface MandateParams {
   maxValue: bigint
   currency: string
   domain: string
-  parameterFloor?: bigint
-  parameterCeiling?: bigint
-  allowedCounterparties?: string[]
+  parameterFloor?: bigint | undefined
+  parameterCeiling?: bigint | undefined
+  allowedCounterparties?: string[] | undefined
 }
 
 export interface AuthorityCredential {

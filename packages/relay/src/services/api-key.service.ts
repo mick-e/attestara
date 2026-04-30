@@ -69,6 +69,14 @@ export class ApiKeyService {
     return toStoredApiKey(updated)
   }
 
+  async getById(id: string, orgId: string): Promise<StoredApiKey | null> {
+    const record = await getPrisma().apiKey.findUnique({
+      where: { id },
+    })
+    if (!record || record.orgId !== orgId) return null
+    return toStoredApiKey(record)
+  }
+
   async listByOrg(orgId: string): Promise<StoredApiKey[]> {
     const records = await getPrisma().apiKey.findMany({
       where: { orgId },

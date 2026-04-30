@@ -78,25 +78,25 @@ export class AgentService {
     opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
   ): Promise<StoredAgent[]> {
     const rows = await getPrisma().agent.findMany({
-      where: { orgId },
-      skip: opts?.skip,
-      take: opts?.take,
+      where: { orgId, deletedAt: null },
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredAgent)
   }
 
   async countByOrg(orgId: string): Promise<number> {
-    return getPrisma().agent.count({ where: { orgId } })
+    return getPrisma().agent.count({ where: { orgId, deletedAt: null } })
   }
 
   async getById(agentId: string, orgId: string): Promise<StoredAgent | null> {
-    const row = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    const row = await getPrisma().agent.findFirst({ where: { id: agentId, orgId, deletedAt: null } })
     return row ? toStoredAgent(row) : null
   }
 
   async update(agentId: string, orgId: string, updates: UpdateAgentData): Promise<StoredAgent | null> {
-    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId, deletedAt: null } })
     if (!existing) return null
 
     const row = await getPrisma().agent.update({
@@ -111,12 +111,23 @@ export class AgentService {
   }
 
   async deactivate(agentId: string, orgId: string): Promise<StoredAgent | null> {
-    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId } })
+    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId, deletedAt: null } })
     if (!existing) return null
 
     const row = await getPrisma().agent.update({
       where: { id: agentId },
       data: { status: 'deactivated' },
+    })
+    return toStoredAgent(row)
+  }
+
+  async softDelete(agentId: string, orgId: string): Promise<StoredAgent | null> {
+    const existing = await getPrisma().agent.findFirst({ where: { id: agentId, orgId, deletedAt: null } })
+    if (!existing) return null
+
+    const row = await getPrisma().agent.update({
+      where: { id: agentId },
+      data: { deletedAt: new Date() },
     })
     return toStoredAgent(row)
   }

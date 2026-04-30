@@ -4,7 +4,6 @@ import { CredentialManager, MemoryIPFSClient } from '@attestara/sdk'
 import type { MandateParams, AuthorityCredential } from '@attestara/types'
 import { requireConfig, saveCredential, CREDENTIALS_DIR } from '../config.js'
 import {
-  printSuccess,
   printError,
   printDetail,
   printHeader,
@@ -19,6 +18,7 @@ import {
 import { readFile } from 'fs/promises'
 import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
+import { promptIfMissing } from '../interactive.js'
 
 export function credentialCommand(): Command {
   const credential = new Command('credential')
@@ -34,14 +34,30 @@ Examples:
   credential
     .command('issue')
     .description('Issue a new Authority Credential')
-    .requiredOption('--domain <domain>', 'Mandate domain (e.g., procurement.contracts)')
-    .requiredOption('--max-value <value>', 'Maximum authorized value')
+    .option('--domain <domain>', 'Mandate domain (e.g., procurement.contracts)')
+    .option('--max-value <value>', 'Maximum authorized value')
     .option('--currency <currency>', 'Currency code', 'EUR')
     .option('--floor <value>', 'Parameter floor value')
     .option('--ceiling <value>', 'Parameter ceiling value')
     .option('--expires <seconds>', 'Expiration in seconds', String(86400 * 30))
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, cmd) => {
+      // Prompt for missing required options in interactive mode
+      options.domain = await promptIfMissing(cmd, options.domain, {
+        message: 'Mandate domain (e.g., procurement.contracts):',
+        validate: (v) => v.length > 0 || 'Domain is required',
+      })
+      options.maxValue = await promptIfMissing(cmd, options.maxValue, {
+        message: 'Maximum authorized value:',
+        validate: (v) => /^\d+$/.test(v) || 'Must be a positive integer',
+      })
+
+      if (!options.domain || !options.maxValue) {
+        printError('Missing required options: --domain and --max-value')
+        process.exitCode = 1
+        return
+      }
+
       const spinner = ora('Issuing credential...').start()
 
       try {
@@ -231,8 +247,8 @@ async function loadAllCredentials(): Promise<AuthorityCredential[]> {
         }
       }
       creds.push(data as AuthorityCredential)
-    } catch {
-      // Skip invalid files
+    } catch (_err: unknown) {
+      // Skip invalid credential files during enumeration
     }
   }
   return creds
@@ -267,7 +283,7 @@ async function findCredential(idOrFile: string): Promise<AuthorityCredential | n
           if (mp.parameterCeiling !== undefined && mp.parameterCeiling !== null) mp.parameterCeiling = BigInt(mp.parameterCeiling)
         }
         return data as AuthorityCredential
-      } catch {
+      } catch (_err: unknown) {
         continue
       }
     }

@@ -11,7 +11,7 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   code: string
   message: string
-  details?: Record<string, unknown>
+  details?: Record<string, unknown> | undefined
   requestId: string
 }
 
@@ -19,7 +19,7 @@ export interface RegisterRequest {
   email: string
   password: string
   orgName: string
-  walletAddress?: string
+  walletAddress?: string | undefined
 }
 
 export interface LoginRequest {

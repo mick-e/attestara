@@ -1,4 +1,5 @@
 import { randomBytes, createHash, createHmac, createCipheriv, createDecipheriv, timingSafeEqual } from 'crypto'
+import type { Prisma, Webhook, WebhookDelivery as PrismaWebhookDelivery } from '@prisma/client'
 import { getPrisma } from '../utils/prisma.js'
 
 let masterKeySecret: string = ''
@@ -26,7 +27,12 @@ function encryptSecret(raw: string): string {
 function decryptSecret(encoded: string): string {
   const parts = encoded.split(':')
   if (parts.length !== 3) throw new Error('Invalid encrypted format')
-  const [ivB64, tagB64, cipherB64] = parts
+  const ivB64 = parts[0]
+  const tagB64 = parts[1]
+  const cipherB64 = parts[2]
+  if (ivB64 === undefined || tagB64 === undefined || cipherB64 === undefined) {
+    throw new Error('Invalid encrypted format')
+  }
   const key = deriveKey()
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'))
   decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
@@ -101,7 +107,7 @@ export class WebhookService {
   async listByOrg(orgId: string): Promise<WebhookView[]> {
     const db = getPrisma()
     const rows = await db.webhook.findMany({ where: { orgId } })
-    return rows.map((row: any) => this._toView(this._fromRow(row)))
+    return rows.map((row) => this._toView(this._fromRow(row)))
   }
 
   async deactivate(id: string, orgId: string): Promise<boolean> {
@@ -126,7 +132,7 @@ export class WebhookService {
       data: {
         webhookId,
         event,
-        payload: payload as any,
+        payload: payload as Prisma.InputJsonValue,
         status: 'pending',
         attempts: 1,
         lastAttemptedAt: now,
@@ -146,7 +152,57 @@ export class WebhookService {
       where: { webhookId },
       orderBy: { createdAt: 'asc' },
     })
-    return rows.map((row: any) => this._deliveryFromRow(row))
+    return rows.map((row) => this._deliveryFromRow(row))
+  }
+
+  async testWebhook(webhookId: string, orgId: string): Promise<{ success: boolean; statusCode: number } | null> {
+    const db = getPrisma()
+    const wh = await db.webhook.findUnique({ where: { id: webhookId } })
+    if (!wh || wh.orgId !== orgId) return null
+
+    // Send a test event to the webhook URL
+    const testPayload = {
+      event: 'webhook.test',
+      timestamp: new Date().toISOString(),
+      data: { message: 'Test delivery from Attestara' },
+    }
+
+    try {
+      const rawSecret = decryptSecret(wh.secretHash)
+      const signature = createHmac('sha256', rawSecret).update(JSON.stringify(testPayload)).digest('hex')
+      const response = await fetch(wh.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Attestara-Signature': signature,
+        },
+        body: JSON.stringify(testPayload),
+        signal: AbortSignal.timeout(10000),
+      })
+      return { success: response.ok, statusCode: response.status }
+    } catch (_err: unknown) {
+      return { success: false, statusCode: 0 }
+    }
+  }
+
+  async retryDelivery(deliveryId: string, orgId: string): Promise<StoredDelivery | null> {
+    const db = getPrisma()
+    const delivery = await db.webhookDelivery.findUnique({
+      where: { id: deliveryId },
+      include: { webhook: true },
+    })
+    if (!delivery || delivery.webhook.orgId !== orgId) return null
+
+    // Increment attempts and mark as pending for retry
+    const updated = await db.webhookDelivery.update({
+      where: { id: deliveryId },
+      data: {
+        status: 'pending',
+        attempts: delivery.attempts + 1,
+        lastAttemptedAt: new Date(),
+      },
+    })
+    return this._deliveryFromRow(updated)
   }
 
   async signPayload(webhookId: string, payload: unknown): Promise<string | null> {
@@ -169,7 +225,7 @@ export class WebhookService {
     return view
   }
 
-  private _fromRow(row: any): StoredWebhook {
+  private _fromRow(row: Webhook): StoredWebhook {
     // secretHash column holds the encrypted raw secret
     const rawSecretEncrypted = row.secretHash
     const secretHash = createHash('sha256').update(decryptSecret(rawSecretEncrypted)).digest('hex')
@@ -185,7 +241,7 @@ export class WebhookService {
     }
   }
 
-  private _deliveryFromRow(row: any): StoredDelivery {
+  private _deliveryFromRow(row: PrismaWebhookDelivery): StoredDelivery {
     return {
       id: row.id,
       webhookId: row.webhookId,

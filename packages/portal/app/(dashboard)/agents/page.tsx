@@ -125,27 +125,15 @@ export default function AgentsPage() {
   // Use API data if available, mock data as fallback
   const displayAgents = agents ?? mockAgents;
 
-  function generateDid(): string {
-    const hex = Array.from({ length: 40 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join("");
-    return `did:ethr:arb-sepolia:0x${hex}`;
-  }
-
-  function generatePublicKey(): string {
-    const hex = Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join("");
-    return `0x${hex}`;
-  }
-
   async function handleProvision() {
     if (!agentName.trim()) return;
     try {
+      // Generate a real did:ethr via the relay's SDK Veramo integration
+      const { did, publicKey } = await apiClient.did.provision(agentName);
       await createAgent({
-        did: generateDid(),
+        did,
         name: agentName,
-        publicKey: generatePublicKey(),
+        publicKey,
         metadata: {},
       });
       setModalOpen(false);

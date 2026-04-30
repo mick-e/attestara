@@ -1,5 +1,4 @@
 import { Command } from 'commander'
-import chalk from 'chalk'
 import ora from 'ora'
 import { MockAgent } from '@attestara/sdk'
 import { requireConfig, saveConfig, saveKey, CONFIG_FILE } from '../config.js'
@@ -9,7 +8,6 @@ import {
   printDetail,
   printHeader,
   printJson,
-  statusColor,
 } from '../output.js'
 
 export function identityCommand(): Command {
@@ -47,8 +45,8 @@ Examples:
           config.agent.did = agent.did
           config.agent.keyFile = keyPath
           await saveConfig(config)
-        } catch {
-          // Config may not exist yet — that is fine
+        } catch (_err: unknown) {
+          // Config may not exist yet — that is fine, skip silently
         }
 
         spinner.succeed('DID created!')

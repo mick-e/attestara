@@ -14,16 +14,22 @@ import { apiKeyRoutes } from './routes/api-keys.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { analyticsRoutes } from './routes/analytics.js'
 import { adminRoutes } from './routes/admin.js'
+import { billingRoutes } from './billing/x402.js'
 import { websocketPlugin } from './websocket/index.js'
+import { validateHost } from './middleware/host-validation.js'
+import { metricsPlugin } from './metrics.js'
 
 export interface ServerOptions {
-  corsOrigin?: string
+  corsOrigin?: string[]
   rateLimit?: { max: number; timeWindow: string }
   logger?: boolean
 }
 
 export async function buildServer(options: ServerOptions = {}) {
-  const isProduction = process.env.NODE_ENV === 'production'
+  // Load and validate config (fails fast if env vars missing).
+  // Must happen before Fastify instantiation so trustProxy can be configured.
+  const config = loadConfig()
+  const isProduction = config.NODE_ENV === 'production'
 
   const app = Fastify({
     logger: options.logger !== false
@@ -58,10 +64,9 @@ export async function buildServer(options: ServerOptions = {}) {
         }
       : false,
     genReqId: () => crypto.randomUUID(),
+    trustProxy: config.TRUSTED_PROXIES,
   })
 
-  // Load and validate config (fails fast if env vars missing)
-  const config = loadConfig()
   app.decorate('config', config)
 
   // Initialize services that need config
@@ -73,13 +78,29 @@ export async function buildServer(options: ServerOptions = {}) {
   })
 
   await app.register(helmet, {
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],  // needed for Swagger UI
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
   })
 
   await app.register(rateLimit, {
     max: options.rateLimit?.max ?? 100,
     timeWindow: options.rateLimit?.timeWindow ?? '1 minute',
   })
+
+  // Host header validation (production-only). Placed after helmet/rate-limit so we
+  // don't emit security headers or consume rate-limit budget for forged-host requests
+  // — but before routes so no handler logic runs on a rejected host.
+  app.addHook('onRequest', validateHost)
 
   // OpenAPI / Swagger documentation
   await app.register(import('@fastify/swagger'), {
@@ -119,6 +140,7 @@ export async function buildServer(options: ServerOptions = {}) {
         { name: 'Webhooks', description: 'Event webhook delivery' },
         { name: 'Analytics', description: 'Organization analytics' },
         { name: 'Admin', description: 'Admin-only operations' },
+        { name: 'Billing', description: 'Credit-based billing and usage metering' },
       ],
     },
   })
@@ -132,7 +154,16 @@ export async function buildServer(options: ServerOptions = {}) {
   })
 
   // Global error handler
-  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string; validation?: unknown[] }, request, reply) => {
+    // Fastify schema validation failures — normalize to our VALIDATION_ERROR shape
+    if (error.code === 'FST_ERR_VALIDATION' || error.validation) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: error.message,
+        requestId: request.id,
+      })
+    }
+
     const statusCode = error.statusCode ?? 500
     const response = {
       code: error.code ?? 'INTERNAL_ERROR',
@@ -162,13 +193,18 @@ export async function buildServer(options: ServerOptions = {}) {
   await app.register(apiKeyRoutes, { prefix: '/v1' })
   await app.register(webhookRoutes, { prefix: '/v1' })
   await app.register(analyticsRoutes, { prefix: '/v1' })
+  await app.register(billingRoutes, { prefix: '/v1' })
   await app.register(adminRoutes, { prefix: '/v1' })
+
+  // Prometheus metrics (GET /metrics)
+  await app.register(metricsPlugin)
 
   // WebSocket server (must come after rate-limit plugin)
   await app.register(websocketPlugin)
 
   // Start indexer if RPC URL configured (non-blocking)
-  if (process.env.ARBITRUM_SEPOLIA_RPC_URL) {
+  if (config.ARBITRUM_SEPOLIA_RPC_URL) {
+    const rpcUrl = config.ARBITRUM_SEPOLIA_RPC_URL
     // Load deployed contract addresses for event indexing
     const loadContractAddresses = async () => {
       try {
@@ -181,8 +217,8 @@ export async function buildServer(options: ServerOptions = {}) {
         if (fs.existsSync(deploymentsPath)) {
           return JSON.parse(fs.readFileSync(deploymentsPath, 'utf-8'))
         }
-      } catch {
-        // Fall through — indexer runs without addresses (no event filtering)
+      } catch (err: unknown) {
+        console.warn('[Relay] Could not load contract addresses, indexer will run without event filtering', err)
       }
       return {}
     }
@@ -191,7 +227,7 @@ export async function buildServer(options: ServerOptions = {}) {
       import('./indexer/index.js').then(async m => {
         const { buildPrismaCallbacks } = await import('./indexer/callbacks.js')
         return m.startIndexer({
-          rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL!,
+          rpcUrl,
           contractAddresses: {
             agentRegistry: addresses.agentRegistry,
             commitmentContract: addresses.commitmentContract,

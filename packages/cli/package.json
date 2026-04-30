@@ -24,6 +24,7 @@
     "@attestara/sdk": "workspace:*",
     "@attestara/types": "workspace:*",
     "chalk": "^5.3.0",
+    "@inquirer/prompts": "^7.0.0",
     "commander": "^12.1.0",
     "ora": "^8.1.0"
   },

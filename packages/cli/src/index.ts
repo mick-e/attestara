@@ -8,7 +8,10 @@ import { sessionCommand } from './commands/session.js'
 import { negotiateCommand } from './commands/negotiate.js'
 import { commitmentCommand } from './commands/commitment.js'
 import { demoCommand } from './commands/demo.js'
+import { doctorCommand } from './commands/doctor.js'
+import { completionCommand } from './commands/completion.js'
 import { printError } from './output.js'
+import { registerInteractiveFlag } from './interactive.js'
 
 const program = new Command()
   .name('attestara')
@@ -37,7 +40,10 @@ Commitments:
   $ attestara commitment verify <id>        Verify commitment
 
 All list/show commands support --json for machine-readable output.
+Use --no-interactive to disable prompts (CI-friendly).
   `)
+
+registerInteractiveFlag(program)
 
 program.addCommand(initCommand())
 program.addCommand(identityCommand())
@@ -46,6 +52,8 @@ program.addCommand(sessionCommand())
 program.addCommand(negotiateCommand())
 program.addCommand(commitmentCommand())
 program.addCommand(demoCommand())
+program.addCommand(doctorCommand())
+program.addCommand(completionCommand())
 
 // Global error handler
 program.hook('preAction', () => {

@@ -63,7 +63,9 @@ export class CredentialService {
           credentialHash: data.credentialHash,
           schemaHash: data.schemaHash,
           ipfsCid: data.ipfsCid ?? null,
-          credentialDataCached: (data.credentialData ?? undefined) as Prisma.InputJsonValue | undefined,
+          ...(data.credentialData !== undefined
+            ? { credentialDataCached: data.credentialData as Prisma.InputJsonValue }
+            : {}),
           expiry: new Date(data.expiry),
         },
       })
@@ -81,25 +83,25 @@ export class CredentialService {
     opts?: { skip?: number; take?: number; orderBy?: Record<string, 'asc' | 'desc'> }
   ): Promise<StoredCredential[]> {
     const rows = await getPrisma().credential.findMany({
-      where: { orgId },
-      skip: opts?.skip,
-      take: opts?.take,
+      where: { orgId, deletedAt: null },
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredCredential)
   }
 
   async countByOrg(orgId: string): Promise<number> {
-    return getPrisma().credential.count({ where: { orgId } })
+    return getPrisma().credential.count({ where: { orgId, deletedAt: null } })
   }
 
   async getById(id: string, orgId: string): Promise<StoredCredential | null> {
-    const row = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    const row = await getPrisma().credential.findFirst({ where: { id, orgId, deletedAt: null } })
     return row ? toStoredCredential(row) : null
   }
 
   async revoke(id: string, orgId: string): Promise<StoredCredential | null> {
-    const existing = await getPrisma().credential.findFirst({ where: { id, orgId } })
+    const existing = await getPrisma().credential.findFirst({ where: { id, orgId, deletedAt: null } })
     if (!existing) return null
 
     const row = await getPrisma().credential.update({

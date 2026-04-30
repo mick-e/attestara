@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify'
-import type { CircuitId, ProofResult, ZKProof, PublicSignals } from '@attestara/types'
+import type { CircuitId, ProofResult } from '@attestara/types'
 import type { CircuitManager } from '../circuits.js'
 import type { ProverCache } from '../cache.js'
 import type { WorkerPool } from '../workers/pool.js'
 import { proofRequestSchema, circuitInputSchemas, verifyRequestSchema, bundleRequestSchema } from '../validation.js'
-import { ValidationError, CircuitNotFoundError, ProofGenerationError } from '../errors.js'
+import { ValidationError, CircuitNotFoundError } from '../errors.js'
 
 export interface ProveDeps {
   circuitManager: CircuitManager
@@ -61,14 +61,18 @@ async function generateCircuitProof(
     curve: string
   }
 
+  const pi_b_0 = snarkProof.pi_b[0]
+  const pi_b_1 = snarkProof.pi_b[1]
+  if (!pi_b_0 || !pi_b_1) throw new Error('Invalid proof: pi_b must have at least 2 elements')
+
   const proofResult: ProofResult = {
     proof: {
-      pi_a: [snarkProof.pi_a[0], snarkProof.pi_a[1]] as [string, string],
+      pi_a: [snarkProof.pi_a[0] ?? '', snarkProof.pi_a[1] ?? ''] as [string, string],
       pi_b: [
-        [snarkProof.pi_b[0][0], snarkProof.pi_b[0][1]] as [string, string],
-        [snarkProof.pi_b[1][0], snarkProof.pi_b[1][1]] as [string, string],
+        [pi_b_0[0] ?? '', pi_b_0[1] ?? ''] as [string, string],
+        [pi_b_1[0] ?? '', pi_b_1[1] ?? ''] as [string, string],
       ] as [[string, string], [string, string]],
-      pi_c: [snarkProof.pi_c[0], snarkProof.pi_c[1]] as [string, string],
+      pi_c: [snarkProof.pi_c[0] ?? '', snarkProof.pi_c[1] ?? ''] as [string, string],
       protocol: 'groth16',
       curve: 'bn128',
     },

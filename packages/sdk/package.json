@@ -9,6 +9,34 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./identity": {
+      "types": "./dist/identity/index.d.ts",
+      "import": "./dist/identity/index.js"
+    },
+    "./credentials": {
+      "types": "./dist/credentials/index.d.ts",
+      "import": "./dist/credentials/index.js"
+    },
+    "./prover": {
+      "types": "./dist/prover/index.d.ts",
+      "import": "./dist/prover/index.js"
+    },
+    "./negotiation": {
+      "types": "./dist/negotiation/index.d.ts",
+      "import": "./dist/negotiation/index.js"
+    },
+    "./commitment": {
+      "types": "./dist/commitment/index.d.ts",
+      "import": "./dist/commitment/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
     }
   },
   "scripts": {

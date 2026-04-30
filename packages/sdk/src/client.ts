@@ -6,7 +6,7 @@ import { ProverManager } from './prover/index.js'
 import { SessionManager } from './negotiation/index.js'
 import { CommitmentManager } from './commitment/index.js'
 
-function resolveIPFS(config: AttestaraConfig): IPFSClient {
+function resolveIPFS(_config: AttestaraConfig): IPFSClient {
   const apiKey = process.env.PINATA_API_KEY
   const apiSecret = process.env.PINATA_API_SECRET
   const gatewayUrl = process.env.IPFS_GATEWAY_URL
@@ -29,7 +29,7 @@ export class AttestaraClient {
     this.credentials = new CredentialManager(resolveIPFS(config))
     this.prover = new ProverManager(config.prover)
     this.negotiation = new SessionManager(config.relay)
-    const rpcUrl = Array.isArray(config.network.rpcUrl) ? config.network.rpcUrl[0] : config.network.rpcUrl
+    const rpcUrl: string | undefined = Array.isArray(config.network.rpcUrl) ? config.network.rpcUrl[0] : config.network.rpcUrl
     this.commitment = new CommitmentManager({
       rpcUrl,
       contractAddress: config.network.contracts?.commitmentContract,

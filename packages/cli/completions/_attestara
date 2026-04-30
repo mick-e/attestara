@@ -1,0 +1,98 @@
+#compdef attestara
+# attestara zsh completion
+# Save to fpath: attestara completion zsh > ~/.zsh/completions/_attestara
+
+_attestara() {
+  local -a commands
+  commands=(
+    'init:Initialize a new Attestara project'
+    'identity:Manage agent DID identity'
+    'credential:Manage authority credentials'
+    'session:Manage negotiation sessions'
+    'negotiate:Submit proposals and negotiate'
+    'commitment:Manage on-chain commitments'
+    'demo:Run interactive demo'
+    'doctor:Check config and connectivity'
+    'completion:Generate shell completions'
+  )
+
+  local -a identity_commands
+  identity_commands=(
+    'create:Create a new DID identity'
+    'show:Show current identity info'
+    'rotate-key:Rotate the agent DID key'
+  )
+
+  local -a credential_commands
+  credential_commands=(
+    'issue:Issue a new Authority Credential'
+    'list:List credentials'
+    'show:Show credential details'
+    'revoke:Revoke a credential'
+  )
+
+  local -a session_commands
+  session_commands=(
+    'create:Create a new negotiation session'
+    'list:List negotiation sessions'
+    'show:Show session detail with turns'
+  )
+
+  local -a negotiate_commands
+  negotiate_commands=(
+    'propose:Submit a proposal with ZK proof'
+    'accept:Accept current terms'
+    'reject:Reject and terminate negotiation'
+  )
+
+  local -a commitment_commands
+  commitment_commands=(
+    'list:List commitments'
+    'show:Show commitment detail'
+    'verify:Verify on-chain commitment'
+  )
+
+  local -a completion_commands
+  completion_commands=(
+    'bash:Generate bash completion'
+    'zsh:Generate zsh completion'
+    'fish:Generate fish completion'
+  )
+
+  _arguments -C \
+    '--no-interactive[Disable interactive prompts]' \
+    '--version[Show version]' \
+    '--help[Show help]' \
+    '1:command:->command' \
+    '*::arg:->args'
+
+  case $state in
+    command)
+      _describe -t commands 'attestara command' commands
+      ;;
+    args)
+      case $words[1] in
+        identity)
+          _describe -t commands 'identity command' identity_commands
+          ;;
+        credential)
+          _describe -t commands 'credential command' credential_commands
+          ;;
+        session)
+          _describe -t commands 'session command' session_commands
+          ;;
+        negotiate)
+          _describe -t commands 'negotiate command' negotiate_commands
+          ;;
+        commitment)
+          _describe -t commands 'commitment command' commitment_commands
+          ;;
+        completion)
+          _describe -t commands 'completion shell' completion_commands
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_attestara "$@"

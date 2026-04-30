@@ -3,9 +3,9 @@ import { ZKProof, PublicSignals, CircuitId } from './zk.js'
 export interface Terms {
   value: bigint
   currency: string
-  deliveryDays?: number
-  paymentTerms?: string
-  additionalTerms?: Record<string, unknown>
+  deliveryDays?: number | undefined
+  paymentTerms?: string | undefined
+  additionalTerms?: Record<string, unknown> | undefined
 }
 
 export interface NegotiationTurn {
@@ -65,8 +65,8 @@ export interface TurnContext {
   mandate: {
     maxValue: bigint
     currency: string
-    floor?: bigint
-    ceiling?: bigint
+    floor?: bigint | undefined
+    ceiling?: bigint | undefined
   }
   currentTurnNumber: number
 }

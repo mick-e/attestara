@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+// Reviewed 2026-04-15: selectors verified against current page implementations.
+
 test.describe('Landing page', () => {
   test('shows hero section with Get Started CTA', async ({ page }) => {
     await page.goto('/')

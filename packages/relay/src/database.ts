@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { loadConfig } from './config.js'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -10,24 +11,39 @@ const globalForPrisma = globalThis as unknown as {
  * In development, the client is cached on `globalThis` to survive
  * hot-reloads without exhausting database connections.
  *
- * Connection pool size is controlled by the `connection_limit` parameter
- * in DATABASE_URL (e.g. `?connection_limit=10`).
+ * Pool size is controlled via DATABASE_POOL_SIZE env var (default 10).
+ * The value is appended to DATABASE_URL as `connection_limit` if not
+ * already present in the URL.
  */
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function buildDatabaseUrl(): string {
+  const config = loadConfig()
+  const base = config.DATABASE_URL
+  const poolSize = String(config.DATABASE_POOL_SIZE)
+  // Only append connection_limit if not already in the URL
+  if (base.includes('connection_limit')) return base
+  const separator = base.includes('?') ? '&' : '?'
+  return `${base}${separator}connection_limit=${poolSize}`
+}
+
+function createPrismaClient(): PrismaClient {
+  const config = loadConfig()
+  return new PrismaClient({
+    datasourceUrl: buildDatabaseUrl(),
     log:
-      process.env.NODE_ENV === 'development'
+      config.NODE_ENV === 'development'
         ? ['query', 'warn', 'error']
         : ['warn', 'error'],
   })
+}
 
-if (process.env.NODE_ENV !== 'production') {
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (loadConfig().NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
 /**
- * Graceful shutdown — disconnect the Prisma client and drain the
+ * Graceful shutdown -- disconnect the Prisma client and drain the
  * connection pool. Call this from your server shutdown hook.
  */
 export async function disconnectDatabase(): Promise<void> {
@@ -35,14 +51,14 @@ export async function disconnectDatabase(): Promise<void> {
 }
 
 /**
- * Health check — run a lightweight query to verify the database
+ * Health check -- run a lightweight query to verify the database
  * connection is alive.
  */
 export async function checkDatabaseHealth(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`
     return true
-  } catch {
+  } catch (_err: unknown) {
     return false
   }
 }

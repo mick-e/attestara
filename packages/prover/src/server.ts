@@ -8,6 +8,7 @@ import { WorkerPool } from './workers/pool.js'
 import { healthRoutes } from './routes/health.js'
 import { proveRoutes } from './routes/prove.js'
 import { ProverError } from './errors.js'
+import { metricsPlugin } from './metrics.js'
 
 export interface ProverServerOptions {
   config: ProverConfig
@@ -96,6 +97,9 @@ export async function buildProverServer(options: ProverServerOptions) {
 
     reply.status(statusCode).send(response)
   })
+
+  // Prometheus metrics (GET /metrics)
+  await app.register(metricsPlugin)
 
   // Register routes
   await app.register(healthRoutes(deps), { prefix: '/api/v1' })

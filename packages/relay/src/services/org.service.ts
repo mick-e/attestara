@@ -69,12 +69,12 @@ export class OrgService {
   }
 
   async getOrg(id: string): Promise<StoredOrg | null> {
-    const row = await getPrisma().organisation.findUnique({ where: { id } })
+    const row = await getPrisma().organisation.findUnique({ where: { id, deletedAt: null } })
     return row ? toStoredOrg(row) : null
   }
 
   async updateOrg(id: string, updates: Partial<Pick<StoredOrg, 'name' | 'plan'>>): Promise<StoredOrg | null> {
-    const existing = await getPrisma().organisation.findUnique({ where: { id } })
+    const existing = await getPrisma().organisation.findUnique({ where: { id, deletedAt: null } })
     if (!existing) return null
 
     const row = await getPrisma().organisation.update({
@@ -102,28 +102,28 @@ export class OrgService {
   }
 
   async getUserByEmail(email: string): Promise<StoredUser | null> {
-    const row = await getPrisma().user.findUnique({ where: { email } })
+    const row = await getPrisma().user.findUnique({ where: { email, deletedAt: null } })
     return row ? toStoredUser(row) : null
   }
 
   async getUserByWallet(address: string): Promise<StoredUser | null> {
-    const row = await getPrisma().user.findUnique({ where: { walletAddress: address } })
+    const row = await getPrisma().user.findUnique({ where: { walletAddress: address, deletedAt: null } })
     return row ? toStoredUser(row) : null
   }
 
   async getUserById(id: string): Promise<StoredUser | null> {
-    const row = await getPrisma().user.findUnique({ where: { id } })
+    const row = await getPrisma().user.findUnique({ where: { id, deletedAt: null } })
     return row ? toStoredUser(row) : null
   }
 
   async hasEmail(email: string): Promise<boolean> {
-    const count = await getPrisma().user.count({ where: { email } })
+    const count = await getPrisma().user.count({ where: { email, deletedAt: null } })
     return count > 0
   }
 
   async listMembers(orgId: string): Promise<string[]> {
     const users = await getPrisma().user.findMany({
-      where: { orgId },
+      where: { orgId, deletedAt: null },
       select: { id: true },
     })
     return users.map(u => u.id)

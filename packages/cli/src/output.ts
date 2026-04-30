@@ -64,7 +64,7 @@ export function printTable(columns: TableColumn[], rows: Record<string, unknown>
 
   // Header
   const headerLine = columns
-    .map((col, i) => chalk.bold(pad(col.header, widths[i], col.align)))
+    .map((col, i) => chalk.bold(pad(col.header, widths[i] ?? 10, col.align)))
     .join('  ')
   console.log(headerLine)
   console.log(chalk.gray('─'.repeat(stripAnsi(headerLine).length)))
@@ -74,7 +74,7 @@ export function printTable(columns: TableColumn[], rows: Record<string, unknown>
     const line = columns
       .map((col, i) => {
         const raw = col.format ? col.format(row[col.key]) : String(row[col.key] ?? '')
-        return pad(raw, widths[i], col.align)
+        return pad(raw, widths[i] ?? 10, col.align)
       })
       .join('  ')
     console.log(line)
@@ -135,7 +135,7 @@ function pad(str: string, width: number, align: 'left' | 'right' = 'left'): stri
 }
 
 function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
+   
   return str.replace(/\x1b\[[0-9;]*m/g, '')
 }
 

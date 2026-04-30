@@ -24,7 +24,7 @@ export interface RelaySession {
 
 interface RelayConfig {
   url: string
-  apiKey?: string
+  apiKey?: string | undefined
 }
 
 export class SessionManager {
@@ -69,7 +69,7 @@ export class SessionManager {
       try {
         const res = await this.relayFetch(`/v1/sessions/${sessionId}`)
         return this.wrapRelaySession(res as RelaySession)
-      } catch {
+      } catch (_err: unknown) {
         return undefined
       }
     }

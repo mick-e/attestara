@@ -21,10 +21,12 @@ export class ScriptedStrategy implements NegotiationStrategy {
   }
 
   async decideTurn(_context: TurnContext): Promise<TurnDecision> {
-    if (this.index >= this.responses.length) {
+    const response = this.responses[this.index]
+    if (!response || this.index >= this.responses.length) {
       return { action: 'reject', reason: 'No more scripted responses' }
     }
-    return this.responses[this.index++]
+    this.index++
+    return response
   }
 
   async onCounterOffer(_turn: NegotiationTurn): Promise<TurnDecision> {

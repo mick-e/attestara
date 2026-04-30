@@ -16,6 +16,7 @@ import {
   symbols,
   type TableColumn,
 } from '../output.js'
+import { promptIfMissing } from '../interactive.js'
 
 // In-memory session manager for the CLI process (sessions are ephemeral in MVP)
 const sessionManager = new SessionManager()
@@ -36,12 +37,21 @@ Examples:
   session
     .command('create')
     .description('Create a new negotiation session')
-    .requiredOption('--counterparty <did>', 'Counterparty agent DID')
+    .option('--counterparty <did>', 'Counterparty agent DID')
     .option('--max-turns <n>', 'Maximum negotiation turns', '10')
     .option('--turn-timeout <seconds>', 'Turn timeout in seconds', '300')
     .option('--session-timeout <seconds>', 'Session timeout in seconds', '3600')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, cmd) => {
+      options.counterparty = await promptIfMissing(cmd, options.counterparty, {
+        message: 'Counterparty agent DID:',
+        validate: (v) => v.startsWith('did:') || 'Must be a valid DID (did:method:identifier)',
+      })
+      if (!options.counterparty) {
+        printError('Missing required option: --counterparty')
+        process.exitCode = 1
+        return
+      }
       const spinner = ora('Creating session...').start()
 
       try {

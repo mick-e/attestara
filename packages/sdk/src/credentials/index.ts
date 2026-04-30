@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomUUID } from 'crypto'
 import type { AuthorityCredential, MandateParams, CredentialProof } from '@attestara/types'
 import type { IPFSClient } from './ipfs.js'
-import { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './schemas.js'
+import { AGENT_AUTHORITY_CREDENTIAL_TYPE } from './schemas.js'
 
 export { AGENT_AUTHORITY_CREDENTIAL_TYPE, CREDENTIAL_CONTEXT } from './schemas.js'
 export type { IPFSClient } from './ipfs.js'

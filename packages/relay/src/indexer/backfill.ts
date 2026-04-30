@@ -40,23 +40,28 @@ export async function backfill(
       provider,
     )
 
-    const filter = contract.filters.AgentRegistered()
-    const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
+    const filterFn = contract.filters.AgentRegistered
+    if (filterFn) {
+      const filter = filterFn()
+      const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
 
-    for (const event of events) {
-      const [agentId, did, orgAdmin] = event.args as unknown as [string, string, string]
-      try {
-        await callbacks.onAgentRegistered({
-          agentId,
-          did,
-          orgAdmin,
-          blockNumber: event.blockNumber,
-          txHash: event.transactionHash,
-        } satisfies AgentRegisteredEvent)
-        agentRegisteredCount++
-      } catch (err) {
-        console.warn({ err }, 'Error processing backfilled AgentRegistered event')
+      for (const event of events) {
+        const [agentId, did, orgAdmin] = event.args as unknown as [string, string, string]
+        try {
+          await callbacks.onAgentRegistered({
+            agentId,
+            did,
+            orgAdmin,
+            blockNumber: event.blockNumber,
+            txHash: event.transactionHash,
+          } satisfies AgentRegisteredEvent)
+          agentRegisteredCount++
+        } catch (err) {
+          console.warn({ err }, 'Error processing backfilled AgentRegistered event')
+        }
       }
+    } else {
+      console.warn('AgentRegistered event not on contract ABI — skipping backfill')
     }
   }
 
@@ -67,23 +72,28 @@ export async function backfill(
       provider,
     )
 
-    const filter = contract.filters.CommitmentCreated()
-    const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
+    const filterFn = contract.filters.CommitmentCreated
+    if (filterFn) {
+      const filter = filterFn()
+      const events = await contract.queryFilter(filter, fromBlock, toBlock) as ethers.EventLog[]
 
-    for (const event of events) {
-      const [commitmentId, sessionId, agreementHash] = event.args as unknown as [string, string, string]
-      try {
-        await callbacks.onCommitmentCreated({
-          commitmentId,
-          sessionId,
-          agreementHash,
-          blockNumber: event.blockNumber,
-          txHash: event.transactionHash,
-        } satisfies CommitmentCreatedEvent)
-        commitmentCreatedCount++
-      } catch (err) {
-        console.warn({ err }, 'Error processing backfilled CommitmentCreated event')
+      for (const event of events) {
+        const [commitmentId, sessionId, agreementHash] = event.args as unknown as [string, string, string]
+        try {
+          await callbacks.onCommitmentCreated({
+            commitmentId,
+            sessionId,
+            agreementHash,
+            blockNumber: event.blockNumber,
+            txHash: event.transactionHash,
+          } satisfies CommitmentCreatedEvent)
+          commitmentCreatedCount++
+        } catch (err) {
+          console.warn({ err }, 'Error processing backfilled CommitmentCreated event')
+        }
       }
+    } else {
+      console.warn('CommitmentCreated event not on contract ABI — skipping backfill')
     }
   }
 

@@ -1,48 +1,49 @@
 import Link from "next/link";
+import { ApiReference } from "./api-reference";
 
 const docSections = [
   {
     title: "Quickstart",
     description:
       "Install the Attestara SDK, provision your first agent, issue a credential, and run a negotiation session in under 10 minutes.",
-    icon: "🚀",
-    href: "#",
+    icon: "\uD83D\uDE80",
+    href: "#quickstart",
     badge: "Start here",
   },
   {
     title: "SDK Reference",
     description:
       "Full API reference for the @attestara/sdk package. Covers AttestaraClient, identity manager, credential manager, prover, negotiation, and commitment APIs.",
-    icon: "📦",
-    href: "#",
+    icon: "\uD83D\uDCE6",
+    href: "#sdk",
   },
   {
     title: "API Reference",
     description:
       "REST API documentation for the Attestara Relay service. All /v1/ endpoints with request/response schemas, authentication, and error codes.",
-    icon: "🔌",
-    href: "#",
+    icon: "\uD83D\uDD0C",
+    href: "#api-reference",
   },
   {
     title: "ZK Circuits",
     description:
       "Deep-dive into the four Circom circuits: MandateBound, ParameterRange, CredentialFreshness, and IdentityBinding. Includes circuit inputs and proof verification.",
-    icon: "⚡",
-    href: "#",
+    icon: "\u26A1",
+    href: "#circuits",
   },
   {
     title: "Smart Contracts",
     description:
       "Solidity contract documentation for AgentRegistry, CommitmentContract, CredentialRegistry, and VerifierRegistry deployed on Arbitrum.",
-    icon: "⛓️",
-    href: "#",
+    icon: "\u26D3\uFE0F",
+    href: "#contracts",
   },
   {
     title: "CLI",
     description:
       "Command reference for the attestara CLI. Covers init, identity, credential, session, negotiate, commitment, and demo commands.",
-    icon: "💻",
-    href: "#",
+    icon: "\uD83D\uDCBB",
+    href: "#cli",
   },
 ];
 
@@ -83,10 +84,15 @@ export default function DocsPage() {
                 {section.description}
               </p>
               <div className="mt-4 text-sm font-medium text-accent transition-colors group-hover:text-accent-hover">
-                Read more →
+                Read more &rarr;
               </div>
             </Link>
           ))}
+        </div>
+
+        {/* Interactive API Reference */}
+        <div id="api-reference" className="mt-16">
+          <ApiReference />
         </div>
 
         {/* Additional resources */}

@@ -131,21 +131,29 @@ describe('attestara credential', () => {
   it('issue requires --domain', async () => {
     const { credentialCommand } = await import('../../src/commands/credential.js')
     const cmd = credentialCommand()
-    cmd.exitOverride()
 
-    await expect(
-      cmd.parseAsync(['node', 'credential', 'issue', '--max-value', '500000']),
-    ).rejects.toThrow()
+    await cmd.parseAsync(['node', 'credential', 'issue', '--max-value', '500000'])
+
+    expect(process.exitCode).toBe(1)
+    const output = [
+      ...logSpy.mock.calls.map((c) => String(c[0])),
+      ...errSpy.mock.calls.map((c) => String(c[0])),
+    ].join('\n')
+    expect(output.toLowerCase()).toContain('domain')
   })
 
   it('issue requires --max-value', async () => {
     const { credentialCommand } = await import('../../src/commands/credential.js')
     const cmd = credentialCommand()
-    cmd.exitOverride()
 
-    await expect(
-      cmd.parseAsync(['node', 'credential', 'issue', '--domain', 'procurement']),
-    ).rejects.toThrow()
+    await cmd.parseAsync(['node', 'credential', 'issue', '--domain', 'procurement'])
+
+    expect(process.exitCode).toBe(1)
+    const output = [
+      ...logSpy.mock.calls.map((c) => String(c[0])),
+      ...errSpy.mock.calls.map((c) => String(c[0])),
+    ].join('\n')
+    expect(output.toLowerCase()).toContain('max-value')
   })
 
   it('issue fails when config is missing', async () => {

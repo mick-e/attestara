@@ -15,9 +15,13 @@ export interface StoredSession {
   merkleRoot: string | null
   turnCount: number
   anchorTxHash: string | null
+  expiresAt: string
   createdAt: string
   updatedAt: string
 }
+
+/** Default session lifetime: 7 days. */
+export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface StoredTurn {
   id: string
@@ -63,6 +67,7 @@ function toStoredSession(row: {
   merkleRoot: string | null
   turnCount: number
   anchorTxHash: string | null
+  expiresAt: Date
   createdAt: Date
   updatedAt: Date
 }): StoredSession {
@@ -79,9 +84,18 @@ function toStoredSession(row: {
     merkleRoot: row.merkleRoot,
     turnCount: row.turnCount,
     anchorTxHash: row.anchorTxHash,
+    expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
+}
+
+/** Returns a SESSION_EXPIRED error shape if the session has passed its expiresAt; null otherwise. */
+function assertNotExpired(session: { expiresAt: Date }): { error: string; code: string } | null {
+  if (session.expiresAt.getTime() <= Date.now()) {
+    return { error: 'Session has expired', code: 'SESSION_EXPIRED' }
+  }
+  return null
 }
 
 function toStoredTurn(row: {
@@ -132,10 +146,13 @@ export class SessionService {
         inviteTokenHash,
         status: isCrossOrg ? 'pending_acceptance' : 'active',
         sessionConfig: (data.sessionConfig ?? {}) as Prisma.InputJsonValue,
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
       },
     })
 
-    return { session: toStoredSession(row), inviteToken }
+    return inviteToken !== undefined
+      ? { session: toStoredSession(row), inviteToken }
+      : { session: toStoredSession(row) }
   }
 
   async getSession(sessionId: string): Promise<StoredSession | null> {
@@ -159,8 +176,8 @@ export class SessionService {
   ): Promise<StoredSession[]> {
     const rows = await getPrisma().session.findMany({
       where: { OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }] },
-      skip: opts?.skip,
-      take: opts?.take,
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredSession)
@@ -173,24 +190,49 @@ export class SessionService {
   }
 
   async acceptSession(sessionId: string, rawInviteToken: string): Promise<StoredSession | { error: string; code: string }> {
-    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
-    if (!session) {
-      return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
-    }
-
-    if (session.status !== 'pending_acceptance') {
-      return { error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' }
-    }
-
     const tokenHash = createHash('sha256').update(rawInviteToken).digest('hex')
-    if (tokenHash !== session.inviteTokenHash) {
+
+    // Atomic conditional update: flips status to active and stamps inviteConsumedAt
+    // only if the row currently matches all of { status=pending_acceptance, matching token,
+    // not-yet-consumed, not-yet-expired }. Folding expiry into the predicate closes the
+    // TOCTOU window where a separate pre-check could pass against a session that expires
+    // before the update lands, and also prevents two concurrent accepts from racing.
+    const updated = await getPrisma().session.updateMany({
+      where: {
+        id: sessionId,
+        status: 'pending_acceptance',
+        inviteTokenHash: tokenHash,
+        inviteConsumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: {
+        status: 'active',
+        inviteConsumedAt: new Date(),
+      },
+    })
+
+    if (updated.count === 0) {
+      // Re-fetch to produce a precise error code. Ordering: SESSION_NOT_FOUND first,
+      // then SESSION_EXPIRED (expiry wins over consumed/non-active/invalid-token to
+      // preserve the semantics the old pre-check provided), then the usual ladder.
+      const fresh = await getPrisma().session.findUnique({ where: { id: sessionId } })
+      if (!fresh) {
+        return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
+      }
+      if (fresh.expiresAt.getTime() <= Date.now()) {
+        return { error: 'Session has expired', code: 'SESSION_EXPIRED' }
+      }
+      if (fresh.inviteConsumedAt !== null) {
+        return { error: 'Invite token already consumed', code: 'INVITE_ALREADY_CONSUMED' }
+      }
+      if (fresh.status !== 'pending_acceptance') {
+        return { error: 'Session is not pending acceptance', code: 'SESSION_NOT_ACTIVE' }
+      }
       return { error: 'Invalid invite token', code: 'INVALID_TOKEN' }
     }
 
-    const row = await getPrisma().session.update({
-      where: { id: sessionId },
-      data: { status: 'active' },
-    })
+    const row = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    if (!row) return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     return toStoredSession(row)
   }
 
@@ -207,12 +249,26 @@ export class SessionService {
     const rawToken = randomBytes(32).toString('hex')
     const tokenHash = createHash('sha256').update(rawToken).digest('hex')
 
+    // Re-issuing an invite resets the single-use consumption marker so the
+    // new token isn't blocked by a prior accept. Without this, regenerated
+    // invites for already-accepted sessions would incorrectly surface as
+    // INVITE_ALREADY_CONSUMED (409) instead of SESSION_NOT_ACTIVE (400).
     await getPrisma().session.update({
       where: { id: sessionId },
-      data: { inviteTokenHash: tokenHash },
+      data: { inviteTokenHash: tokenHash, inviteConsumedAt: null },
     })
 
     return { inviteToken: rawToken, sessionId }
+  }
+
+  async abandonSession(sessionId: string): Promise<StoredSession | null> {
+    const session = await getPrisma().session.findUnique({ where: { id: sessionId } })
+    if (!session) return null
+    const row = await getPrisma().session.update({
+      where: { id: sessionId },
+      data: { status: 'abandoned' },
+    })
+    return toStoredSession(row)
   }
 
   async appendTurn(sessionId: string, data: AppendTurnData): Promise<StoredTurn | { error: string; code: string }> {
@@ -220,6 +276,9 @@ export class SessionService {
     if (!session) {
       return { error: 'Session not found', code: 'SESSION_NOT_FOUND' }
     }
+
+    const expired = assertNotExpired(session)
+    if (expired) return expired
 
     if (session.status !== 'active') {
       return { error: 'Session is not active', code: 'SESSION_NOT_ACTIVE' }
@@ -279,6 +338,16 @@ export class SessionService {
       }
       return t
     })
+  }
+
+  /**
+   * Check whether a session has passed its expiresAt. Returns true for expired
+   * sessions, false otherwise. Route handlers call this to translate expiry
+   * into HTTP 410 Gone without duplicating the timestamp comparison.
+   */
+  isExpired(session: { expiresAt: string | Date }): boolean {
+    const ts = typeof session.expiresAt === 'string' ? Date.parse(session.expiresAt) : session.expiresAt.getTime()
+    return ts <= Date.now()
   }
 
   async clearStores(): Promise<void> {

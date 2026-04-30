@@ -16,9 +16,26 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
-    "test:naming": "vitest run tests/naming-regression.test.ts"
+    "test:naming": "vitest run tests/naming-regression.test.ts",
+    "generate:api-types": "tsx scripts/generate-api-client.ts",
+    "docs:build": "tsx scripts/build-api-docs.ts",
+    "depcruise": "depcruise packages/relay/src packages/sdk/src packages/prover/src --config .dependency-cruiser.cjs",
+    "dupcheck": "jscpd packages/cli/src packages/contracts/contracts packages/portal/app packages/portal/components packages/portal/lib packages/prover/src packages/relay/src packages/sdk/src packages/types/src"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
   },
   "devDependencies": {
+    "@redocly/cli": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "dependency-cruiser": "^17.3.10",
+    "eslint": "^9",
+    "jscpd": "^4.0.9",
+    "lint-staged": "^16.4.0",
+    "openapi-typescript": "^7.6.0",
+    "simple-git-hooks": "^2.13.1",
+    "tsx": "^4.0.0",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0",
     "vitest": "^3.1.1"
@@ -27,11 +44,14 @@
     "overrides": {
       "handlebars": ">=4.7.9",
       "lodash": ">=4.18.0",
-      "undici": ">=6.24.0",
+      "undici": ">=6.24.0 <7.0.0",
       "tar": ">=7.5.11",
       "picomatch": ">=4.0.4",
       "defu": ">=6.1.5",
-      "brace-expansion": ">=5.0.5",
+      "brace-expansion@1": "^1.1.12",
+      "brace-expansion@2": "^2.0.2",
+      "brace-expansion@3": "^3.0.1",
+      "brace-expansion@4": "^4.0.1",
       "serialize-javascript": ">=7.0.5",
       "cookie": ">=0.7.0",
       "tmp": ">=0.2.4",

@@ -30,7 +30,7 @@ export class AttestaraError extends Error {
   constructor(
     public readonly code: ErrorCode,
     message: string,
-    public readonly details?: Record<string, unknown>,
+    public readonly details?: Record<string, unknown> | undefined,
   ) {
     super(message)
     this.name = 'AttestaraError'

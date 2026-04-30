@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { createHash, randomUUID } from 'crypto'
-import { z } from 'zod'
 import { getAddress } from 'ethers'
 import {
   generateAccessToken,
@@ -18,7 +17,18 @@ import {
 import { AuthService } from '../services/auth.service.js'
 import { orgService } from '../services/org.service.js'
 import { getPrisma } from '../utils/prisma.js'
+import { recordAudit } from '../services/audit.service.js'
 import type { StoredUser, StoredOrg } from '../services/org.service.js'
+import {
+  registerBody,
+  loginBody,
+  refreshBody,
+  walletNonceBody,
+  walletVerifyBody,
+  walletAuthBody,
+  tokenResponse,
+  errorResponse,
+} from '../schemas/openapi.js'
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
@@ -29,38 +39,14 @@ export type { StoredUser, StoredOrg }
 
 const authService = new AuthService()
 
-// Zod schemas for request validation
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  orgName: z.string().min(1).max(100),
-  walletAddress: z.string().optional(),
-})
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-})
-
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1),
-})
-
-const walletNonceSchema = z.object({
-  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid Ethereum address'),
-})
-
-const walletVerifySchema = z.object({
-  message: z.string().min(1),
-  signature: z.string().min(1),
-})
-
-// Keep legacy schema for backward compat on /wallet endpoint
-const walletAuthSchema = z.object({
-  message: z.string().min(1),
-  signature: z.string().min(1),
-  address: z.string().min(1),
-})
+import {
+  registerSchema,
+  loginSchema,
+  refreshSchema,
+  walletNonceSchema,
+  walletVerifySchema,
+  walletAuthSchema,
+} from '../schemas/auth.js'
 
 // Exported for tests
 export async function clearAuthStores() {
@@ -79,24 +65,38 @@ export function getAuthStores() {
   }
 }
 
-const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? 'attestara.ai'
-const SIWE_URI = process.env.SIWE_URI ?? 'https://attestara.ai'
 const SIWE_STATEMENT = 'Sign in to Attestara'
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const JWT_SECRET = app.config.JWT_SECRET
+  const SIWE_DOMAIN = app.config.SIWE_DOMAIN
+  const SIWE_URI = app.config.SIWE_URI
 
-  // Stricter rate limit for auth endpoints: 10 requests per 15 minutes per IP.
-  // In test environment, use a much higher limit to avoid throttling test runs.
-  const isTestEnv = app.config.NODE_ENV === 'test' || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-  await app.register(import('@fastify/rate-limit'), {
-    max: isTestEnv ? 10_000 : 10,
-    timeWindow: '15 minutes',
-    keyGenerator: (request) => request.ip,
-  })
+  // Per-endpoint rate limit tuning. In test environment (NODE_ENV=test)
+  // we use a very high ceiling to avoid throttling test runs. Production values
+  // are enforced per-route below (register 3/hr, login & wallet/verify 5/15min).
+  const isTestEnv = app.config.NODE_ENV === 'test'
+  const registerMax = isTestEnv ? 10_000 : 3
+  const loginMax = isTestEnv ? 10_000 : 5
+  const walletVerifyMax = isTestEnv ? 10_000 : 5
 
-  // POST /v1/auth/register
-  app.post('/register', async (request, reply) => {
+  // POST /v1/auth/register — 3 requests per hour per IP
+  app.post('/register', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Register a new user and organisation',
+      description: 'Creates a new user account, provisions an organisation, and returns JWT access + refresh tokens.',
+      body: registerBody,
+      response: { 201: tokenResponse, 400: errorResponse, 409: errorResponse },
+    },
+    config: {
+      rateLimit: {
+        max: registerMax,
+        timeWindow: '1 hour',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -145,6 +145,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       },
     })
 
+    void recordAudit({
+      action: 'auth.register',
+      outcome: 'success',
+      userId: user.id,
+      orgId: org.id,
+      actorIp: request.ip,
+      resource: `User:${user.id}`,
+    })
+
     return reply.status(201).send({
       accessToken,
       refreshToken,
@@ -153,8 +162,23 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     })
   })
 
-  // POST /v1/auth/login
-  app.post('/login', async (request, reply) => {
+  // POST /v1/auth/login — 5 requests per 15 minutes per IP
+  app.post('/login', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Authenticate with email and password',
+      description: 'Validates credentials and returns JWT access + refresh tokens.',
+      body: loginBody,
+      response: { 200: tokenResponse, 400: errorResponse, 401: errorResponse },
+    },
+    config: {
+      rateLimit: {
+        max: loginMax,
+        timeWindow: '15 minutes',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -167,6 +191,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const { email, password } = parsed.data
     const user = await orgService.getUserByEmail(email)
     if (!user) {
+      await recordAudit({
+        action: 'auth.login.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'unknown_email', email },
+      })
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -175,6 +205,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!await authService.verifyPassword(password, user.passwordHash)) {
+      await recordAudit({
+        action: 'auth.login.failure',
+        outcome: 'failure',
+        userId: user.id,
+        orgId: user.orgId,
+        actorIp: request.ip,
+        metadata: { reason: 'invalid_password' },
+      })
       return reply.status(401).send({
         code: 'UNAUTHORIZED',
         message: 'Invalid credentials',
@@ -197,6 +235,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       },
     })
 
+    void recordAudit({
+      action: 'auth.login.success',
+      outcome: 'success',
+      userId: user.id,
+      orgId: user.orgId,
+      actorIp: request.ip,
+    })
+
     return reply.status(200).send({
       accessToken,
       refreshToken,
@@ -206,7 +252,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // POST /v1/auth/refresh
-  app.post('/refresh', async (request, reply) => {
+  app.post('/refresh', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Refresh access token',
+      description: 'Exchanges a valid refresh token for a new access + refresh token pair (rotation).',
+      body: refreshBody,
+      response: { 200: tokenResponse, 400: errorResponse, 401: errorResponse },
+    },
+  }, async (request, reply) => {
     const parsed = refreshSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -229,7 +283,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           requestId: request.id,
         })
       }
-    } catch {
+    } catch (_err: unknown) {
       return reply.status(401).send({
         code: 'INVALID_TOKEN',
         message: 'Invalid or expired refresh token',
@@ -289,7 +343,18 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // POST /v1/auth/wallet/nonce — Generate a nonce for SIWE
-  app.post('/wallet/nonce', async (request, reply) => {
+  app.post('/wallet/nonce', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Request a SIWE nonce',
+      description: 'Generates a nonce and Sign-In with Ethereum message for the given wallet address.',
+      body: walletNonceBody,
+      response: {
+        200: { type: 'object' as const, properties: { nonce: { type: 'string' as const }, message: { type: 'string' as const } } },
+        400: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = walletNonceSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -320,8 +385,24 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(200).send({ nonce, message })
   })
 
-  // POST /v1/auth/wallet/verify — Verify SIWE signature and issue tokens
-  app.post('/wallet/verify', async (request, reply) => {
+  // POST /v1/auth/wallet/verify — Verify SIWE signature and issue tokens.
+  // 5 requests per 15 minutes per IP (same threshold as /login).
+  app.post('/wallet/verify', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Verify SIWE signature',
+      description: 'Verifies a Sign-In with Ethereum signature and issues JWT tokens if the wallet is linked to an account.',
+      body: walletVerifyBody,
+      response: { 200: tokenResponse, 202: errorResponse, 400: errorResponse, 401: errorResponse },
+    },
+    config: {
+      rateLimit: {
+        max: walletVerifyMax,
+        timeWindow: '15 minutes',
+        keyGenerator: (request) => request.ip,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = walletVerifySchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -339,6 +420,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       expectedStatement: SIWE_STATEMENT,
     })
     if (!validation.ok) {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'siwe_validation_failed', error: validation.error },
+      })
       return reply.status(401).send({
         code: 'SIWE_VALIDATION_FAILED',
         message: validation.error,
@@ -350,7 +437,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     let recoveredAddress: string
     try {
       recoveredAddress = verifySiweSignature(message, signature)
-    } catch {
+    } catch (_err: unknown) {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'invalid_signature' },
+      })
       return reply.status(401).send({
         code: 'INVALID_SIGNATURE',
         message: 'Signature verification failed',
@@ -360,6 +453,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
     const expectedAddress = getAddress(validation.params.address)
     if (recoveredAddress !== expectedAddress) {
+      await recordAudit({
+        action: 'auth.wallet.verify.failure',
+        outcome: 'failure',
+        actorIp: request.ip,
+        metadata: { reason: 'address_mismatch' },
+      })
       return reply.status(401).send({
         code: 'ADDRESS_MISMATCH',
         message: 'Recovered address does not match claimed address',
@@ -395,6 +494,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       },
     })
 
+    void recordAudit({
+      action: 'auth.wallet.verify',
+      outcome: 'success',
+      userId: user.id,
+      orgId: user.orgId,
+      actorIp: request.ip,
+      resource: `User:${user.id}`,
+    })
+
     return reply.status(200).send({
       accessToken,
       refreshToken,
@@ -404,7 +512,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   })
 
   // POST /v1/auth/wallet (legacy — now requires real SIWE validation)
-  app.post('/wallet', async (request, reply) => {
+  app.post('/wallet', {
+    schema: {
+      tags: ['Auth'],
+      summary: 'Wallet authentication (legacy)',
+      description: 'Legacy endpoint for SIWE-based wallet authentication. Prefer /wallet/nonce + /wallet/verify flow.',
+      body: walletAuthBody,
+      response: { 200: tokenResponse, 202: errorResponse, 400: errorResponse, 401: errorResponse },
+      deprecated: true,
+    },
+  }, async (request, reply) => {
     const parsed = walletAuthSchema.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({
@@ -433,7 +550,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     let recoveredAddress: string
     try {
       recoveredAddress = verifySiweSignature(message, signature)
-    } catch {
+    } catch (_err: unknown) {
       return reply.status(401).send({
         code: 'INVALID_SIGNATURE',
         message: 'Signature verification failed',

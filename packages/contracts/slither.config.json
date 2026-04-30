@@ -1,0 +1,10 @@
+{
+  "filter_paths": [
+    "node_modules",
+    "artifacts",
+    "cache",
+    "typechain-types",
+    "@openzeppelin"
+  ],
+  "exclude_dependencies": true
+}

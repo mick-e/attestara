@@ -1,0 +1,20 @@
+{
+  "threshold": 5,
+  "reporters": ["console"],
+  "ignore": [
+    "**/dist/**",
+    "**/artifacts/**",
+    "**/build/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/generated/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/examples/**"
+  ],
+  "absolute": true,
+  "minLines": 10,
+  "minTokens": 50
+}

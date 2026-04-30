@@ -2,7 +2,6 @@ import { Command } from 'commander'
 import ora from 'ora'
 import { TestProver } from '@attestara/sdk'
 import { CircuitId } from '@attestara/types'
-import type { ZKProof, PublicSignals } from '@attestara/types'
 import { requireConfig } from '../config.js'
 import { sessionManager } from './session.js'
 import {
@@ -13,6 +12,7 @@ import {
   formatCurrency,
   statusColor,
 } from '../output.js'
+import { promptIfMissing } from '../interactive.js'
 
 const prover = new TestProver()
 
@@ -29,13 +29,26 @@ Examples:
   negotiate
     .command('propose')
     .description('Submit a proposal with ZK proof')
-    .requiredOption('--session <id>', 'Session ID')
-    .requiredOption('--value <amount>', 'Proposed value')
+    .option('--session <id>', 'Session ID')
+    .option('--value <amount>', 'Proposed value')
     .option('--currency <code>', 'Currency code', 'EUR')
     .option('--delivery <days>', 'Delivery days')
     .option('--payment-terms <terms>', 'Payment terms description')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, cmd) => {
+      options.session = await promptIfMissing(cmd, options.session, {
+        message: 'Session ID:',
+        validate: (v) => v.length > 0 || 'Session ID is required',
+      })
+      options.value = await promptIfMissing(cmd, options.value, {
+        message: 'Proposed value:',
+        validate: (v) => /^\d+$/.test(v) || 'Must be a positive integer',
+      })
+      if (!options.session || !options.value) {
+        printError('Missing required options: --session and --value')
+        process.exitCode = 1
+        return
+      }
       const spinner = ora('Generating ZK proof and submitting proposal...').start()
 
       try {
@@ -102,9 +115,18 @@ Examples:
   negotiate
     .command('accept')
     .description('Accept current terms')
-    .requiredOption('--session <id>', 'Session ID')
+    .option('--session <id>', 'Session ID')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, cmd) => {
+      options.session = await promptIfMissing(cmd, options.session, {
+        message: 'Session ID:',
+        validate: (v) => v.length > 0 || 'Session ID is required',
+      })
+      if (!options.session) {
+        printError('Missing required option: --session')
+        process.exitCode = 1
+        return
+      }
       const spinner = ora('Accepting terms...').start()
 
       try {
@@ -151,10 +173,19 @@ Examples:
   negotiate
     .command('reject')
     .description('Reject and terminate negotiation')
-    .requiredOption('--session <id>', 'Session ID')
+    .option('--session <id>', 'Session ID')
     .option('--reason <reason>', 'Rejection reason', 'No agreement reached')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, cmd) => {
+      options.session = await promptIfMissing(cmd, options.session, {
+        message: 'Session ID:',
+        validate: (v) => v.length > 0 || 'Session ID is required',
+      })
+      if (!options.session) {
+        printError('Missing required option: --session')
+        process.exitCode = 1
+        return
+      }
       const spinner = ora('Rejecting negotiation...').start()
 
       try {

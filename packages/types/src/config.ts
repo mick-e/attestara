@@ -2,14 +2,14 @@ export interface AttestaraConfig {
   agent: {
     did: string
     keyFile: string
-    credentialFile?: string
+    credentialFile?: string | undefined
   }
   network: NetworkConfig
   prover: ProverConfig
   relay?: {
     url: string
-    apiKey?: string
-  }
+    apiKey?: string | undefined
+  } | undefined
 }
 
 export interface NetworkConfig {
@@ -19,11 +19,11 @@ export interface NetworkConfig {
     agentRegistry: string
     credentialRegistry: string
     commitmentContract: string
-  }
+  } | undefined
 }
 
 export interface ProverConfig {
   mode: 'local' | 'remote'
-  remoteUrl?: string
-  circuitDir?: string
+  remoteUrl?: string | undefined
+  circuitDir?: string | undefined
 }

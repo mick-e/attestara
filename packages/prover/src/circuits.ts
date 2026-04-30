@@ -1,4 +1,4 @@
-import { readFile, access, readdir } from 'fs/promises'
+import { readFile, access } from 'fs/promises'
 import { join } from 'path'
 import { CircuitNotFoundError } from './errors.js'
 
@@ -74,8 +74,8 @@ export class CircuitManager {
       try {
         const artifacts = await this.loadCircuitArtifacts(circuitId, dirName)
         this.artifacts.set(circuitId, artifacts)
-      } catch {
-        // Circuit artifacts not yet available — expected during development
+      } catch (err: unknown) {
+        console.warn(`[CircuitManager] Artifacts for ${circuitId} not available — skipping`, err)
       }
     }
   }

@@ -79,13 +79,13 @@ export class WorkerPool {
       this.processQueue()
     })
 
-    worker.on('error', (err) => {
+    worker.on('error', (_err) => {
       poolWorker.busy = false
       // Fail any pending tasks for this worker
       this.processQueue()
     })
 
-    worker.on('exit', (code) => {
+    worker.on('exit', (_code) => {
       const idx = this.workers.indexOf(poolWorker)
       if (idx !== -1) this.workers.splice(idx, 1)
       // Respawn if not shutting down

@@ -8,13 +8,9 @@ import {
   CommitmentManager,
   CredentialManager,
   MemoryIPFSClient,
-  AttestaraClient,
 } from '@attestara/sdk'
 import { CircuitId } from '@attestara/types'
-import type { MandateParams } from '@attestara/types'
 import {
-  printSuccess,
-  printHeader,
   printDetail,
   printInfo,
   formatCurrency,
@@ -82,7 +78,7 @@ Examples:
             }
             printDetail('CommitmentContract', contractAddresses.commitmentContract)
           }
-        } catch {
+        } catch (_err: unknown) {
           // Fall through — contracts optional
         }
       }
@@ -107,8 +103,8 @@ Examples:
       const sellerCred = await seller.issueCredential()
 
       const credManager = new CredentialManager(new MemoryIPFSClient())
-      const buyerVerify = await credManager.verify(buyerCred)
-      const sellerVerify = await credManager.verify(sellerCred)
+      await credManager.verify(buyerCred)
+      await credManager.verify(sellerCred)
       credSpinner.succeed('Credentials issued and verified')
       console.log(`  ${symbols.success} Buyer credential: ${buyerCred.credentialSubject.mandateParams.domain} up to ${formatCurrency(buyerBudget, currency)}`)
       console.log(`  ${symbols.success} Seller credential: ${sellerCred.credentialSubject.mandateParams.domain} up to ${formatCurrency(sellerMin * 2n, currency)}`)
@@ -121,11 +117,11 @@ Examples:
         value: buyerBudget,
         maxValue: buyerBudget,
       })
-      const sellerProof = await prover.generateProof(CircuitId.MANDATE_BOUND, {
+      await prover.generateProof(CircuitId.MANDATE_BOUND, {
         value: sellerMin,
         maxValue: sellerMin * 2n,
       })
-      const rangeProof = await prover.generateProof(CircuitId.PARAMETER_RANGE, {
+      await prover.generateProof(CircuitId.PARAMETER_RANGE, {
         min: sellerMin,
         max: buyerBudget,
       })
@@ -179,7 +175,7 @@ Examples:
           maxValue: isBuyerTurn ? buyerBudget : sellerMin * 2n,
         })
 
-        const turn = sess.proposeTurn({
+        sess.proposeTurn({
           agentId,
           terms: {
             value: currentValue,
@@ -215,7 +211,7 @@ Examples:
       }
 
       // Step 5: Accept and commit
-      const lastTurn = sess.turns[sess.turns.length - 1]
+      const lastTurn = sess.turns[sess.turns.length - 1]!
       const acceptAgent = lastTurn.agentId === buyer.did ? seller.did : buyer.did
       sess.accept(acceptAgent)
 

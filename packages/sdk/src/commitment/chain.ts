@@ -66,7 +66,7 @@ export class ChainCommitmentClient {
     const proofTypes = proofEntries.map(p => toBytes32(p.proofType))
     const signatures = proofEntries.map(p => ethers.toUtf8Bytes(p.signature ?? ''))
 
-    const tx = await contract.createCommitment(
+    const tx = await contract.createCommitment!(
       sessionId,
       agreementHash,
       parties,
@@ -100,7 +100,7 @@ export class ChainCommitmentClient {
   async verifyOnChain(commitmentId: string): Promise<CommitmentRecord | null> {
     const contract = this.getContract()
     try {
-      const record = await contract.getCommitment(toBytes32(commitmentId))
+      const record = await contract.getCommitment!(toBytes32(commitmentId))
       // Check if the commitment exists (commitmentId != zero)
       if (record.commitmentId === ethers.ZeroHash) {
         return null
@@ -116,7 +116,7 @@ export class ChainCommitmentClient {
         verified: record.verified,
         createdAt: Number(record.createdAt),
       } as unknown as CommitmentRecord
-    } catch {
+    } catch (_err: unknown) {
       return null
     }
   }
@@ -140,14 +140,17 @@ function toBytes32(value: string): string {
 
 /** Flatten a Groth16 proof (pi_a, pi_b, pi_c) into uint256[8] */
 function flattenProof(proof: { pi_a: string[]; pi_b: string[][]; pi_c: string[] }): bigint[] {
+  const pi_b_0 = proof.pi_b[0]
+  const pi_b_1 = proof.pi_b[1]
+  if (!pi_b_0 || !pi_b_1) throw new Error('Invalid proof: pi_b must have at least 2 elements')
   return [
-    BigInt(proof.pi_a[0]),
-    BigInt(proof.pi_a[1]),
-    BigInt(proof.pi_b[0][0]),
-    BigInt(proof.pi_b[0][1]),
-    BigInt(proof.pi_b[1][0]),
-    BigInt(proof.pi_b[1][1]),
-    BigInt(proof.pi_c[0]),
-    BigInt(proof.pi_c[1]),
+    BigInt(proof.pi_a[0] ?? '0'),
+    BigInt(proof.pi_a[1] ?? '0'),
+    BigInt(pi_b_0[0] ?? '0'),
+    BigInt(pi_b_0[1] ?? '0'),
+    BigInt(pi_b_1[0] ?? '0'),
+    BigInt(pi_b_1[1] ?? '0'),
+    BigInt(proof.pi_c[0] ?? '0'),
+    BigInt(proof.pi_c[1] ?? '0'),
   ]
 }

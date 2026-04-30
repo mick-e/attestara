@@ -5,16 +5,16 @@ import { ChainCommitmentClient } from './chain.js'
 export { ChainCommitmentClient } from './chain.js'
 
 export interface CommitmentFilter {
-  sessionId?: string
-  agentId?: string
-  fromDate?: Date
-  toDate?: Date
+  sessionId?: string | undefined
+  agentId?: string | undefined
+  fromDate?: Date | undefined
+  toDate?: Date | undefined
 }
 
 export interface CommitmentManagerConfig {
-  rpcUrl?: string
-  contractAddress?: string
-  privateKey?: string
+  rpcUrl?: string | undefined
+  contractAddress?: string | undefined
+  privateKey?: string | undefined
 }
 
 export class CommitmentManager {

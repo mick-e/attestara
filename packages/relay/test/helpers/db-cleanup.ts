@@ -8,6 +8,7 @@ import { clearNonceStore } from '../../src/utils/siwe.js'
 export async function clearAllStores(): Promise<void> {
   const db = getPrisma()
   // Delete in reverse FK dependency order
+  await db.auditLog.deleteMany()
   await db.webhookDelivery.deleteMany()
   await db.webhook.deleteMany()
   await db.commitment.deleteMany()

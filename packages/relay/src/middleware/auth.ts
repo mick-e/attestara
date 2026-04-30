@@ -28,7 +28,7 @@ export function generateAccessToken(
   expiresIn: string | number = '15m',
 ): string {
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    expiresIn: expiresIn as NonNullable<jwt.SignOptions['expiresIn']>,
     jwtid: randomUUID(),
   }
   return jwt.sign({ ...payload, type: 'access' }, secret, options)
@@ -43,7 +43,7 @@ export function generateRefreshToken(
   expiresIn: string | number = '7d',
 ): string {
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    expiresIn: expiresIn as NonNullable<jwt.SignOptions['expiresIn']>,
     jwtid: randomUUID(),
   }
   return jwt.sign({ ...payload, type: 'refresh' }, secret, options)
@@ -118,7 +118,7 @@ export function requireAuth(jwtSecret: string) {
           role: payload.role,
         }
         return
-      } catch {
+      } catch (_err: unknown) {
         return reply.status(401).send({
           code: 'INVALID_TOKEN',
           message: 'Invalid or expired token',

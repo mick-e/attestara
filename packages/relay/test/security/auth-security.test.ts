@@ -406,10 +406,13 @@ describe('Authentication Security', () => {
     })
   })
 
-  // Auth rate limiting is enforced in production (10 req / 15 min per IP on auth endpoints).
-  // In NODE_ENV=test the limit is raised to 10,000 to avoid throttling the test suite —
-  // so we don't assert 429 behavior here. The limit configuration lives in routes/auth.ts
-  // and the bypass is covered by the integration test suite completing without 429s.
+  // Auth rate limiting is enforced per-endpoint in production:
+  //   POST /v1/auth/register        → 3  req / 1  hour per IP
+  //   POST /v1/auth/login           → 5  req / 15 min  per IP
+  //   POST /v1/auth/wallet/verify   → 5  req / 15 min  per IP
+  // In NODE_ENV=test the ceilings are raised to 10,000 to avoid throttling the test
+  // suite, so we do not assert 429 behavior here. See packages/relay/src/routes/auth.ts
+  // for the configuration and the perfection-pass plan (task S5) for rationale.
 
   describe('Token Refresh Security', () => {
     it('should reject access token used as refresh token', async () => {

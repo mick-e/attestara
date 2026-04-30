@@ -71,7 +71,9 @@ export default function SettingsPage() {
 
   // Sync org name from API
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (org) setOrgName(org.name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     else setOrgName(mockOrg.name);
   }, [org]);
 
@@ -133,6 +135,12 @@ export default function SettingsPage() {
           className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors"
         >
           Billing
+        </Link>
+        <Link
+          href="/settings/webhooks"
+          className="text-sm text-gray-400 hover:text-white pb-3 -mb-3 transition-colors"
+        >
+          Webhooks
         </Link>
       </div>
 
