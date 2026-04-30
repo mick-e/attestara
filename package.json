@@ -10,6 +10,8 @@
     "test:sdk": "turbo test --filter=@attestara/sdk",
     "test:relay": "turbo test --filter=@attestara/relay",
     "test:portal": "turbo test --filter=@attestara/portal",
+    "test:cli": "turbo test --filter=@attestara/cli",
+    "test:prover": "turbo test --filter=@attestara/prover",
     "test:integration": "vitest run tests/integration/",
     "test:e2e": "turbo test:e2e",
     "test:ci": "turbo test test:integration",

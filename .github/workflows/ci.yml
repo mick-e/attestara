@@ -104,6 +104,34 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:portal
 
+  test-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:cli
+
+  test-prover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:prover
+
   api-types-check:
     runs-on: ubuntu-latest
     services:
@@ -142,7 +170,7 @@ jobs:
         run: git diff --exit-code packages/sdk/src/api-types.generated.ts
 
   build:
-    needs: [lint-typecheck, test-contracts, test-sdk, test-relay, test-portal]
+    needs: [lint-typecheck, test-contracts, test-sdk, test-relay, test-portal, test-cli, test-prover]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
