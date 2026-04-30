@@ -83,24 +83,24 @@ export function OnboardingTour() {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    markTourCompleted();
+  }, []);
+
   const handleNext = useCallback(() => {
     if (currentStep < TOUR_STEPS.length - 1) {
       setCurrentStep((s) => s + 1);
     } else {
       handleClose();
     }
-  }, [currentStep]);
+  }, [currentStep, handleClose]);
 
   const handlePrev = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
     }
   }, [currentStep]);
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-    markTourCompleted();
-  }, []);
 
   const handleSkip = useCallback(() => {
     setIsOpen(false);

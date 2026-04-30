@@ -63,7 +63,9 @@ export class CredentialService {
           credentialHash: data.credentialHash,
           schemaHash: data.schemaHash,
           ipfsCid: data.ipfsCid ?? null,
-          credentialDataCached: (data.credentialData ?? undefined) as Prisma.InputJsonValue | undefined,
+          ...(data.credentialData !== undefined
+            ? { credentialDataCached: data.credentialData as Prisma.InputJsonValue }
+            : {}),
           expiry: new Date(data.expiry),
         },
       })
@@ -82,8 +84,8 @@ export class CredentialService {
   ): Promise<StoredCredential[]> {
     const rows = await getPrisma().credential.findMany({
       where: { orgId, deletedAt: null },
-      skip: opts?.skip,
-      take: opts?.take,
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredCredential)

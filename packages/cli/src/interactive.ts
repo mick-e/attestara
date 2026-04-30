@@ -61,8 +61,8 @@ export async function promptIfMissing(
 
   const result = await inq.input({
     message: config.message,
-    default: config.default,
-    validate: config.validate,
+    ...(config.default !== undefined ? { default: config.default } : {}),
+    ...(config.validate !== undefined ? { validate: config.validate } : {}),
   })
   return result || undefined
 }
@@ -88,7 +88,7 @@ export async function selectIfMissing(
   return inq.select({
     message: config.message,
     choices: config.choices,
-    default: config.default,
+    ...(config.default !== undefined ? { default: config.default } : {}),
   })
 }
 
@@ -109,7 +109,7 @@ export async function confirmPrompt(
 
   return inq.confirm({
     message: config.message,
-    default: config.default,
+    ...(config.default !== undefined ? { default: config.default } : {}),
   })
 }
 

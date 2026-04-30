@@ -154,7 +154,16 @@ export async function buildServer(options: ServerOptions = {}) {
   })
 
   // Global error handler
-  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string; validation?: unknown[] }, request, reply) => {
+    // Fastify schema validation failures — normalize to our VALIDATION_ERROR shape
+    if (error.code === 'FST_ERR_VALIDATION' || error.validation) {
+      return reply.status(400).send({
+        code: 'VALIDATION_ERROR',
+        message: error.message,
+        requestId: request.id,
+      })
+    }
+
     const statusCode = error.statusCode ?? 500
     const response = {
       code: error.code ?? 'INTERNAL_ERROR',

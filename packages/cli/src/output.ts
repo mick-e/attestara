@@ -135,7 +135,7 @@ function pad(str: string, width: number, align: 'left' | 'right' = 'left'): stri
 }
 
 function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
+   
   return str.replace(/\x1b\[[0-9;]*m/g, '')
 }
 

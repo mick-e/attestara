@@ -6,6 +6,7 @@ vi.mock('opossum', () => {
     default: class MockCircuitBreaker {
       private fn: (...args: any[]) => any
       private opts: any
+      private fallbackFn: ((...args: any[]) => any) | null = null
       private failCount = 0
       private totalCount = 0
 
@@ -14,10 +15,16 @@ vi.mock('opossum', () => {
         this.opts = opts
       }
 
+      fallback(fn: (...args: any[]) => any) {
+        this.fallbackFn = fn
+        return this
+      }
+
       async fire(...args: any[]) {
         this.totalCount++
         try {
           const result = await this.fn(...args)
+          // If fetch returned !ok, the underlying callProver throws — this branch unused
           return result
         } catch (err) {
           this.failCount++
@@ -26,8 +33,8 @@ vi.mock('opossum', () => {
           const volume = this.opts.volumeThreshold ?? 20
 
           // If circuit should be open, call fallback
-          if (this.totalCount >= volume && errorRate >= threshold && this.opts.fallback) {
-            return this.opts.fallback(...args)
+          if (this.totalCount >= volume && errorRate >= threshold && this.fallbackFn) {
+            return this.fallbackFn(...args)
           }
           throw err
         }

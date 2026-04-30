@@ -6,7 +6,7 @@ import { ProverManager } from './prover/index.js'
 import { SessionManager } from './negotiation/index.js'
 import { CommitmentManager } from './commitment/index.js'
 
-function resolveIPFS(config: AttestaraConfig): IPFSClient {
+function resolveIPFS(_config: AttestaraConfig): IPFSClient {
   const apiKey = process.env.PINATA_API_KEY
   const apiSecret = process.env.PINATA_API_SECRET
   const gatewayUrl = process.env.IPFS_GATEWAY_URL

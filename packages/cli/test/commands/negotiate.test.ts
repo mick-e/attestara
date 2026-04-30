@@ -121,16 +121,14 @@ describe('attestara negotiate', () => {
     const { negotiateCommand } = await import('../../src/commands/negotiate.js')
 
     const cmd = negotiateCommand()
-    cmd.exitOverride()
-    await expect(
-      cmd.parseAsync(['node', 'negotiate', 'propose']),
-    ).rejects.toThrow()
+    await cmd.parseAsync(['node', 'negotiate', 'propose'])
+    expect(process.exitCode).toBe(1)
+
+    process.exitCode = 0
 
     const cmd2 = negotiateCommand()
-    cmd2.exitOverride()
-    await expect(
-      cmd2.parseAsync(['node', 'negotiate', 'propose', '--value', '100']),
-    ).rejects.toThrow()
+    await cmd2.parseAsync(['node', 'negotiate', 'propose', '--value', '100'])
+    expect(process.exitCode).toBe(1)
   })
 
   it('propose with unknown session id sets exit code 1', async () => {

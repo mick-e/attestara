@@ -55,15 +55,18 @@ vi.mock('ora', () => ({
 // ── Lifecycle ───────────────────────────────────────────────────────
 
 let logSpy: ReturnType<typeof vi.spyOn>
+let errSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   hoisted.commitments.clear()
   logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
 })
 
 afterEach(() => {
   logSpy.mockRestore()
+  errSpy.mockRestore()
   vi.restoreAllMocks()
   vi.clearAllMocks()
 })
@@ -126,7 +129,10 @@ describe('attestara commitment', () => {
       const cmd = commitmentCommand()
       await cmd.parseAsync(['node', 'commitment', 'show', 'not-found'])
 
-      const output = logSpy.mock.calls.map(c => String(c[0])).join('\n')
+      const output = [
+        ...logSpy.mock.calls.map(c => String(c[0])),
+        ...errSpy.mock.calls.map(c => String(c[0])),
+      ].join('\n')
       expect(output).toContain('not found')
     })
 

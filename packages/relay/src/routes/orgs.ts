@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { requireAuth, requireOrgAccess, type AuthContext } from '../middleware/auth.js'
+import { requireAuth, requireOrgAccess } from '../middleware/auth.js'
 import { createOrgSchema, updateOrgSchema, inviteSchema } from '../schemas/org.js'
 import { orgService } from '../services/org.service.js'
 import { recordAudit } from '../services/audit.service.js'

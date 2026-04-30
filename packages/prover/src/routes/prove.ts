@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify'
-import type { CircuitId, ProofResult, ZKProof, PublicSignals } from '@attestara/types'
+import type { CircuitId, ProofResult } from '@attestara/types'
 import type { CircuitManager } from '../circuits.js'
 import type { ProverCache } from '../cache.js'
 import type { WorkerPool } from '../workers/pool.js'
 import { proofRequestSchema, circuitInputSchemas, verifyRequestSchema, bundleRequestSchema } from '../validation.js'
-import { ValidationError, CircuitNotFoundError, ProofGenerationError } from '../errors.js'
+import { ValidationError, CircuitNotFoundError } from '../errors.js'
 
 export interface ProveDeps {
   circuitManager: CircuitManager

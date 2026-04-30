@@ -1,9 +1,7 @@
 import { Command } from 'commander'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-import chalk from 'chalk'
-import { printSuccess, printDetail, printError } from '../output.js'
+import { join } from 'path'
+import { printSuccess, printError } from '../output.js'
 
 // ── Completion script templates ─────────────────────────────────────
 

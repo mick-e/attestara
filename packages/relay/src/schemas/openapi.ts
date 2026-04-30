@@ -1,26 +1,43 @@
 /**
  * OpenAPI JSON Schema definitions for Fastify route schema options.
  * Used to generate accurate Swagger/OpenAPI documentation.
+ *
+ * NOTE on `additionalProperties: true`:
+ * Fastify uses fast-json-stringify on the response body and STRIPS any field
+ * that is not declared in `properties`. Many handlers return additional
+ * fields beyond the documented shape (e.g. inviteToken, rawKey, secret,
+ * walletAddress on auth responses). To preserve those fields without
+ * over-specifying every handler return shape in the schema, response object
+ * schemas declare `additionalProperties: true`. The documented properties
+ * still control OpenAPI generation; `additionalProperties` only relaxes the
+ * stringify behavior.
  */
 
 // ── Reusable response schemas ────────────────────────────────────────
 
 export const errorResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     code: { type: 'string' as const },
     message: { type: 'string' as const },
     requestId: { type: 'string' as const, format: 'uuid' },
   },
-  required: ['code', 'message', 'requestId'],
+  // requestId intentionally NOT required: default Fastify validation errors
+  // (FST_ERR_VALIDATION) don't carry a requestId, so requiring it would make
+  // fast-json-stringify throw and surface as 500. Our custom global error
+  // handler always sets requestId; this just keeps fallback paths safe.
+  required: ['code', 'message'],
 }
 
 export const paginatedResponse = (itemSchema: Record<string, unknown>) => ({
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     data: { type: 'array' as const, items: itemSchema },
     pagination: {
       type: 'object' as const,
+      additionalProperties: true,
       properties: {
         total: { type: 'number' as const },
         page: { type: 'number' as const },
@@ -33,12 +50,14 @@ export const paginatedResponse = (itemSchema: Record<string, unknown>) => ({
 
 export const tokenResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     accessToken: { type: 'string' as const },
     refreshToken: { type: 'string' as const },
     expiresIn: { type: 'number' as const },
     user: {
       type: 'object' as const,
+      additionalProperties: true,
       properties: {
         id: { type: 'string' as const },
         email: { type: 'string' as const, format: 'email' },
@@ -111,6 +130,7 @@ export const walletAuthBody = {
 
 export const agentSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     did: { type: 'string' as const },
@@ -156,15 +176,17 @@ export const provisionDidBody = {
 
 export const credentialSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     agentId: { type: 'string' as const },
     orgId: { type: 'string' as const },
     credentialHash: { type: 'string' as const },
     schemaHash: { type: 'string' as const },
-    ipfsCid: { type: 'string' as const },
-    credentialData: { type: 'object' as const, additionalProperties: true },
-    status: { type: 'string' as const },
+    ipfsCid: { type: 'string' as const, nullable: true },
+    credentialDataCached: { type: 'object' as const, additionalProperties: true, nullable: true },
+    revoked: { type: 'boolean' as const },
+    registeredTxHash: { type: 'string' as const, nullable: true },
     expiry: { type: 'string' as const, format: 'date-time' },
     createdAt: { type: 'string' as const, format: 'date-time' },
   },
@@ -187,6 +209,7 @@ export const createCredentialBody = {
 
 export const sessionSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     initiatorAgentId: { type: 'string' as const },
@@ -195,8 +218,13 @@ export const sessionSchema = {
     counterpartyOrgId: { type: 'string' as const },
     sessionType: { type: 'string' as const, enum: ['intra_org', 'cross_org'] },
     status: { type: 'string' as const },
+    inviteTokenHash: { type: 'string' as const, nullable: true },
+    sessionConfig: { type: 'object' as const, additionalProperties: true },
+    merkleRoot: { type: 'string' as const, nullable: true },
     turnCount: { type: 'number' as const },
+    anchorTxHash: { type: 'string' as const, nullable: true },
     createdAt: { type: 'string' as const, format: 'date-time' },
+    updatedAt: { type: 'string' as const, format: 'date-time' },
     expiresAt: { type: 'string' as const, format: 'date-time' },
   },
 }
@@ -237,6 +265,7 @@ export const acceptSessionBody = {
 
 export const turnSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     sessionId: { type: 'string' as const },
@@ -246,6 +275,7 @@ export const turnSchema = {
     proofType: { type: 'string' as const },
     proof: { type: 'object' as const, additionalProperties: true },
     publicSignals: { type: 'object' as const, additionalProperties: true },
+    signature: { type: 'string' as const },
     createdAt: { type: 'string' as const, format: 'date-time' },
   },
 }
@@ -254,6 +284,7 @@ export const turnSchema = {
 
 export const commitmentSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     sessionId: { type: 'string' as const },
@@ -285,9 +316,11 @@ export const createCommitmentBody = {
 
 export const orgSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     name: { type: 'string' as const },
+    slug: { type: 'string' as const },
     plan: { type: 'string' as const },
     createdAt: { type: 'string' as const, format: 'date-time' },
     updatedAt: { type: 'string' as const, format: 'date-time' },
@@ -324,11 +357,12 @@ export const inviteBody = {
 
 export const apiKeySchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     orgId: { type: 'string' as const },
     name: { type: 'string' as const },
-    prefix: { type: 'string' as const },
+    keyHash: { type: 'string' as const },
     scopes: { type: 'array' as const, items: { type: 'string' as const } },
     expiresAt: { type: 'string' as const, format: 'date-time', nullable: true },
     lastUsedAt: { type: 'string' as const, format: 'date-time', nullable: true },
@@ -350,6 +384,7 @@ export const createApiKeyBody = {
 
 export const webhookSchema = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     id: { type: 'string' as const },
     orgId: { type: 'string' as const },
@@ -373,6 +408,7 @@ export const registerWebhookBody = {
 
 export const analyticsResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     agentCount: { type: 'number' as const },
     credentialCount: { type: 'number' as const },
@@ -399,6 +435,7 @@ export const timeseriesQuery = {
 
 export const adminStatsResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     totalOrgs: { type: 'number' as const },
     totalUsers: { type: 'number' as const },
@@ -420,6 +457,7 @@ export const topupBody = {
 
 export const billingUsageResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     orgId: { type: 'string' as const },
     periodStart: { type: 'string' as const, format: 'date-time' },
@@ -428,6 +466,7 @@ export const billingUsageResponse = {
       type: 'array' as const,
       items: {
         type: 'object' as const,
+        additionalProperties: true,
         properties: {
           metric: { type: 'string' as const },
           count: { type: 'number' as const },
@@ -442,6 +481,7 @@ export const billingUsageResponse = {
 
 export const billingPlanResponse = {
   type: 'object' as const,
+  additionalProperties: true,
   properties: {
     orgId: { type: 'string' as const },
     plan: { type: 'string' as const },

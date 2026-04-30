@@ -97,28 +97,49 @@ export function parseSiweMessage(message: string): SiweMessageParams | null {
     const lines = message.split('\n')
     if (lines.length < 10) return null
 
-    // Line 0: "{domain} wants you to sign in with your Ethereum account:"
-    const domainMatch = lines[0].match(/^(.+) wants you to sign in with your Ethereum account:$/)
-    if (!domainMatch) return null
-    const domain = domainMatch[1]
+    const line0 = lines[0]
+    const line1 = lines[1]
+    const line3 = lines[3]
+    const line5 = lines[5]
+    const line6 = lines[6]
+    const line7 = lines[7]
+    const line8 = lines[8]
+    const line9 = lines[9]
+    if (
+      line0 === undefined ||
+      line1 === undefined ||
+      line3 === undefined ||
+      line5 === undefined ||
+      line6 === undefined ||
+      line7 === undefined ||
+      line8 === undefined ||
+      line9 === undefined
+    ) {
+      return null
+    }
 
-    // Line 1: address
-    const address = lines[1].trim()
+    const domainMatch = line0.match(/^(.+) wants you to sign in with your Ethereum account:$/)
+    const domain = domainMatch?.[1]
+    if (domain === undefined) return null
+
+    const address = line1.trim()
     if (!address.startsWith('0x') || address.length !== 42) return null
 
-    // Line 2: empty
-    // Line 3: statement
-    const statement = lines[3]
+    const statement = line3
 
-    // Line 4: empty
-    // Lines 5-9: structured fields
-    const uriMatch = lines[5].match(/^URI: (.+)$/)
-    const versionMatch = lines[6].match(/^Version: (.+)$/)
-    const chainIdMatch = lines[7].match(/^Chain ID: (\d+)$/)
-    const nonceMatch = lines[8].match(/^Nonce: (.+)$/)
-    const issuedAtMatch = lines[9].match(/^Issued At: (.+)$/)
+    const uri = line5.match(/^URI: (.+)$/)?.[1]
+    const version = line6.match(/^Version: (.+)$/)?.[1]
+    const chainIdRaw = line7.match(/^Chain ID: (\d+)$/)?.[1]
+    const nonce = line8.match(/^Nonce: (.+)$/)?.[1]
+    const issuedAt = line9.match(/^Issued At: (.+)$/)?.[1]
 
-    if (!uriMatch || !versionMatch || !chainIdMatch || !nonceMatch || !issuedAtMatch) {
+    if (
+      uri === undefined ||
+      version === undefined ||
+      chainIdRaw === undefined ||
+      nonce === undefined ||
+      issuedAt === undefined
+    ) {
       return null
     }
 
@@ -126,11 +147,11 @@ export function parseSiweMessage(message: string): SiweMessageParams | null {
       domain,
       address,
       statement,
-      uri: uriMatch[1],
-      version: versionMatch[1],
-      chainId: parseInt(chainIdMatch[1], 10),
-      nonce: nonceMatch[1],
-      issuedAt: issuedAtMatch[1],
+      uri,
+      version,
+      chainId: parseInt(chainIdRaw, 10),
+      nonce,
+      issuedAt,
     }
   } catch (_err: unknown) {
     return null

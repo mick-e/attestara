@@ -15,15 +15,18 @@ vi.mock('fs', async (importOriginal) => {
 // ── Lifecycle ───────────────────────────────────────────────────────
 
 let logSpy: ReturnType<typeof vi.spyOn>
+let errSpy: ReturnType<typeof vi.spyOn>
 let stdoutSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
 })
 
 afterEach(() => {
   logSpy.mockRestore()
+  errSpy.mockRestore()
   stdoutSpy.mockRestore()
   vi.clearAllMocks()
 })
@@ -65,7 +68,10 @@ describe('attestara completion', () => {
     const cmd = completionCommand()
     await cmd.parseAsync(['node', 'completion', 'powershell'])
 
-    const output = logSpy.mock.calls.map(c => String(c[0])).join('\n')
+    const output = [
+      ...logSpy.mock.calls.map(c => String(c[0])),
+      ...errSpy.mock.calls.map(c => String(c[0])),
+    ].join('\n')
     expect(output).toContain('Unknown shell')
   })
 

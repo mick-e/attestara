@@ -96,8 +96,8 @@ export class CommitmentService {
           ],
         },
       },
-      skip: opts?.skip,
-      take: opts?.take,
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredCommitment)

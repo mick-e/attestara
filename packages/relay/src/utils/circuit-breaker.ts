@@ -113,16 +113,17 @@ export function createProverCircuitBreaker(options: ProverCallOptions) {
       resetTimeout: 30_000,
       // Timeout individual requests after 30s
       timeout: 30_000,
-      // Fallback: return cached proof or throw 503
-      fallback: (request: ProverRequest) => {
-        const cached = getCachedProof(request)
-        if (cached) {
-          return { ...cached, cached: true }
-        }
-        throw new ProverUnavailableError()
-      },
     },
   )
+
+  // Fallback: return cached proof or throw 503
+  breaker.fallback((request: ProverRequest) => {
+    const cached = getCachedProof(request)
+    if (cached) {
+      return { ...cached, cached: true }
+    }
+    throw new ProverUnavailableError()
+  })
 
   return {
     /**

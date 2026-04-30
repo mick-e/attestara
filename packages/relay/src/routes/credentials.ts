@@ -48,9 +48,9 @@ export const credentialRoutes: FastifyPluginAsync = async (app) => {
       agentId: parsed.data.agentId,
       credentialHash: parsed.data.credentialHash,
       schemaHash: parsed.data.schemaHash,
-      ipfsCid: parsed.data.ipfsCid,
-      credentialData: parsed.data.credentialData,
       expiry: parsed.data.expiry,
+      ...(parsed.data.ipfsCid !== undefined ? { ipfsCid: parsed.data.ipfsCid } : {}),
+      ...(parsed.data.credentialData !== undefined ? { credentialData: parsed.data.credentialData } : {}),
     })
 
     if ('error' in result) {

@@ -4,7 +4,6 @@ import { CredentialManager, MemoryIPFSClient } from '@attestara/sdk'
 import type { MandateParams, AuthorityCredential } from '@attestara/types'
 import { requireConfig, saveCredential, CREDENTIALS_DIR } from '../config.js'
 import {
-  printSuccess,
   printError,
   printDetail,
   printHeader,

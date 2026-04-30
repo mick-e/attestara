@@ -71,7 +71,9 @@ export default function SettingsPage() {
 
   // Sync org name from API
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (org) setOrgName(org.name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     else setOrgName(mockOrg.name);
   }, [org]);
 

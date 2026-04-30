@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
+import * as React from "react";
 
 afterEach(() => {
   cleanup();
@@ -17,7 +18,6 @@ vi.mock("next/link", () => ({
     href: string;
     [key: string]: unknown;
   }) => {
-    const React = require("react");
     return React.createElement("a", { href, ...props }, children);
   },
 }));

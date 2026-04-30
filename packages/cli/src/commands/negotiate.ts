@@ -2,7 +2,6 @@ import { Command } from 'commander'
 import ora from 'ora'
 import { TestProver } from '@attestara/sdk'
 import { CircuitId } from '@attestara/types'
-import type { ZKProof, PublicSignals } from '@attestara/types'
 import { requireConfig } from '../config.js'
 import { sessionManager } from './session.js'
 import {

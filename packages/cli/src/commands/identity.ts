@@ -1,5 +1,4 @@
 import { Command } from 'commander'
-import chalk from 'chalk'
 import ora from 'ora'
 import { MockAgent } from '@attestara/sdk'
 import { requireConfig, saveConfig, saveKey, CONFIG_FILE } from '../config.js'
@@ -9,7 +8,6 @@ import {
   printDetail,
   printHeader,
   printJson,
-  statusColor,
 } from '../output.js'
 
 export function identityCommand(): Command {

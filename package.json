@@ -20,7 +20,7 @@
     "generate:api-types": "tsx scripts/generate-api-client.ts",
     "docs:build": "tsx scripts/build-api-docs.ts",
     "depcruise": "depcruise packages/relay/src packages/sdk/src packages/prover/src --config .dependency-cruiser.cjs",
-    "dupcheck": "jscpd packages/*/src"
+    "dupcheck": "jscpd packages/cli/src packages/contracts/contracts packages/portal/app packages/portal/components packages/portal/lib packages/prover/src packages/relay/src packages/sdk/src packages/types/src"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"
@@ -44,11 +44,14 @@
     "overrides": {
       "handlebars": ">=4.7.9",
       "lodash": ">=4.18.0",
-      "undici": ">=6.24.0",
+      "undici": ">=6.24.0 <7.0.0",
       "tar": ">=7.5.11",
       "picomatch": ">=4.0.4",
       "defu": ">=6.1.5",
-      "brace-expansion": ">=5.0.5",
+      "brace-expansion@1": "^1.1.12",
+      "brace-expansion@2": "^2.0.2",
+      "brace-expansion@3": "^3.0.1",
+      "brace-expansion@4": "^4.0.1",
       "serialize-javascript": ">=7.0.5",
       "cookie": ">=0.7.0",
       "tmp": ">=0.2.4",

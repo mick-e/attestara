@@ -28,7 +28,7 @@ export function generateAccessToken(
   expiresIn: string | number = '15m',
 ): string {
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    expiresIn: expiresIn as NonNullable<jwt.SignOptions['expiresIn']>,
     jwtid: randomUUID(),
   }
   return jwt.sign({ ...payload, type: 'access' }, secret, options)
@@ -43,7 +43,7 @@ export function generateRefreshToken(
   expiresIn: string | number = '7d',
 ): string {
   const options: jwt.SignOptions = {
-    expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
+    expiresIn: expiresIn as NonNullable<jwt.SignOptions['expiresIn']>,
     jwtid: randomUUID(),
   }
   return jwt.sign({ ...payload, type: 'refresh' }, secret, options)

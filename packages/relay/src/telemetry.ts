@@ -8,6 +8,8 @@
  * this module is a no-op and does not register any SDK.
  */
 
+export {}
+
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
 
 if (endpoint) {

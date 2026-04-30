@@ -45,7 +45,12 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const result = await agentService.create(orgId, parsed.data)
+    const result = await agentService.create(orgId, {
+      did: parsed.data.did,
+      name: parsed.data.name,
+      publicKey: parsed.data.publicKey,
+      ...(parsed.data.metadata !== undefined ? { metadata: parsed.data.metadata } : {}),
+    })
 
     if ('code' in result) {
       return reply.status(409).send({
@@ -133,7 +138,11 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const agent = await agentService.update(agentId, orgId, parsed.data)
+    const agent = await agentService.update(agentId, orgId, {
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.metadata !== undefined ? { metadata: parsed.data.metadata } : {}),
+      ...(parsed.data.status !== undefined ? { status: parsed.data.status } : {}),
+    })
     if (!agent) {
       return reply.status(404).send({
         code: 'AGENT_NOT_FOUND',

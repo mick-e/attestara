@@ -27,7 +27,12 @@ function encryptSecret(raw: string): string {
 function decryptSecret(encoded: string): string {
   const parts = encoded.split(':')
   if (parts.length !== 3) throw new Error('Invalid encrypted format')
-  const [ivB64, tagB64, cipherB64] = parts
+  const ivB64 = parts[0]
+  const tagB64 = parts[1]
+  const cipherB64 = parts[2]
+  if (ivB64 === undefined || tagB64 === undefined || cipherB64 === undefined) {
+    throw new Error('Invalid encrypted format')
+  }
   const key = deriveKey()
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'))
   decipher.setAuthTag(Buffer.from(tagB64, 'base64'))

@@ -2,7 +2,7 @@
  * Worker thread for CPU-bound ZK proof generation using snarkjs.
  * Receives proof generation tasks via parentPort and returns results.
  */
-import { parentPort, workerData } from 'worker_threads'
+import { parentPort } from 'worker_threads'
 
 interface ProofTask {
   taskId: string

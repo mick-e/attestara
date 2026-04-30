@@ -98,11 +98,15 @@ describe('attestara session', () => {
   it('create requires --counterparty', async () => {
     const { sessionCommand } = await import('../../src/commands/session.js')
     const cmd = sessionCommand()
-    cmd.exitOverride()
 
-    await expect(
-      cmd.parseAsync(['node', 'session', 'create']),
-    ).rejects.toThrow()
+    await cmd.parseAsync(['node', 'session', 'create'])
+
+    expect(process.exitCode).toBe(1)
+    const output = [
+      ...logSpy.mock.calls.map((c) => String(c[0])),
+      ...errSpy.mock.calls.map((c) => String(c[0])),
+    ].join('\n')
+    expect(output.toLowerCase()).toContain('counterparty')
   })
 
   it('create fails when config is missing', async () => {

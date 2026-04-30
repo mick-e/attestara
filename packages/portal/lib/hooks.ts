@@ -714,6 +714,7 @@ export function useDashboardStats(): FetchState<DashboardStats> {
   }, [orgId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 

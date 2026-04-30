@@ -150,7 +150,9 @@ export class SessionService {
       },
     })
 
-    return { session: toStoredSession(row), inviteToken }
+    return inviteToken !== undefined
+      ? { session: toStoredSession(row), inviteToken }
+      : { session: toStoredSession(row) }
   }
 
   async getSession(sessionId: string): Promise<StoredSession | null> {
@@ -174,8 +176,8 @@ export class SessionService {
   ): Promise<StoredSession[]> {
     const rows = await getPrisma().session.findMany({
       where: { OR: [{ initiatorOrgId: orgId }, { counterpartyOrgId: orgId }] },
-      skip: opts?.skip,
-      take: opts?.take,
+      ...(opts?.skip !== undefined ? { skip: opts.skip } : {}),
+      ...(opts?.take !== undefined ? { take: opts.take } : {}),
       orderBy: opts?.orderBy ?? { createdAt: 'desc' },
     })
     return rows.map(toStoredSession)
@@ -247,9 +249,13 @@ export class SessionService {
     const rawToken = randomBytes(32).toString('hex')
     const tokenHash = createHash('sha256').update(rawToken).digest('hex')
 
+    // Re-issuing an invite resets the single-use consumption marker so the
+    // new token isn't blocked by a prior accept. Without this, regenerated
+    // invites for already-accepted sessions would incorrectly surface as
+    // INVITE_ALREADY_CONSUMED (409) instead of SESSION_NOT_ACTIVE (400).
     await getPrisma().session.update({
       where: { id: sessionId },
-      data: { inviteTokenHash: tokenHash },
+      data: { inviteTokenHash: tokenHash, inviteConsumedAt: null },
     })
 
     return { inviteToken: rawToken, sessionId }

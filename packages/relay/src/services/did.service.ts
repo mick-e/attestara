@@ -22,19 +22,14 @@ export class DIDService {
 
   async createDid(name: string): Promise<ProvisionedDID> {
     try {
-      const { AttestaraClient } = await this.getSDK()
+      const { DIDManager } = await this.getSDK()
 
-      const client = new AttestaraClient({
-        network: {
-          chain: 'arbitrum-sepolia',
-          rpcUrl: loadConfig().ARBITRUM_SEPOLIA_RPC_URL ?? 'http://localhost:8545',
-          contracts: {},
-        },
-        relay: { url: '' },
-        prover: { url: '' },
+      const manager = new DIDManager({
+        chain: 'arbitrum-sepolia',
+        rpcUrl: loadConfig().ARBITRUM_SEPOLIA_RPC_URL ?? 'http://localhost:8545',
       })
 
-      const result = await client.identity.create(name)
+      const result = await manager.create(name)
       return {
         did: result.did,
         publicKey: result.publicKey,

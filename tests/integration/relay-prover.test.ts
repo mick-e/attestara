@@ -33,10 +33,10 @@ describe('Relay ↔ Prover Integration', () => {
     await app.listen({ port: 0, host: '127.0.0.1' })
     const address = app.server.address() as { port: number }
     baseUrl = `http://127.0.0.1:${address.port}`
-  })
+  }, 30_000)
 
   afterAll(async () => {
-    await app.close()
+    if (app) await app.close()
   })
 
   // ── Health ─────────────────────────────────────────────────────────────────

@@ -17,10 +17,10 @@ module.exports = {
     },
     {
       name: 'not-to-test',
-      comment: 'Source code must not import from test files',
+      comment: 'Source code must not import from test files (matches /test/, not /testing/)',
       severity: 'error',
       from: { path: 'packages/.*/src' },
-      to: { path: 'packages/.*/test' },
+      to: { path: 'packages/[^/]+/test/' },
     },
     {
       name: 'no-circular',

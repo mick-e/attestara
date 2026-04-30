@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { requireAuth, type AuthContext } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { createSessionSchema, acceptSchema, createTurnSchema } from '../schemas/session.js'
 import { sessionService } from '../services/session.service.js'
@@ -60,7 +60,18 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
       })
     }
 
-    const { session, inviteToken } = await sessionService.createSession(parsed.data)
+    const { session, inviteToken } = await sessionService.createSession({
+      initiatorAgentId: parsed.data.initiatorAgentId,
+      initiatorOrgId: parsed.data.initiatorOrgId,
+      counterpartyOrgId: parsed.data.counterpartyOrgId,
+      sessionType: parsed.data.sessionType,
+      ...(parsed.data.counterpartyAgentId !== undefined
+        ? { counterpartyAgentId: parsed.data.counterpartyAgentId }
+        : {}),
+      ...(parsed.data.sessionConfig !== undefined
+        ? { sessionConfig: parsed.data.sessionConfig }
+        : {}),
+    })
 
     void recordAudit({
       action: 'session.create',
@@ -221,7 +232,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     const result = await sessionService.appendTurn(sessionId, parsed.data)
 
     if ('error' in result) {
-      let statusCode = 400
+      let statusCode: 400 | 404 | 410 = 400
       if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
       if (result.code === 'SESSION_EXPIRED') statusCode = 410
       return reply.status(statusCode).send({
@@ -295,7 +306,7 @@ export const sessionRoutes: FastifyPluginAsync = async (app) => {
     const result = await sessionService.acceptSession(sessionId, parsed.data.inviteToken)
 
     if ('error' in result) {
-      let statusCode = 400
+      let statusCode: 400 | 401 | 404 | 409 | 410 = 400
       if (result.code === 'SESSION_NOT_FOUND') statusCode = 404
       if (result.code === 'INVALID_TOKEN') statusCode = 401
       if (result.code === 'INVITE_ALREADY_CONSUMED') statusCode = 409

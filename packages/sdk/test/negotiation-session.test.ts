@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { NegotiationSession, type NegotiationSessionParams } from '../src/negotiation/session.js'
+import { NegotiationSession, type NegotiationSessionInit } from '../src/negotiation/session.js'
 import type { CircuitId, ZKProof, PublicSignals } from '@attestara/types'
 
 const mockProof: ZKProof = {
@@ -12,13 +12,17 @@ const mockProof: ZKProof = {
 
 const mockSignals: PublicSignals = { signals: ['100'] }
 
-function makeParams(overrides: Partial<NegotiationSessionParams> = {}): NegotiationSessionParams {
+function makeParams(overrides: Partial<NegotiationSessionInit> = {}): NegotiationSessionInit {
   return {
     id: 'sess-001',
     initiatorAgentId: 'did:ethr:0x111',
     counterpartyAgentId: 'did:ethr:0x222',
-    initiatorOrgId: 'org-1',
-    counterpartyOrgId: 'org-2',
+    sessionConfig: {
+      maxTurns: 10,
+      turnTimeoutSeconds: 60,
+      sessionTimeoutSeconds: 600,
+      requiredProofs: ['MandateBound' as CircuitId],
+    },
     ...overrides,
   }
 }
@@ -33,13 +37,12 @@ describe('NegotiationSession', () => {
 
   it('adds a turn to the session', () => {
     const session = new NegotiationSession(makeParams())
-    session.addTurn({
+    session.proposeTurn({
       agentId: 'did:ethr:0x111',
       terms: { value: 400000n, currency: 'EUR' },
       proofType: 'MandateBound' as CircuitId,
       proof: mockProof,
       publicSignals: mockSignals,
-      signature: 'sig-1',
     })
 
     expect(session.turns).toHaveLength(1)
@@ -48,13 +51,12 @@ describe('NegotiationSession', () => {
 
   it('accepts the session after a turn', () => {
     const session = new NegotiationSession(makeParams())
-    session.addTurn({
+    session.proposeTurn({
       agentId: 'did:ethr:0x111',
       terms: { value: 400000n, currency: 'EUR' },
       proofType: 'MandateBound' as CircuitId,
       proof: mockProof,
       publicSignals: mockSignals,
-      signature: 'sig-1',
     })
 
     session.accept('did:ethr:0x222')
@@ -63,13 +65,12 @@ describe('NegotiationSession', () => {
 
   it('rejects accepting own proposal', () => {
     const session = new NegotiationSession(makeParams())
-    session.addTurn({
+    session.proposeTurn({
       agentId: 'did:ethr:0x111',
       terms: { value: 400000n, currency: 'EUR' },
       proofType: 'MandateBound' as CircuitId,
       proof: mockProof,
       publicSignals: mockSignals,
-      signature: 'sig-1',
     })
 
     expect(() => session.accept('did:ethr:0x111')).toThrow('own proposal')
@@ -85,13 +86,12 @@ describe('NegotiationSession', () => {
     const handler = vi.fn()
     session.on('event', handler)
 
-    session.addTurn({
+    session.proposeTurn({
       agentId: 'did:ethr:0x111',
       terms: { value: 400000n, currency: 'EUR' },
       proofType: 'MandateBound' as CircuitId,
       proof: mockProof,
       publicSignals: mockSignals,
-      signature: 'sig-1',
     })
 
     expect(handler).toHaveBeenCalledWith(

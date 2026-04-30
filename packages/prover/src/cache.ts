@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import type { ProofResult, VerificationResult } from '@attestara/types'
+import type { ProofResult } from '@attestara/types'
 
 export interface CacheClient {
   get(key: string): Promise<string | null>

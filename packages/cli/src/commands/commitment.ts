@@ -2,7 +2,6 @@ import { Command } from 'commander'
 import ora from 'ora'
 import { CommitmentManager } from '@attestara/sdk'
 import {
-  printSuccess,
   printError,
   printDetail,
   printHeader,

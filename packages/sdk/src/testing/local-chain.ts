@@ -48,7 +48,7 @@ export class LocalChain {
   /**
    * Revert the chain to a previous snapshot.
    */
-  async revert(snapshotId: string): Promise<void> {
+  async revert(_snapshotId: string): Promise<void> {
     if (!this.running) {
       throw new Error('Local chain is not running')
     }

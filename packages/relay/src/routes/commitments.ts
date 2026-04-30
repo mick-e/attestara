@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { requireAuth, type AuthContext } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 import { paginationQuery, buildPaginationOpts, buildPaginationResponse } from '../schemas/pagination.js'
 import { createCommitmentSchema } from '../schemas/commitment.js'
 import { commitmentService } from '../services/commitment.service.js'
