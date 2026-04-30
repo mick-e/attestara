@@ -30,6 +30,21 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+      - name: Cache circom binary
+        id: circom-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/circom
+          key: circom-2.1.9
+      - name: Install circom
+        if: steps.circom-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o /tmp/circom https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64
+          chmod +x /tmp/circom
+          mkdir -p ~/.cargo/bin
+          mv /tmp/circom ~/.cargo/bin/circom
+      - name: Add circom to PATH
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Cache circuit artifacts
         uses: actions/cache@v4
         with:
