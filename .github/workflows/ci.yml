@@ -17,6 +17,7 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @attestara/relay db:generate
       - run: pnpm lint
       - run: pnpm typecheck
 
@@ -77,6 +78,7 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @attestara/relay db:generate
       - run: pnpm test:relay
         env:
           DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
