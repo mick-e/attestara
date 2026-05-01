@@ -17,7 +17,7 @@ function deriveKey(): Buffer {
 function encryptSecret(raw: string): string {
   const key = deriveKey()
   const iv = randomBytes(12) // 96-bit IV recommended for GCM
-  const cipher = createCipheriv('aes-256-gcm', key, iv)
+  const cipher = createCipheriv('aes-256-gcm', key, iv, { authTagLength: 16 })
   const encrypted = Buffer.concat([cipher.update(raw, 'utf8'), cipher.final()])
   const authTag = cipher.getAuthTag()
   return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted.toString('base64')}`
@@ -34,8 +34,11 @@ function decryptSecret(encoded: string): string {
     throw new Error('Invalid encrypted format')
   }
   const key = deriveKey()
-  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'))
-  decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
+  const authTag = Buffer.from(tagB64, 'base64')
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'), {
+    authTagLength: 16,
+  })
+  decipher.setAuthTag(authTag)
   return Buffer.concat([
     decipher.update(Buffer.from(cipherB64, 'base64')),
     decipher.final(),
