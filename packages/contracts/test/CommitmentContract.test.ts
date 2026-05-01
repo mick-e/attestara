@@ -35,8 +35,10 @@ describe("CommitmentContract", function () {
     _credentialHashes: string[],
     _proofTypes: string[]
   ): Promise<string> {
+    // Use abi.encode (not encodePacked) to match the on-chain hash and avoid
+    // dynamic-array collision (Slither encode-packed-collision finding).
     const innerHash = ethers.keccak256(
-      ethers.solidityPacked(
+      ethers.AbiCoder.defaultAbiCoder().encode(
         ["bytes32", "bytes32", "bytes32[]", "bytes32[]"],
         [_sessionId, _agreementHash, _credentialHashes, _proofTypes]
       )

@@ -129,10 +129,12 @@ contract CommitmentContract is ICommitmentContract, ReentrancyGuard {
         bytes32[] calldata proofTypes,
         bytes[] calldata signatures
     ) internal pure {
+        // Use abi.encode for the inner hash to prevent collision between
+        // different combinations of dynamic arrays (Slither encode-packed-collision).
         bytes32 commitmentDigest = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(sessionId, agreementHash, credentialHashes, proofTypes))
+                keccak256(abi.encode(sessionId, agreementHash, credentialHashes, proofTypes))
             )
         );
         for (uint256 i = 0; i < parties.length; i++) {

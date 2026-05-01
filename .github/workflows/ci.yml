@@ -94,6 +94,9 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @attestara/relay db:generate
+      - run: pnpm --filter @attestara/relay db:migrate
+        env:
+          DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
       - run: pnpm test:relay
         env:
           DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
@@ -163,6 +166,10 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @attestara/relay db:generate
+      - run: pnpm --filter @attestara/relay db:migrate
+        env:
+          DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
       - run: pnpm generate:api-types
         env:
           DATABASE_URL: postgresql://attestara:attestara_test@localhost:5432/attestara_test
