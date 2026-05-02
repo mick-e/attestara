@@ -1,0 +1,121 @@
+
+Primary Initiative Story
+As the Fraud function, we want a real-time risk engine at the payout stage, owned by our team and extensible to AI-assisted rule generation, so that we can intercept fraudulent withdrawals before funds leave the system, close the loop between a detected pattern and a deployed control in hours rather than days, and operate from evidence rather than post-facto investigation.
+This will result in measurable reduction in confirmed fraudulent payout losses (proposed: 40% Y1), a Fraud team that owns its own controls end-to-end, an auditable record of every payout evaluation for regulatory and internal defensibility, and a production telemetry foundation the V1 ML layer can build on.
+
+Fraud Manager — Ownership, Approval, Strategy
+FM-01 · Rule deployment without engineering dependency · P1 — Must
+As a Fraud Manager, I want to deploy a new rule from draft to live production without raising an engineering ticket, so that I can respond to an emerging fraud pattern within the same working day it is identified.
+Acceptance criteria: Rule draft → approval → production deployment achievable end-to-end in the backoffice. Elapsed time from final approval to live evaluation is <15 minutes. No code deployment required. Deployment action is captured in the audit log with actor, timestamp, and rule version.
+FM-02 · Approval authority on all live rules · P1 — Must
+As a Fraud Manager, I want explicit approval authority on every rule before it goes live — whether hand-authored by my team or (in V1) AI-generated — so that the Fraud team remains accountable for every active control and no rule evaluates a production payout without human sign-off.
+Acceptance criteria: No rule transitions from draft to active state without a Fraud Manager approval action. Approval action requires authenticated identity. The audit log records the approving manager and the approval timestamp for every live rule version.
+FM-03 · Emergency rule disable · P1 — Must
+As a Fraud Manager, I want to disable any live rule in a single action, so that I can stop a misbehaving rule from generating false positives or blocking legitimate payouts while I investigate.
+Acceptance criteria: A single-click disable action is available on every live rule in the backoffice. Disable takes effect in <1 minute across the evaluation layer. A disable event is captured in the audit log with actor, rule, and timestamp. Disabled rules remain visible in the rule list with an explicit disabled state.
+FM-04 · Rollback to a previous rule version · P1 — Must
+As a Fraud Manager, I want to roll a rule back to any previous version in one action, so that if a threshold change produces an unexpected false positive spike I can return to the known-good state without recreating the rule from scratch.
+Acceptance criteria: Every rule maintains version history with a timestamp and approver per version. Any previous version can be restored as the active version with a single action. Rollback is captured in the audit log. Rollback does not affect historical evaluation logs associated with the older version.
+FM-05 · Multi-signal rule composition · P1 — Must
+As a Fraud Manager, I want to compose rules that evaluate device, identity, behavioural, geolocation, and payment signals in combination, so that fraud patterns invisible in any single dimension — and only visible in multi-signal correlation — can be expressed as explicit controls.
+Acceptance criteria: The rule authoring interface supports boolean combination of conditions across all five signal dimensions. Composed rules are testable in the evaluation sandbox (see FA-04) before approval. Rule logic displays human-readable per-signal breakdown in the backoffice.
+FM-06 · Scope a rule by brand, country, or channel · P1 — Must
+As a Fraud Manager, I want to scope a rule by brand, country, or channel, so that a jurisdiction-specific regulatory constraint or a brand-specific fraud pattern can be expressed without creating unintended impact in other markets.
+Acceptance criteria: Every rule has explicit scope fields for brand, country, and channel. Default scope is "all" on each dimension. Scope is evaluated as an AND gate — a payout must match all scoped dimensions for the rule to apply. Scope is visible in rule list and audit log.
+FM-07 · AI candidate approval workflow · P2 — Should (V1)
+As a Fraud Manager, I want to approve AI-generated rule candidates with the same workflow and authority as hand-authored rules, so that the V1 ML layer augments my team's throughput without bypassing our judgement or accountability.
+Acceptance criteria: AI candidates appear in a review queue distinct from live rules. Approval action promotes a candidate to a live rule. Approver identity, timestamp, model version, and model confidence score are captured in the audit log. Candidates can be approved as-is, modified before approval, or rejected with a structured reason.
+FM-08 · Candidate review backlog health · P2 — Should (V1)
+As a Fraud Manager, I want a leadership view of the candidate review backlog — volume, ageing, oldest-unreviewed — so that a review bottleneck becomes visible before it silently stalls the V1 feedback loop.
+Acceptance criteria: Dashboard shows total candidates pending, median age, oldest age, and review rate (candidates actioned per week). Ageing threshold (proposed: 5 business days) triggers a visible alert on the dashboard. Data exportable for Fraud leadership reporting.
+FM-09 · Rule performance review cadence · P1 — Must
+As a Fraud Manager, I want to review the interception rate, false positive rate, and trigger volume of every live rule on a regular cadence, so that stale or over-triggering rules are retired before they degrade queue quality.
+Acceptance criteria: Rule list displays interception rate, FPR, and trigger count over configurable time windows (7/30/90 days). Filterable by brand, country, channel, and rule origin. A "review overdue" flag surfaces on rules not reviewed in a configurable period.
+
+Fraud Analyst — Investigation, Rule Drafting, Calibration
+FA-01 · See why a payout was flagged or blocked · P1 — Must
+As a Fraud Analyst, I want to see the full decision chain for any flagged or blocked payout — which rules triggered, which signals were evaluated, what the signal values were — so that I can investigate the case without switching tools or requesting log pulls.
+Acceptance criteria: Each flagged or blocked payout has a decision detail view accessible from the Ops queue and rule performance dashboards. View shows triggering rules (names + versions), all signals evaluated with values, evaluation latency, timestamp, and final outcome. View is exportable as a case record for escalation.
+FA-02 · Investigate a false positive end-to-end · P1 — Must
+As a Fraud Analyst, I want to take a confirmed false positive and trace it back to the specific rule and threshold that caused it, so that I can propose a calibration change or disable the rule with evidence rather than speculation.
+Acceptance criteria: From a confirmed-legitimate payout in the Ops queue, the analyst can navigate to the rule(s) responsible. Rule view shows all recent triggers, including other confirmed legitimate cases. The analyst can propose a threshold change directly from this view, which routes to a Fraud Manager for approval (FM-02).
+FA-03 · Draft a new rule from an observed pattern · P1 — Must
+As a Fraud Analyst, I want to draft a new rule directly in the backoffice using signal conditions I have observed in recent fraud cases, so that pattern detection moves into the rule engine instead of living in individual analyst heads or external spreadsheets.
+Acceptance criteria: Rule authoring interface supports multi-signal condition composition (see FM-05). Drafts save without approval and are visible to the author and Fraud Manager. Drafts do not affect production evaluation. Draft state, author, and last modified timestamp are visible.
+FA-04 · Test a rule against historical payouts before approval · P1 — Must
+As a Fraud Analyst, I want to run a draft rule against the last 30/60/90 days of historical payout data in a sandbox, so that I can see its hypothetical trigger volume, interception rate, and false positive rate before asking for approval to deploy.
+Acceptance criteria: Any draft rule can be executed against the historical evaluation log. Output shows hypothetical trigger count, hypothetical interception rate (against confirmed-fraud cases), hypothetical FPR (against confirmed-legitimate cases), and a sample of cases that would have triggered. Sandbox run is labelled clearly as non-production. Sandbox results attach to the rule approval request.
+FA-05 · Structured reason codes on Ops queue dispositions · P1 — Must
+As a Fraud Analyst, I want Ops agents to tag each queue disposition with a structured reason code when they confirm fraud or confirm legitimate, so that I can tune rules based on real-world outcome data rather than guessing why flags are being generated.
+Acceptance criteria: Ops queue disposition actions require a reason code from a managed list. Codes are joinable back to triggering rules in reporting. Reason code taxonomy is maintained by Fraud (not engineering-owned).
+FA-06 · Reject an AI candidate with a structured reason · P2 — Should (V1)
+As a Fraud Analyst, I want to reject an AI-generated candidate with a structured reason code (false pattern, too broad, duplicates existing rule, regulatory conflict, other), so that rejection reasons feed back into model retraining rather than being discarded as unstructured feedback.
+Acceptance criteria: Rejection requires a reason code from a managed list. Rejection reason, analyst identity, timestamp, and candidate metadata are captured and made available to the ML/Data team. Rejection reasons are reportable in aggregate.
+
+Operations Agent — Queue Work
+OA-01 · Prioritised flagged-payout queue with context in view · P1 — Must
+As an Operations Agent, I want a queue of flagged payouts sorted by risk severity, with triggering rules and key signals visible in the list view, so that I can make rapid disposition decisions without opening each case individually.
+Acceptance criteria: Queue view shows, per row: payout ID, amount, player identifier, triggering rule(s), key signal values, time in queue. Sort defaults to risk severity descending. Filterable by rule, brand, country, and queue age. Keyboard-driven navigation for high-throughput working.
+OA-02 · Disposition a case in one action with reason code · P1 — Must
+As an Operations Agent, I want to confirm fraud or release a payout from the queue in one action with a mandatory reason code, so that I can keep throughput high while producing the labelled data Fraud needs for rule tuning.
+Acceptance criteria: Two primary actions — "confirm fraud" and "release as legitimate" — available from both list and detail views. Each action requires a reason code (see FA-05). Disposition takes effect in <5 seconds. Released payouts return to the payout flow for normal processing.
+OA-03 · Escalate a case that requires senior judgement · P1 — Must
+As an Operations Agent, I want to escalate a case to Ops Manager or Fraud Analyst with my working notes attached, so that ambiguous cases do not clog the queue waiting for me to decide beyond my authority.
+Acceptance criteria: Escalate action with destination (Ops Manager, Fraud Analyst) and free-text note. Escalated case moves to escalation queue visible to the destination persona. Escalation is captured in the audit log.
+OA-04 · Handle a blocked-payout customer escalation · P1 — Must
+As an Operations Agent (or Customer Support Agent), when a player queries why their payout was blocked, I want access to the human-readable reason chain for that specific decision, so that I can explain the outcome at first contact or route the appeal with full context, without needing to escalate to Fraud for every enquiry.
+Acceptance criteria: By payout ID or player ID, the reason chain for any PRISM-blocked payout is retrievable. Reason chain is in plain language suitable for customer-facing communication (not raw rule logic). Access is role-scoped. Every retrieval is captured in the audit log for privacy defensibility.
+
+Operations Manager — Queue Health and Capacity
+OM-01 · Queue precision and volume dashboard · P2 — Should
+As an Operations Manager, I want a dashboard showing queue volume trend, disposition split (confirmed fraud vs released), and per-rule precision over time, so that I can assess whether the queue is producing meaningful signal or generating workload without return.
+Acceptance criteria: Dashboard shows daily/weekly queue volume, disposition counts, and precision per rule for configurable time windows. Precision below an agreed threshold on any rule triggers a visible alert, routed to Fraud Manager. Data exportable.
+OM-02 · Capacity vs inflow early warning · P2 — Should
+As an Operations Manager, I want an early warning when queue inflow exceeds my team's current disposition rate, so that I can flag a capacity issue before a backlog damages player experience through delayed payouts.
+Acceptance criteria: Dashboard surfaces a rolling inflow-vs-disposition ratio. A configurable threshold triggers an alert to Ops Manager. Historical trend is visible for capacity planning.
+
+Finance Lead — Loss Reporting and ROI
+FIN-01 · PRISM loss trend reporting · P2 — Should
+As a Finance Lead, I want a monthly report showing confirmed fraudulent payout losses with attribution to PRISM interception, so that I can report on PRISM ROI and loss trajectory to leadership with defensible numbers.
+Acceptance criteria: Monthly report shows confirmed losses for the period, losses intercepted by PRISM (value, count), net loss, and trend against prior 12 months. Report is generated from PRISM evaluation logs joined to Finance's confirmed-loss register. Report is reproducible from source data.
+FIN-02 · PRISM ROI dashboard · P2 — Should
+As a Finance Lead, I want to see the ROI of PRISM — loss reduction benefit against build amortisation and run cost — tracked monthly, so that I can defend continued investment and identify when the ROI case shifts.
+Acceptance criteria: Dashboard shows gross benefit (intercepted loss), run cost, amortised build cost, and net ROI per month. Data sources documented. Methodology signed off by Finance before first reporting period.
+
+Tech Lead / Platform Owner
+TL-01 · PRISM health and SLO monitoring · P1 — Must
+As a Tech Lead, I want live visibility into PRISM's evaluation latency, uptime, error rate, and signal availability, so that I can detect degraded states before they affect production outcomes.
+Acceptance criteria: Monitoring dashboard shows p50/p95/p99 latency, uptime (rolling 30-day), evaluation error rate, and signal-availability percentage per source. All metrics alert against defined SLO thresholds. Metrics exposed to standard Tech monitoring tooling.
+TL-02 · Fail-open routing when PRISM is degraded · P1 — Must
+As a Tech Lead, I want PRISM to fail open to the APA-only payout path when PRISM is unavailable or signal quality drops below a configurable threshold, so that PRISM never becomes a new availability failure mode for the payout flow.
+Acceptance criteria: Fail-open routing is automatic. Degraded state triggers immediate alerts to Tech and Fraud. During fail-open, evaluations are logged as "skipped — degraded state" with reason. Recovery from degraded state is automatic and also logged.
+TL-03 · Signal source independence · P2 — Should
+As a Tech Lead, I want PRISM to evaluate with partial signal sets when a signal source is unavailable, rather than failing the whole evaluation, so that a single upstream outage does not collapse PRISM to fail-open unnecessarily.
+Acceptance criteria: Evaluation proceeds when at least 80% of required signals are available (configurable). Rules that depend on unavailable signals are marked as non-evaluable for that request and logged. Per-evaluation signal availability is visible in the decision chain (FA-01).
+
+Compliance Officer / Audit
+CO-01 · Immutable audit trail of every evaluation · P1 — Must
+As a Compliance Officer, I want an immutable, timestamped record of every PRISM evaluation — signals assessed, rules triggered, outcome, rule origin, approver identity — so that I can respond to regulatory queries and internal audit requests with complete data.
+Acceptance criteria: Every evaluation produces a log record. Records are append-only and tamper-evident. Retention meets the longest jurisdictional requirement (to be confirmed per §14). Log is queryable by payout ID, player ID, rule, and time range. Query actions against the audit log are themselves logged.
+CO-02 · Regulatory query response · P1 — Must
+As a Compliance Officer, when I receive a regulatory request about a specific payout decision, I want to retrieve the full decision chain with reason codes in a defensible, exportable format, so that I can respond within the regulator's deadline without engineering assistance.
+Acceptance criteria: By payout ID, full decision chain is retrievable: signals evaluated, rules triggered (names, versions, scopes, origin), model confidence if applicable, final outcome, reason chain, approver identity per rule. Export is human-readable and machine-readable (PDF + JSON). Retrieval is role-scoped and audit-logged.
+CO-03 · AI decision-making disclosure (V1) · P2 — Should (V1)
+As a Compliance Officer, I want to distinguish decisions influenced by AI-generated rules from those based only on hand-authored rules in the audit log, so that I can answer regulatory questions about automated decision-making precisely.
+Acceptance criteria: Rule origin (hand-authored, AI-generated, AI-generated-modified) is recorded per live rule version. Per-evaluation log records the origin of every triggering rule. Reporting can filter or group by rule origin.
+
+Customer Support Agent
+CS-01 · Look up a blocked-payout decision reason · P1 — Must
+As a Customer Support Agent, when a player contacts us about a blocked payout, I want to look up a plain-language reason without needing to request it from Ops or Fraud, so that I can respond at first contact or route an appeal with full context.
+Acceptance criteria: By player ID or payout ID, a support-appropriate reason summary is retrievable. Summary is plain language, not raw rule logic. Summary does not reveal detection methodology that would aid adversarial probing. Access is role-scoped and audit-logged.
+CS-02 · Route a blocked-payout appeal · P1 — Must
+As a Customer Support Agent, I want to route a player's appeal of a blocked payout to Ops or Fraud with the original case context attached, so that the player's enquiry reaches the right reviewer with full history, without the player re-explaining.
+Acceptance criteria: Appeal routing action from support tooling into the Ops queue or Fraud escalation queue. Original decision chain and reason attach automatically. Appeal SLA starts on routing. Player-facing communication on appeal receipt is automatic.
+
+Degraded State / Safety
+DS-01 · Visible degraded-state banner · P1 — Must
+As any PRISM user (Fraud, Ops, Support), I want a visible banner when PRISM is in a degraded or fail-open state, so that I interpret what I am (or am not) seeing in context — for example, why no new cases are appearing in the queue.
+Acceptance criteria: Banner appears in all PRISM backoffice surfaces when degraded state is detected. Banner includes state name, start time, and affected capability. Banner clears automatically on recovery.
+DS-02 · Retrospective visibility on fail-open periods · P1 — Must
+As a Fraud Manager, after a fail-open period, I want to see the payouts that went through the APA-only path unevaluated by PRISM, so that I can retrospectively assess exposure and decide whether manual review is warranted for high-value cases from that window.
+Acceptance criteria: Fail-open periods are queryable by time range. For each period, the list of payouts processed without PRISM evaluation is available, filterable by amount and other signals. Bulk post-hoc evaluation (against current rule set) is available for high-value cases from the period.

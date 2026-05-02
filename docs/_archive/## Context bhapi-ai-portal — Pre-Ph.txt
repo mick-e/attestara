@@ -1,0 +1,119 @@
+## Context: bhapi-ai-portal — Pre-Phase-4 Gaps + Full Phase 4 Execution
+
+  **Repo:** C:\claude\bhapi-ai-portal (mick-e/bhapi-ai-portal on GitHub)
+  **Branch:** master (direct push workflow)
+  **Current version:** 4.0.0
+  **Date of last work session:** 2026-04-16
+  **Latest commit:** b85f39f (fix: endpoint_rate_limit respects rate_limit_fail_open)
+
+  ### What was done in the prior session
+
+  1. **Full project review** — both bhapi repos audited, status reported
+  2. **Walked through all 25 review recommendations** from
+  `docs/superpowers/plans/2026-04-12-review-recommendations-implementation.md`
+  3. **Drafted and committed the Phase 4 plan** — `docs/superpowers/plans/2026-10-01-phase4-market-leadership.md` (32 tasks, 4
+  layers, 26 weeks)
+  4. **Closed 4 review-recs directly:**
+     - R-04 (version sync) — commit 9d4d99f, pyproject.toml bumped to 4.0.0
+     - R-12 (User lazy loading) — commit 9a45604, removed lazy="selectin" from 3 relationships
+     - R-09 (CSP tightening) — commit a9e67ca, removed unsafe-inline from script-src, added HSTS preload
+     - R-10 (exception audit) — commits a532fc5 + c25ed6d, 146-violation audit + 12 silent-swallow fixes, 0 bare `except Exception:
+   pass` remaining
+  5. **Partially closed R-25 (module isolation linter)** — commits 7c5c10d + 8663dfe, AST linter in CI (warn-only mode), 138
+  existing violations documented in `docs/audits/module_isolation_audit.txt`
+  6. **Fixed pre-existing test failure** — commit b85f39f, endpoint_rate_limit now respects rate_limit_fail_open config
+  7. **Pushed 19+8=27 commits to origin** (17 backlog from prior sessions + 10 from this session)
+  8. **Ran full test suites:** e2e 1,766 passed / security 1,035 passed (0 failures after rate-limit fix)
+
+  ### Current review-recommendation scorecard (13/25 closed)
+
+  **CLOSED:** R-01 (app store — process), R-02 (i18n), R-03 (Redis tokens), R-04 (version sync), R-05 (dep upper bounds), R-06
+  (alert button), R-07 (pip-audit CI), R-08 (billing page), R-09 (CSP), R-10 (exception audit), R-11 (risk pagination), R-12 (User
+  lazy loading), R-15 (moderation consent)
+
+  **OPEN (12 remaining — all in Phase 4 plan):**
+  - R-13: AI monitoring accuracy benchmarks (Phase 4 Task 5)
+  - R-14: Managed Chromebook deployment (Phase 4 Task 16 area — large)
+  - R-16: OAuth auth-code exchange — move token out of URL (Phase 4 Task 3)
+  - R-17: Ohio AI governance compliance package (Phase 4 Task 17 — deadline Jul 1 2026)
+  - R-18: FERPA compliance module (Phase 4 Tasks 6-8)
+  - R-19: Portal pages for location/screen-time/creative/insights (Phase 4 Tasks 11-14)
+  - R-20: Contextual onboarding cards (Phase 4 Task 15)
+  - R-21: SOC 2 Type II certification (Phase 4 Tasks 9-10, 31)
+  - R-22: School pricing $1.99/seat + free pilot (Phase 4 Task 20)
+  - R-23: Apple PermissionKit iOS 26 (Phase 4 Task 28)
+  - R-24: VPN/bypass detection for schools (Phase 4 Task 23)
+  - R-25 Part 2: Clear 138 module-isolation violations + flip linter to --strict
+
+  ### Pre-Phase-4 gaps to close FIRST
+
+  These are NOT in the Phase 4 plan but were identified during the session as outstanding work that should ship before Phase 4
+  begins:
+
+  1. **Dependabot PRs (8 open on GitHub)** — Next.js 15.5.15, next-intl 4.9.1, vite/vitest patches, extension security patches
+  (lodash, handlebars, serialize-javascript, picomatch). Run `gh pr list` to see current state. Review each for breaking changes;
+  batch-merge patches, review Next.js separately.
+
+  2. **R-25 Part 2: Clear 138 module-isolation violations** — the linter is in CI as warn-only. The 138 violations are documented
+  in `docs/audits/module_isolation_audit.txt`. The #1 pattern is `from src.auth.middleware import ...` (~25 of 138) — fixing this
+  requires untangling the `src/dependencies.py` ↔ `src/auth/middleware` cycle. Strategy: add re-exports to `__init__.py` files
+  where safe; convert to deferred (function-body) imports where cycles exist. Then flip CI to `--strict` mode (`python
+  scripts/lint_module_imports.py --strict`). The linter also needs unit tests (`tests/unit/test_lint_module_imports.py`) per code
+  review feedback.
+
+  3. **Code review follow-ups from Task 1 (R-09 CSP):**
+     - Add positive test assertion that `https://js.stripe.com` appears in `frame-src`/`connect-src` (regression-proofing)
+     - Add inline comment in `src/main.py` CSP block explaining why js.stripe.com is listed (portal uses redirect Checkout, not
+  embedded Elements — forward-compatible)
+     - Consider shared `minimal_client` fixture in `tests/security/conftest.py` for header-only tests
+
+  4. **CLAUDE.md staleness** — several sections are behind reality:
+     - Test counts should be updated (backend 4,639+, security 1,035, e2e 1,766)
+     - Module list in §3 is missing newer modules
+     - Migration count should reflect current state (check `ls alembic/versions/ | wc -l`)
+
+  5. **Untracked files cleanup** — `.turbo/`, `AGENTS.md`, `deploy/render-env.py`, `docs/bhapi-platform-unification-scope.html`,
+  `docs/bhapi-status.txt` are sitting untracked. Decide: commit, gitignore, or delete.
+
+  ### Phase 4 plan execution
+
+  After pre-Phase-4 gaps are closed, execute the full Phase 4 plan at:
+  `docs/superpowers/plans/2026-10-01-phase4-market-leadership.md`
+
+  **32 tasks across 4 layers:**
+
+  - **Layer 1 (Foundation):** Tasks 1-10 — R-09 ✅, R-10 ✅, R-16 (OAuth auth-code), R-25 (linter — partially done), R-13
+  (benchmarks), R-18 (FERPA module — 3 tasks), R-21 (SOC 2 — 2 tasks)
+  - **Layer 2 (Platform & Ecosystem):** Tasks 11-19 — R-19 (4 portal pages), R-20 (onboarding cards), Public API GA (rate tiers +
+  SDKs), Intelligence network (anonymized threat sharing)
+  - **Layer 3 (Bundles & International):** Tasks 20-27 — R-22 (school pricing), Family+ bundle, identity-protection partnership,
+  R-24 (VPN detection), UK AADC, AU eSafety, NL/PL/SV i18n, acquisition evaluation
+  - **Layer 4 (Native + Launch):** Tasks 28-32 — R-23 (PermissionKit), Android Digital Wellbeing, mobile perf hardening, SOC 2
+  close, launch comms
+
+  **Execution approach:** Use `superpowers:subagent-driven-development` skill — fresh subagent per task, two-stage review (spec
+  compliance then code quality). Tasks 1 (R-09) and 2 (R-10) are already complete from the prior session. Task 4 (R-25) is
+  partially done (linter ships warn-only; Part 2 is in pre-Phase-4 gaps above). Resume from Task 3 (R-16 OAuth auth-code exchange).
+
+  **Key references:**
+  - Phase 4 plan: `docs/superpowers/plans/2026-10-01-phase4-market-leadership.md`
+  - Review-recs source plan: `docs/superpowers/plans/2026-04-12-review-recommendations-implementation.md`
+  - Gap analysis: `docs/Bhapi_Gap_Analysis_Q2_2026.md`
+  - CLAUDE.md at repo root for all conventions
+  - Audit files: `docs/audits/module_isolation_audit.txt`, `docs/audits/exception_audit_phase4.txt`
+
+  **Process tasks requiring human action (flag but don't block on):**
+  - Task 9: SOC 2 auditor engagement (needs vendor selection + SOW)
+  - Task 22: Identity-protection partnership (needs BD outreach)
+  - Task 27: Acquisition evaluation (needs founder conversations)
+  - Tasks 20-21: Stripe price changes (need user confirmation before production flip)
+
+  ### Instructions
+
+  1. Start with the 5 pre-Phase-4 gaps listed above. For each, assess current state, implement the fix, run relevant tests, commit
+  + push.
+  2. Then resume Phase 4 execution from Task 3 (R-16). Use subagent-driven-development per the plan header.
+  3. For tasks that are process-only (SOC 2 engagement, partnerships, acquisition), create placeholder commits with decision docs
+  and flag for human action.
+  4. Run full test suites (e2e + security + unit) after each layer completes to catch regressions early.
+  5. Update CLAUDE.md and any relevant md files after each layer to keep it current with reality.

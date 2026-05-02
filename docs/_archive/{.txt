@@ -1,0 +1,11 @@
+{
+	Transaction ID: 7a2791b1-4a72-4849-9b26-116ad379664f
+	Resource: ES-VDI-Published-Desktop
+	Platform: Windows 11 Pro Insider Preview
+	App Version: Citrix Workspace app 25.11.10.50
+	Error Message: Unable to launch the resource due to a Connection Manager error. 
+(Error code:65527)
+	Recommendation: To try to resolve the issue, quit and reopen Citrix Workspace. If the issue persists, contact your system administrator
+	LeaseSyncLastSuccess: Not available
+	LeaseSyncLastSyncStatus: Not available
+}
