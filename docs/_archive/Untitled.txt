@@ -1,0 +1,231 @@
+
+
+Create a professional end-solution planning document for a browser-based mobile device scanning platform, using the following context and requirements. Document objective: Produce a detailed solution planning document for an end-to-end web-based mobile device scanner that runs in the browser withou
+
+In Planning mode please follow my prompt pasted and doc attached to create a full specification document that i can then go to third party dev teams to quote and potentially develop and implement any questions please ask me.
+
+Create a professional end-solution planning document for a browser-based mobile device scanning platform, using the following context and requirements.
+
+Document objective:
+Produce a detailed solution planning document for an end-to-end web-based mobile device scanner that runs in the browser without login, scans mobile device hardware/performance status, identifies returning users using a browser/device fingerprint approach, stores scan results in an existing web portal, and exposes external APIs for sharing scan data with third parties.
+
+The document should be written as a professional solution architecture / product-technical planning document suitable for internal stakeholders, engineering leadership, product, security, and delivery teams.
+
+Context:
+The solution is based on an existing prototype web portal and must support iOS and Android mobile devices through standard browser technologies only. The scanning must be installation-free and work without requiring native apps, browser extensions, or elevated permissions. It must support major mobile browsers including Safari, Chrome, Samsung Internet, Firefox, Edge, and Opera where feasible. The solution must detect the OS and browser capability set and run the appropriate scan flows.
+
+The scan flow must cover the full end-to-end user journey:
+1. Anonymous user lands on the web scanner
+2. Browser/device capability detection occurs
+3. Supported scan tests run automatically
+4. User/device fingerprint is generated without registration
+5. Scan results are associated to that fingerprint/profile
+6. Results are saved into an existing portal
+7. Results are made available through secure external APIs for downstream sharing/integration
+
+Core solution scope:
+- Fully web-based mobile device scanning
+- No login required for initial scan
+- Anonymous user recognition via device/browser fingerprinting
+- Save scan results to an existing web portal/dashboard
+- External API integration to share scan results and user scan history
+- Cross-platform handling for iOS and Android differences
+- Graceful fallback where APIs are unavailable
+- Clear treatment of browser-only technical limitations
+
+Scanning capability areas to include:
+1. Screen performance
+   - Resolution
+   - Pixel density / devicePixelRatio / DPI class inference
+   - Orientation
+   - Native vs scaled rendering inference
+   - Effective FPS
+   - Jank / frame drops
+   - Render stress test scoring
+
+2. Video performance
+   - Codec support
+   - Resolution support
+   - MediaCapabilities API usage where available
+   - Playback startup time
+   - Stall frequency
+   - Dropped frames
+   - Smoothness and efficiency inference
+
+3. Audio capability
+   - Codec support
+   - AudioContext properties such as sample rate and base latency
+   - OfflineAudioContext performance tests
+   - Inferred DSP / mixing capability
+
+4. Battery performance indicator
+   - Load-based inference only where API/browser support allows
+   - Battery/thermal throttling inference where possible
+   - Explicitly avoid claiming true battery health where not technically possible
+
+Identity and persistence requirements:
+- The solution must identify repeat users without registration using browser/device fingerprinting techniques
+- Explain realistic fingerprint inputs available in modern mobile browsers
+- Explain limitations due to browser privacy controls, anti-fingerprinting measures, browser resets, private mode, OS updates, and changing network/browser conditions
+- Define how confidence scoring should work for fingerprint matching
+- Define how a scan is associated to an anonymous user profile
+- Define how the anonymous profile is stored in the existing portal
+- Define how scan history is attached to that profile over time
+- Include privacy, legal, consent, transparency, and retention considerations for fingerprint-based identification
+
+Portal/storage requirements:
+- The existing web portal is the destination system of record for scan records
+- Define the logical data model for:
+  - Anonymous user profile
+  - Device fingerprint record
+  - Individual scan session
+  - Scan metrics/results
+  - Platform/browser capability flags
+  - External API sharing events / audit trail
+- Describe how data should be saved, updated, retrieved, and linked in the portal
+- Include dashboard considerations for showing:
+  - Latest scan
+  - Historical scans
+  - Device/browser trends
+  - Fingerprint confidence / matching status
+  - API sharing / export status
+
+External API integration requirements:
+- The platform must support external integration to share user scan data
+- Define REST API requirements for:
+  - Create scan record
+  - Retrieve latest scan
+  - Retrieve scan history
+  - Retrieve anonymous user/device profile
+  - Webhook/event push option for downstream systems
+  - API authentication/authorization
+  - Rate limiting
+  - Audit logging
+  - Data filtering and masking
+- Include example API payloads and integration patterns
+- Include guidance for partner/customer integrations
+
+Technical constraints that must be explicitly respected:
+- Standard web technologies only
+- No native app requirement
+- No elevated OS permissions
+- No extension requirement
+- No misleading claims about hardware health that cannot be measured in-browser
+- Missing platform/browser capabilities must be reported as “not available” rather than “failed”
+
+Items that must be explicitly marked as out of scope or not technically possible in a browser-only, no-login, no-permission model:
+- Detecting cracked screens, scratches, dead pixels, burn-in, brightness accuracy, color accuracy, or real panel health
+- True battery health, cycle count, battery temperature, or design capacity
+- Camera quality testing without permission prompts
+- Microphone/speaker quality testing without permissions or user interaction
+- Any claim of deterministic user identity
+
+Cross-platform behavior:
+Include a section comparing Android vs iOS / Safari constraints and explain:
+- MediaCapabilities support differences
+- Battery API availability differences
+- WebKit restrictions
+- Muted autoplay behavior
+- Expected browser variance
+- Fallback behavior
+
+Security, privacy, and compliance:
+The document must include a serious treatment of:
+- Data protection risks
+- Fingerprinting privacy concerns
+- GDPR / ePrivacy / regional privacy considerations
+- Consent and notice model options
+- Secure transport and storage
+- API security
+- Abuse prevention
+- Fraud/risk considerations
+- Auditability
+- Retention and deletion considerations
+- Threats such as spoofed scans, replay, automation/bots, tampering, and fake browser environments
+
+Architecture expectations:
+Create a clear end-to-end solution design covering:
+- Client-side scanner components
+- Browser capability detection layer
+- Fingerprint generation/matching service
+- Scan orchestration logic
+- Scoring engine
+- Portal integration layer
+- Backend APIs
+- External integration/API gateway
+- Storage layer
+- Security controls
+- Observability and analytics
+
+Also include:
+- Logical component diagram
+- Data flow description
+- Scan sequence flow
+- Anonymous fingerprint match / profile attach sequence
+- API sharing sequence
+- Failure handling / retry model
+
+Non-functional requirements:
+Include targets or recommendations for:
+- Performance
+- Reliability
+- Scale
+- Mobile browser compatibility
+- Security
+- Privacy
+- Auditability
+- Maintainability
+- Supportability
+- Observability
+
+Delivery and implementation planning:
+Include phased implementation recommendations such as:
+Phase 1: MVP scanning + portal save
+Phase 2: fingerprint matching + scan history
+Phase 3: external APIs + webhook/event integrations to insurance providers
+Phase 4: analytics, scoring refinement, fraud controls, operational hardening
+
+Output format:
+Structure the document with professional headings and subheadings, including:
+1. Executive Summary
+2. Business Objective
+3. Scope
+4. Assumptions and Constraints
+5. User Journey / End-to-End Flow
+6. Functional Requirements
+7. Fingerprint and Anonymous Identity Strategy
+8. Portal Data Model and Storage Approach
+9. External API and Integration Design
+10. Cross-Platform Behavior
+11. Architecture Overview
+12. Security, Privacy, and Compliance Considerations
+13. Non-Functional Requirements
+14. Risks, Limitations, and Mitigations
+15. Delivery Phases / Roadmap
+16. Open Questions / Decisions Needed
+17. Recommendation Summary
+
+Writing style:
+- Professional
+- Concrete
+- Realistic
+- Technically credible
+- No marketing fluff
+- Make clear distinctions between what is feasible, inferred, limited, and impossible
+- Where browser-only constraints limit certainty, state this explicitly
+- Use tables where helpful
+- Include recommendations and trade-offs
+
+Supporting info 
+
+Portal - https://netdevice.wontok.com/login
+
+test account user name - amanda.mariatti@wontok.com
+test account Password - NetDeviceCheck12345
+
+
+supporting Relevent Repos to review
+https://github.com/Wontok-Australia-Pty-Ltd/web-device-scanner - poc web device scanner
+https://github.com/Wontok-Australia-Pty-Ltd/netdevice-check_web - portal for managing deivces scaned
+https://github.com/Wontok-Australia-Pty-Ltd/netdevice-check_android - mobile app version of device scanner
+https://github.com/Wontok-Australia-Pty-Ltd/netdevice-check_ios -  mobile app version of device scanner

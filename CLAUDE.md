@@ -170,3 +170,30 @@ pnpm test                    # All packages via turbo
 | `11-dx-specification.md` | Developer Experience Specification |
 | `12-advisory-board-plan.md` | Advisory Board and Technical Credibility Plan |
 | `13-dao-legal-wrapper.md` | DAO Legal Wrapper Structure |
+
+## Feature Spec Convention
+
+For non-trivial features (multi-day work, schema changes, new endpoints, billing/compliance impact), produce specs at:
+
+```
+docs/superpowers/specs/<YYYY-MM-DD>-<slug>/
+  spec.md         Problem, users, requirements, success criteria.
+                  Output of superpowers:brainstorming. Includes a
+                  one-line "Customer/hypothesis" field — if you can't
+                  fill it in, defer the work.
+  plan.md         Architecture, file changes, sequencing.
+                  Output of superpowers:writing-plans.
+  tasks.md        Ordered checklist with verification step per task.
+  data-model.md   REQUIRED if migrations, new tables/columns, or
+                  model changes. Schema deltas + rationale.
+  contracts/      REQUIRED if new/changed API endpoints. One file
+                  per endpoint group; markdown or OpenAPI.
+  quickstart.md   How to verify end-to-end (curl, UI steps,
+                  expected output). Doubles as smoke test script.
+  research.md     Optional. Library evals, competitor scan,
+                  prior art.
+```
+
+**Skip levels for trivial work.** Bug fix or copy change = no spec folder. One-endpoint feature with no migration = `spec.md` + `plan.md` only. Use judgment.
+
+**Loose docs in `docs/`** are archived to `docs/_archive/` rather than deleted, preserving history. New work follows the convention above.

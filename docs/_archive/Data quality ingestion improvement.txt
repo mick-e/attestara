@@ -1,0 +1,18 @@
+Data quality ingestion improvement into Sage & Prophix project suggest by Data Mar 2025 is this still relevant?
+Is this data quality proposal included part of the RSS scope?
+Is there a dependency to improve data quality into RSS before beginning the project. 
+
+
+
+Statements
+Service analysis is something needed regardless of the proposed project. 
+Translation project makes sense as current approach is clearly a security risk to the business and manual effort could be reduced. 
+
+
+Recommendations
+Hire a BA or allocate a resource to perform service analysis of Fin services, focussing on critical services such as RSS, Yooz, Aurum, Profix & Sage. With a prioritisation from KJM & Tina. This is a on going requirement to not just map current state and processes but recommend improvements 
+
+Observation 
+Option 1 is the support the status quo
+Option 2 
+ 

@@ -1,0 +1,10 @@
+Confirm the anchoring service specification and the cross-org session handshake now both fully documented, the two biggest critical gaps in the whitepaper are resolved.
+The remaining critical items from the submission readiness checklist are:
+
+Circuit versioning scheme — Section 6.4 and VerifierRegistry
+IdentityBinding fallback removal
+Co-author front matter
+
+Cji9 9Yyq 1RUq J4MI 6AOl 5TfQ 
+
+Ibtz5s4Dw1mDwwaQu7kSfjTN0Bp1-dOJfc9-D680

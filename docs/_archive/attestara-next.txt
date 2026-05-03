@@ -1,0 +1,41 @@
+ Top 3 Strategic Priorities
+
+  1. Agent Framework Integration (Adoption Moat)
+
+  Why: Biggest competitive risk from the review. ERC-8004/x402 and Fetch.ai are racing to be the "default" trust layer. Whoever
+  integrates with CrewAI/LangGraph/AutoGPT first wins developer mindshare.
+
+  Concrete: Ship @attestara/crewai-plugin and @attestara/langgraph-plugin that wrap the SDK as agent tools. Target: 10-minute
+  quickstart where a CrewAI agent gets a DID, issues itself a mandate, and negotiates with another agent.
+
+  Impact: Converts the protocol from "a thing you could use" to "a thing you just import." This is the #1 gap.
+
+  ---
+  2. Mainnet Path + Security Audit
+
+  Why: You're testnet-only. Real adoption requires mainnet contracts. But you can't deploy to mainnet with just internal fixes —
+  you need a third-party audit.
+
+  Concrete:
+  - Engage an auditor (Trail of Bits, OpenZeppelin, Sherlock, or Spearbit) — 4-6 week lead time
+  - While waiting: write the audit prep doc (architecture, threat model, deployed testnet addresses, invariants)
+  - Rotate DEPLOYER_PRIVATE_KEY to hardware wallet / HSM
+  - Budget: $30-80k for audit depending on firm
+
+  Impact: Unlocks mainnet and enterprise conversations. Without it, no serious customer will anchor real value.
+
+  ---
+  3. First-Customer Pipeline
+
+  Why: The tech is ready (1,100+ tests passing, all security dimensions > 80%). Now you need validation from real users before
+  refining further.
+
+  Concrete:
+  - Identify 3-5 target design partners — likely candidates: DeFi protocols automating treasury, DAOs using agents for
+  governance, B2B procurement platforms
+  - Build a "reference demo" showing one end-to-end agent commerce flow specific to that vertical
+  - Offer free white-glove onboarding for 3 partners in exchange for case studies
+  - Measure: time-to-first-commitment, weekly active agents
+
+  Impact: Converts a tech demo into a protocol with actual transactions. Also surfaces real pain points your internal review
+  couldn't find.
